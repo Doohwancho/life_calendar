@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .grid-container {
+            display: grid;
+            grid-template-columns: 60px repeat(6, 1fr);
+            gap: 1px;
+            background-color: #eee;
+            /* padding: 10px; */
+            max-width: 200px;
+            margin: 0 auto;
+        }
+
+        .header-cell {
+            background-color: #f8f9fa;
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .time-cell {
+            background-color: #f8f9fa;
+            padding: 8px;
+            text-align: right;
+        }
+
+        .grid-cell {
+            background-color: white;
+            min-height: 24px;
+            border: 1px solid #ddd;
+            padding: 4px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .grid-cell:hover {
+            border-color: #aaa;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            padding: 20px;
+            max-width: 200px;
+            margin: 0 auto;
+            align-items: center;
+            position: relative;
+        }
+
+        .add-color-btn {
+            width: 32px;
+            height: 32px;
+            border: 2px dashed #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            background: white;
+        }
+
+        .add-color-btn:hover {
+            border-color: #666;
+        }
+
+        .color-picker-popup {
+            position: absolute;
+            top: 100%;
+            right: 20px;
+            min-width: 200px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: none;
+        }
+
+        .color-picker-popup.show {
+            display: block;
+        }
+
+        .color-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .color-input-group input {
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .color-option {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .color-option:hover::after {
+            content: attr(data-label);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 4px 8px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+        }
+
+        #colorInput {
+            margin-bottom: 10px;
+        }
+
+        .editing-textarea {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #4299e1;
+            padding: 4px;
+            resize: none;
+            font-family: inherit;
+            font-size: inherit;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-container" id="timeGrid">
+        <!-- Grid will be populated by JavaScript -->
+    </div>
+
+    <div class="color-picker" id="colorPicker">
+        <!-- <div class="color-option" style="background-color: #a5d8ff"></div> -->
+        <!-- <div class="color-option" style="background-color: #ffd8a8"></div> -->
+
+        <!-- Color options will be populated by JavaScript -->
+        <button class="add-color-btn" id="addColorBtn">+</button>
+        <div class="color-picker-popup" id="colorPickerPopup">
+            <div class="color-input-group">
+                <input type="color" id="colorInput" value="#a5d8ff">
+                <input type="text" id="colorLabel" placeholder="Enter color label">
+            </div>
+            <button class="save-btn" id="saveColorBtn">Add Color</button>
+        </div>
+    </div>
+
+    <script>
+        let selectedColor = '#a5d8ff';
+        const blockData = {};
+        let savedColors = [
+            { color: '#ffffff', label: 'Rest' },
+            { color: '#000000', label: 'Sleep' },
+            { color: '#44f275', label: 'Learn' },
+            { color: '#fcff5e', label: 'Fun' },
+            { color: '#38adf5', label: '메타인지' },
+            { color: '#ed2a02', label: '운동' },
+        ];
+
+        function initializeGrid() {
+            const grid = document.getElementById('timeGrid');
+
+            // Add header row
+            grid.appendChild(createCell('Hour', 'header-cell'));
+            for (let i = 1; i <= 6; i++) {
+                grid.appendChild(createCell(`${i}0m`, 'header-cell'));
+            }
+
+            // Create time blocks
+            for (let hour = 0; hour < 24; hour++) {
+                const displayHour = (hour + 6) % 24;
+                grid.appendChild(createCell(
+                    `${String(displayHour).padStart(2, '0')}:00`,
+                    'time-cell'
+                ));
+
+                for (let block = 0; block < 6; block++) {
+                    const cell = createCell('', 'grid-cell');
+                    cell.dataset.hour = hour;
+                    cell.dataset.block = block;
+                    cell.addEventListener('click', handleCellClick);
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        function createCell(text, className) {
+            const cell = document.createElement('div');
+            cell.className = className;
+            cell.textContent = text;
+            return cell;
+        }
+
+        function handleCellClick(event) {
+            const cell = event.target;
+            const hour = cell.dataset.hour;
+            const block = cell.dataset.block;
+            const blockKey = `${hour}-${block}`;
+
+            // Remove any existing textarea
+            const existingTextarea = document.querySelector('.editing-textarea');
+            if (existingTextarea) {
+                existingTextarea.remove();
+            }
+
+            // Create and add new textarea
+            const textarea = document.createElement('textarea');
+            textarea.className = 'editing-textarea';
+            textarea.value = blockData[blockKey]?.text || '';
+            textarea.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    saveBlock(blockKey, textarea.value, cell);
+                    textarea.remove();
+                }
+            });
+
+            cell.style.backgroundColor = selectedColor;
+            cell.appendChild(textarea);
+            textarea.focus();
+        }
+
+        function saveBlock(blockKey, text, cell) {
+            blockData[blockKey] = {
+                text: text,
+                color: selectedColor
+            };
+
+            // Update cell display
+            cell.textContent = text;
+            cell.style.backgroundColor = selectedColor;
+        }
+
+        // Initialize color picker
+        function initializeColorPicker() {
+            const colorPicker = document.getElementById('colorPicker');
+            const addColorBtn = document.getElementById('addColorBtn');
+            const popup = document.getElementById('colorPickerPopup');
+            const colorInput = document.getElementById('colorInput');
+            const colorLabel = document.getElementById('colorLabel');
+            const saveColorBtn = document.getElementById('saveColorBtn');
+
+
+            // Clear existing color options except the add button and popup
+            const children = Array.from(colorPicker.children);
+            children.forEach(child => {
+                if (child !== addColorBtn && child !== popup) {
+                    child.remove();
+                }
+            });
+
+            // Add color options
+            savedColors.forEach(({color, label}) => {
+                const colorOption = document.createElement('div');
+                colorOption.className = 'color-option';
+                colorOption.style.backgroundColor = color;
+                colorOption.dataset.label = label; // This enables the hover tooltip
+                colorOption.addEventListener('click', () => {
+                    selectedColor = color;
+                });
+                colorPicker.insertBefore(colorOption, addColorBtn);
+            });
+
+            // Add color button handler
+            addColorBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                popup.classList.toggle('show');
+                colorLabel.value = ''; // Reset label input
+            });
+
+            // Save color button handler
+            saveColorBtn.addEventListener('click', () => {
+                const newColor = colorInput.value;
+                const newLabel = colorLabel.value.trim() || newColor; // Use color code if no label provided
+                
+                if (!savedColors.some(c => c.color === newColor)) {
+                    savedColors.push({
+                        color: newColor,
+                        label: newLabel
+                    });
+                    initializeColorPicker();  // Refresh color picker
+                }
+                popup.classList.remove('show');
+            });
+
+            // Close popup when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!popup.contains(e.target) && e.target !== addColorBtn) {
+                    popup.classList.remove('show');
+                }
+            });
+        }
+
+        // Initialize color picker
+        document.getElementById('colorPicker').addEventListener('click', (event) => {
+            if (event.target.classList.contains('color-option')) {
+                selectedColor = event.target.style.backgroundColor;
+            }
+        });
+
+        // Initialize grid when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeGrid();
+            initializeColorPicker();  
+        });
+
+    </script>
+</body>
+</html>
