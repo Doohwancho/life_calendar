@@ -172,6 +172,10 @@
             { color: '#ed2a02', label: '운동' },
         ];
 
+        //drag multiple time-blocks
+        let isDragging = false;
+        let startCell = null;
+
         function initializeGrid() {
             const grid = document.getElementById('timeGrid');
 
@@ -193,10 +197,38 @@
                     const cell = createCell('', 'grid-cell');
                     cell.dataset.hour = hour;
                     cell.dataset.block = block;
+
+
                     cell.addEventListener('click', handleCellClick);
+                    // Add mouse events for drag selection
+                    cell.addEventListener('mousedown', (e) => {
+                        isDragging = true;
+                        startCell = cell;
+                        handleCellClick(e); // Handle initial click
+                    });
+
+                    cell.addEventListener('mouseover', (e) => {
+                        if (isDragging && e.buttons === 1) { // Check if left mouse button is pressed
+                            handleDragPaint(startCell, cell);
+                        }
+                    });
+
                     grid.appendChild(cell);
                 }
             }
+
+            // Add mouseup event to document to handle drag end
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                startCell = null;
+            });
+
+            // Prevent text selection while dragging
+            grid.addEventListener('selectstart', (e) => {
+                if (isDragging) {
+                    e.preventDefault();
+                }
+            });
         }
 
         function createCell(text, className) {
@@ -220,12 +252,6 @@
 
             cell.style.backgroundColor = selectedColor;
 
-            if (selectedColor === '#000000') {
-                cell.style.color = 'white';
-            } else {
-                cell.style.color = 'black';
-            }
-
             // Remove any existing textarea
             const existingTextarea = document.querySelector('.editing-textarea');
             if (existingTextarea) {
@@ -236,6 +262,7 @@
             const textarea = document.createElement('textarea');
             textarea.className = 'editing-textarea';
             textarea.value = blockData[blockKey]?.text || '';
+            textarea.style.backgroundColor = 'transparent';
             textarea.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -327,6 +354,42 @@
             });
         }
 
+        // Add this function to handle drag painting
+        function handleDragPaint(startCell, currentCell) {
+            // Get row and column indices
+            const startHour = parseInt(startCell.dataset.hour);
+            const startBlock = parseInt(startCell.dataset.block);
+            const currentHour = parseInt(currentCell.dataset.hour);
+            const currentBlock = parseInt(currentCell.dataset.block);
+
+            // Calculate the range to paint
+            const startH = Math.min(startHour, currentHour);
+            const endH = Math.max(startHour, currentHour);
+            const startB = Math.min(startBlock, currentBlock);
+            const endB = Math.max(startBlock, currentBlock);
+
+            // Paint all cells in the range
+            for (let hour = startH; hour <= endH; hour++) {
+                for (let block = startB; block <= endB; block++) {
+                    const cell = document.querySelector(`.grid-cell[data-hour="${hour}"][data-block="${block}"]`);
+                    if (cell) {
+                        cell.style.backgroundColor = selectedColor;
+                        if (selectedColor === '#000000') {
+                            cell.style.color = 'white';
+                        } else {
+                            cell.style.color = 'black';
+                        }
+                        // Save the cell data
+                        const blockKey = `${hour}-${block}`;
+                        blockData[blockKey] = {
+                            text: blockData[blockKey]?.text || '',
+                            color: selectedColor
+                        };
+                    }
+                }
+            }
+        }
+
         /*****************
          * Utils
          */
@@ -338,6 +401,10 @@
             });
             return `#${hex.join('')}`;
         }
+
+        /*****************
+         * Event Listener
+         */
 
         // Initialize color picker
         document.getElementById('colorPicker').addEventListener('click', (event) => {
@@ -351,7 +418,6 @@
             initializeGrid();
             initializeColorPicker();  
         });
-
     </script>
 </body>
 </html>
