@@ -459,7 +459,7 @@
                     const cell = document.querySelector(`.grid-cell[data-hour="${hour}"][data-block="${block}"]`);
                     if (cell) {
                         cell.style.backgroundColor = selectedColor;
-                        if (selectedColor === '#000000') {
+                        if (rgbToHex(selectedColor) === '#000000') {
                             cell.style.color = 'white';
                         } else {
                             cell.style.color = 'black';
@@ -522,7 +522,7 @@
                                 blockData[key] = value;
                                 cell.textContent = value.text || '';
                                 cell.style.backgroundColor = value.color;
-                                if (value.color === '#000000') {
+                                if (rgbToHex(value.color) === '#000000' || value.color === '#000000') {
                                     cell.style.color = 'white';
                                 } else {
                                     cell.style.color = 'black';
@@ -542,7 +542,7 @@
         async function loadJsonUponStart() {
             // Then load timeline.json
             try {
-                const response = await fetch('default_timeline.json');
+                const response = await fetch('./timeline.json');
                 const data = await response.json();
                 
                 // Load color palette
@@ -560,7 +560,7 @@
                             blockData[key] = value;
                             cell.textContent = value.text || '';
                             cell.style.backgroundColor = value.color;
-                            if (value.color === '#000000') {
+                            if (rgbToHex(value.color) === '#000000' || value.color === '#000000') {
                                 cell.style.color = 'white';
                             } else {
                                 cell.style.color = 'black';
