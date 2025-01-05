@@ -138,6 +138,27 @@
             box-sizing: border-box;
             background-color: transparent; /* time-block을 클릭하자마자 색칠되게 한다 */
         }
+
+        .data-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .control-btn {
+            padding: 8px 16px;
+            background-color: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .control-btn:hover {
+            background-color: #3182ce;
+        } 
     </style>
 </head>
 <body>
@@ -158,6 +179,12 @@
             </div>
             <button class="save-btn" id="saveColorBtn">Add Color</button>
         </div>
+    </div>
+
+    <div class="data-controls">
+        <button id="saveButton" class="control-btn">Save Timeline</button>
+        <input type="file" id="loadInput" accept=".json" style="display: none;">
+        <button id="loadButton" class="control-btn">Load Timeline</button>
     </div>
 
     <script>
@@ -391,6 +418,70 @@
         }
 
         /*****************
+         * Save & Load
+         */
+         function getTimelineData() {
+            return {
+                colorPalette: savedColors,
+                timeBlocks: blockData,
+                version: "1.0"  // for future compatibility
+            };
+        }
+
+        function saveTimelineToFile() {
+            const data = getTimelineData();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            const date = new Date().toISOString().split('T')[0];
+            a.download = `timeline_${date}.json`;
+            a.href = url;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        function loadTimelineFromFile(file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    // Load color palette
+                    if (data.colorPalette) {
+                        savedColors = data.colorPalette;
+                        initializeColorPicker();
+                    }
+                    
+                    // Load time blocks
+                    if (data.timeBlocks) {
+                        Object.entries(data.timeBlocks).forEach(([key, value]) => {
+                            const [hour, block] = key.split('-');
+                            const cell = document.querySelector(`.grid-cell[data-hour="${hour}"][data-block="${block}"]`);
+                            if (cell) {
+                                blockData[key] = value;
+                                cell.textContent = value.text || '';
+                                cell.style.backgroundColor = value.color;
+                                if (value.color === '#000000') {
+                                    cell.style.color = 'white';
+                                } else {
+                                    cell.style.color = 'black';
+                                }
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading timeline:', error);
+                    alert('Error loading timeline file');
+                }
+            };
+            
+            reader.readAsText(file);
+        }
+
+        /*****************
          * Utils
          */
         function rgbToHex(rgb) {
@@ -417,6 +508,29 @@
         document.addEventListener('DOMContentLoaded', () => {
             initializeGrid();
             initializeColorPicker();  
+
+            // Save button click handler
+            document.getElementById('saveButton').addEventListener('click', saveTimelineToFile);
+            
+            // Load button click handler
+            document.getElementById('loadButton').addEventListener('click', () => {
+                document.getElementById('loadInput').click();
+            });
+            
+            // File input change handler
+            document.getElementById('loadInput').addEventListener('change', (e) => {
+                if (e.target.files[0]) {
+                    loadTimelineFromFile(e.target.files[0]);
+                }
+            });
+            
+            // Keyboard shortcut for save (Cmd/Ctrl + S)
+            document.addEventListener('keydown', (e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+                    e.preventDefault();
+                    saveTimelineToFile();
+                }
+            });
         });
     </script>
 </body>
