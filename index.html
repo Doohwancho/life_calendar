@@ -206,11 +206,6 @@
     <div class="container-wrapper">
         <div class="grid-container" id="timeGrid">
             <!-- Grid will be populated by JavaScript -->
-            <!-- <div class="data-controls">
-                <button id="saveButton" class="control-btn">Save Timeline</button>
-                <input type="file" id="loadInput" accept=".json" style="display: none;">
-                <button id="loadButton" class="control-btn">Load Timeline</button>
-            </div> -->
         </div>
 
         <div class="floating-controls">
@@ -229,10 +224,9 @@
     </div>
 
     <div class="color-picker" id="colorPicker">
-        <!-- <div class="color-option" style="background-color: #a5d8ff"></div> -->
-        <!-- <div class="color-option" style="background-color: #ffd8a8"></div> -->
-
         <!-- Color options will be populated by JavaScript -->
+        <!-- <div class="color-option" style="background-color: #a5d8ff"></div> -->
+
         <button class="add-color-btn" id="addColorBtn">+</button>
         <div class="color-picker-popup" id="colorPickerPopup">
             <div class="color-input-group">
@@ -475,6 +469,89 @@
             }
         }
 
+        function addStripedStyle() {
+            const style = document.createElement('style');
+            style.textContent = `
+                .elapsed-time {
+                    position: relative;
+                }
+                
+                .elapsed-time::after {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    pointer-events: none;
+                    z-index: 2;
+                }
+
+                /* Dark pattern for light backgrounds */
+                .elapsed-time.light-bg::after {
+                    background-image: linear-gradient(
+                        45deg,
+                        rgba(0, 0, 0, 0.1) 25%,
+                        transparent 25%,
+                        transparent 50%,
+                        rgba(0, 0, 0, 0.1) 50%,
+                        rgba(0, 0, 0, 0.1) 75%,
+                        transparent 75%
+                    );
+                    background-size: 10px 10px;
+                }
+
+                /* Light pattern for dark backgrounds */
+                .elapsed-time.dark-bg::after {
+                    background-image: linear-gradient(
+                        45deg,
+                        rgba(255, 255, 255, 0.2) 25%,
+                        transparent 25%,
+                        transparent 50%,
+                        rgba(255, 255, 255, 0.2) 50%,
+                        rgba(255, 255, 255, 0.2) 75%,
+                        transparent 75%
+                    );
+                    background-size: 10px 10px;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        function updateElapsedTimeBlocks() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            
+            // Calculate blocks since 6am
+            let elapsedHours = (hours - 6 + 24) % 24;
+            let totalElapsedBlocks = (elapsedHours * 6) + Math.floor(minutes / 10);
+            
+            // Update all cells
+            const cells = document.querySelectorAll('.grid-cell');
+            cells.forEach(cell => {
+                const hour = parseInt(cell.dataset.hour);
+                const block = parseInt(cell.dataset.block);
+                const blockIndex = (hour * 6) + block;
+                
+                if (blockIndex < totalElapsedBlocks) {
+                    cell.classList.add('elapsed-time');
+                    
+                    // Check background color and apply appropriate pattern
+                    const bgColor = cell.style.backgroundColor;
+                    if (isDarkColor(bgColor)) {
+                        cell.classList.add('dark-bg');
+                        cell.classList.remove('light-bg');
+                    } else {
+                        cell.classList.add('light-bg');
+                        cell.classList.remove('dark-bg');
+                    }
+                } else {
+                    cell.classList.remove('elapsed-time', 'dark-bg', 'light-bg');
+                }
+            });
+        }
+
         /*****************
          * Save & Load
          */
@@ -586,6 +663,27 @@
             return `#${hex.join('')}`;
         }
 
+        function isDarkColor(color) {
+            // Handle both hex and rgb formats
+            let r, g, b;
+            
+            if (color.startsWith('#')) {
+                r = parseInt(color.substr(1, 2), 16);
+                g = parseInt(color.substr(3, 2), 16);
+                b = parseInt(color.substr(5, 2), 16);
+            } else {
+                const rgb = color.match(/\d+/g);
+                if (rgb) {
+                    [r, g, b] = rgb.map(Number);
+                }
+            }
+            
+            // Calculate relative luminance
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance < 0.5;
+        }
+
+
         /*****************
          * Event Listener
          */
@@ -603,6 +701,9 @@
             initializeColorPicker();  
 
             loadJsonUponStart();
+
+            addStripedStyle();
+            updateElapsedTimeBlocks(); // Initial update
 
             
             // Save button click handler
@@ -627,6 +728,10 @@
                     saveTimelineToFile();
                 }
             });
+
+
+            // Update every minute
+            setInterval(updateElapsedTimeBlocks, 60000);
         });
     </script>
 </body>
