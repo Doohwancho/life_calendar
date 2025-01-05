@@ -206,10 +206,24 @@
         }
 
         function handleCellClick(event) {
-            const cell = event.target;
+            // const cell = event.target;
+            const cell = event.target.classList.contains('grid-cell') ? 
+                event.target : 
+                event.target.closest('.grid-cell');
+            
+            if (!cell) return;
+
             const hour = cell.dataset.hour;
             const block = cell.dataset.block;
             const blockKey = `${hour}-${block}`;
+
+            cell.style.backgroundColor = selectedColor;
+
+            if (selectedColor === '#000000') {
+                cell.style.color = 'white';
+            } else {
+                cell.style.color = 'black';
+            }
 
             // Remove any existing textarea
             const existingTextarea = document.querySelector('.editing-textarea');
@@ -229,10 +243,10 @@
                 }
             });
 
-            cell.style.backgroundColor = selectedColor;
             cell.appendChild(textarea);
             textarea.focus();
         }
+
 
         function saveBlock(blockKey, text, cell) {
             blockData[blockKey] = {
@@ -243,6 +257,13 @@
             // Update cell display
             cell.textContent = text;
             cell.style.backgroundColor = selectedColor;
+            
+            // Set text color to white if background is black
+            if (rgbToHex(selectedColor) === '#000000') {
+                cell.style.color = 'white';
+            } else {
+                cell.style.color = 'black';  // Reset to default for other colors
+            }
         }
 
         // Initialize color picker
@@ -303,6 +324,18 @@
                     popup.classList.remove('show');
                 }
             });
+        }
+
+        /*****************
+         * Utils
+         */
+        function rgbToHex(rgb) {
+            const result = rgb.match(/\d+/g);
+            const hex = result.map((value) => {
+                const hexValue = parseInt(value, 10).toString(16);
+                return hexValue.padStart(2, '0');
+            });
+            return `#${hex.join('')}`;
         }
 
         // Initialize color picker
