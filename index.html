@@ -25,6 +25,7 @@
         .header-cell {
             background-color: #f8f9fa;
             padding: 8px;
+            /* width: 30px;  */
             text-align: center;
             font-weight: bold;
         }
@@ -42,7 +43,10 @@
             padding: 4px;
             cursor: pointer;
             position: relative;
-            overflow: hidden;
+            /* overflow: hidden; */
+            overflow: visible;
+            white-space: nowrap; 
+            z-index: 1; 
         }
 
         .grid-cell:hover {
@@ -249,7 +253,7 @@
             { color: '#000000', label: 'Sleep' },
             { color: '#44f275', label: 'Learn' },
             { color: '#fcff5e', label: 'Fun' },
-            { color: '#38adf5', label: '메타인지' },
+            { color: '#38adf5', label: 'Prep' },
             { color: '#ed2a02', label: '운동' },
         ];
 
@@ -535,6 +539,40 @@
             reader.readAsText(file);
         }
 
+        async function loadJsonUponStart() {
+            // Then load timeline.json
+            try {
+                const response = await fetch('default_timeline.json');
+                const data = await response.json();
+                
+                // Load color palette
+                if (data.colorPalette) {
+                    savedColors = data.colorPalette;
+                    initializeColorPicker();
+                }
+                
+                // Load time blocks
+                if (data.timeBlocks) {
+                    Object.entries(data.timeBlocks).forEach(([key, value]) => {
+                        const [hour, block] = key.split('-');
+                        const cell = document.querySelector(`.grid-cell[data-hour="${hour}"][data-block="${block}"]`);
+                        if (cell) {
+                            blockData[key] = value;
+                            cell.textContent = value.text || '';
+                            cell.style.backgroundColor = value.color;
+                            if (value.color === '#000000') {
+                                cell.style.color = 'white';
+                            } else {
+                                cell.style.color = 'black';
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.log('No timeline.json found or error loading file:', error);
+            }
+        }
+
         /*****************
          * Utils
          */
@@ -563,6 +601,9 @@
             initializeGrid();
             initializeColorPicker();  
 
+            loadJsonUponStart();
+
+            
             // Save button click handler
             document.getElementById('saveButton').addEventListener('click', saveTimelineToFile);
             
