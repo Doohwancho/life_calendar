@@ -493,7 +493,8 @@
             
             const a = document.createElement('a');
             const date = new Date().toISOString().split('T')[0];
-            a.download = `timeline_${date}.json`;
+            a.download = `timeline.json`;
+            // a.download = `timeline_${date}.json`;
             a.href = url;
             a.click();
             
