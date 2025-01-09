@@ -2,11 +2,30 @@
 <html>
 <head>
     <style>
-        /* Container wrapper to maintain relative positioning */
-        .container-wrapper {
+        .main-layout {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            /* margin: 0 auto; */
+            /* margin-left: 600px; */
             position: relative;
-            max-width: 200px;
+            width: fit-content;
+            left: 30%;
+        }
+
+        /* Container wrapper to maintain relative positioning */
+        .left-container {
+            position: relative;
+            /* max-width: 200px; */
             margin: 0 auto;
+            /* justify-content: center; */
+        }
+
+        .right-container {
+            /* position: relative; */
+            /* max-width: 200px; */
+            margin: 0 auto;
+            justify-content: center;
         }
 
         /************************
@@ -53,10 +72,47 @@
             border-color: #aaa;
         }
 
+
+        /************************
+        * time blocks
+        */
+        .time-summary {
+            position: absolute;
+            /* top: 100%; */
+            right: -110%;
+
+            margin-top: 45px; /* Align with grid top */
+            min-width: 120px;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            /* position: sticky; */
+            /* left: 100%; */
+            /* height: fit-content; */
+        }
+
+        .color-summary-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .color-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            margin-right: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .time-value {
+            margin-left: auto;
+        }
+
         /************************
         * color picker
         */
-
         .color-picker {
             display: flex;
             gap: 8px;
@@ -163,9 +219,10 @@
         */
 
         .floating-controls {
-            position: absolute;
-            top: 100%;
-            right: -100%;
+            position: relative;
+            top: 90%;
+            /* bottom: 0%; */
+            /* right: -100%; */
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -203,38 +260,48 @@
     </style>
 </head>
 <body>
-    <div class="container-wrapper">
-        <div class="grid-container" id="timeGrid">
-            <!-- Grid will be populated by JavaScript -->
-        </div>
+    <div class="main-layout">
 
-        <div class="floating-controls">
-            <button id="saveButton" class="control-btn" title="Save Timeline">
-                <svg viewBox="0 0 24 24">
-                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-                </svg>
-            </button>
-            <button id="loadButton" class="control-btn" title="Load Timeline">
-                <svg viewBox="0 0 24 24">
-                    <path d="M5 15h14l-7-7-7 7z"/>
-                </svg>
-            </button>
-            <input type="file" id="loadInput" accept=".json">
-        </div>
-    </div>
-
-    <div class="color-picker" id="colorPicker">
-        <!-- Color options will be populated by JavaScript -->
-        <!-- <div class="color-option" style="background-color: #a5d8ff"></div> -->
-
-        <button class="add-color-btn" id="addColorBtn">+</button>
-        <div class="color-picker-popup" id="colorPickerPopup">
-            <div class="color-input-group">
-                <input type="color" id="colorInput" value="#a5d8ff">
-                <input type="text" id="colorLabel" placeholder="Enter color label">
+        <div class="left-container">
+            <div class="time-summary" id="timeSummary">
+                <!-- Summary will be populated by JavaScript -->
             </div>
-            <button class="save-btn" id="saveColorBtn">Add Color</button>
+
+            <div class="floating-controls">
+                <button id="saveButton" class="control-btn" title="Save Timeline">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                    </svg>
+                </button>
+                <button id="loadButton" class="control-btn" title="Load Timeline">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M5 15h14l-7-7-7 7z"/>
+                    </svg>
+                </button>
+                <input type="file" id="loadInput" accept=".json">
+            </div>
         </div>
+
+        <div class="right-container">
+            <div class="grid-container" id="timeGrid">
+                <!-- Grid will be populated by JavaScript -->
+            </div>
+            
+            <div class="color-picker" id="colorPicker">
+                <!-- Color options will be populated by JavaScript -->
+                <!-- <div class="color-option" style="background-color: #a5d8ff"></div> -->
+
+                <button class="add-color-btn" id="addColorBtn">+</button>
+                <div class="color-picker-popup" id="colorPickerPopup">
+                    <div class="color-input-group">
+                        <input type="color" id="colorInput" value="#a5d8ff">
+                        <input type="text" id="colorLabel" placeholder="Enter color label">
+                    </div>
+                    <button class="save-btn" id="saveColorBtn">Add Color</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
 
@@ -352,6 +419,8 @@
 
             cell.appendChild(textarea);
             textarea.focus();
+
+            updateTimeSummary();
         }
 
 
@@ -467,7 +536,8 @@
                     }
                 }
             }
-            updateElapsedTimeBlocks()
+            updateElapsedTimeBlocks();
+            updateTimeSummary();
         }
 
         function addStripedStyle() {
@@ -553,6 +623,66 @@
             });
         }
 
+
+        /*****************
+         * time summary
+         */
+         function updateTimeSummary() {
+            const summaryContainer = document.getElementById('timeSummary');
+            const colorTotals = {};
+
+            // Initialize totals for all saved colors
+            savedColors.forEach(({color, label}) => {
+                colorTotals[color] = 0;
+            });
+
+            // Count blocks for each color
+            Object.values(blockData).forEach(block => {
+                // Convert RGB to HEX for comparison
+                const blockColorHex = block.color.startsWith('rgb') ? rgbToHex(block.color) : block.color;
+                
+                // Find matching color in savedColors
+                const matchingColor = savedColors.find(({color}) => color.toLowerCase() === blockColorHex.toLowerCase());
+                
+                if (matchingColor) {
+                    colorTotals[matchingColor.color] += 1;
+                }
+            });
+
+            // Clear existing summary
+            summaryContainer.innerHTML = '';
+
+            // Create array of color data with their total minutes
+            const colorDataArray = savedColors.map(({color, label}) => {
+                const blocks = colorTotals[color] || 0;
+                const totalMinutes = blocks * 10;
+                return {
+                    color,
+                    label,
+                    totalMinutes,
+                    hours: Math.floor(totalMinutes / 60),
+                    minutes: totalMinutes % 60
+                };
+            });
+
+            // Sort by total minutes (descending)
+            colorDataArray.sort((a, b) => b.totalMinutes - a.totalMinutes);
+
+            // Create summary items
+            colorDataArray.forEach(({color, label, hours, minutes}) => {
+                const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
+                const summaryItem = document.createElement('div');
+                summaryItem.className = 'color-summary-item';
+                summaryItem.innerHTML = `
+                    <div class="color-indicator" style="background-color: ${color}"></div>
+                    <span>${label}</span>
+                    <span class="time-value">${timeString}</span>
+                `;
+                summaryContainer.appendChild(summaryItem);
+            });
+        }
+
         /*****************
          * Save & Load
          */
@@ -609,6 +739,8 @@
                             }
                         });
                     }
+
+                    updateTimeSummary();
                 } catch (error) {
                     console.error('Error loading timeline:', error);
                     alert('Error loading timeline file');
@@ -647,6 +779,8 @@
                         }
                     });
                 }
+
+                updateTimeSummary();
             } catch (error) {
                 console.log('No timeline.json found or error loading file:', error);
             }

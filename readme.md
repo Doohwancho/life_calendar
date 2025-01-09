@@ -1,6 +1,7 @@
 # 소개
 
-![](images/2025-01-05-19-16-15.png)
+![i_heart_time](./images/i_heart_time.png)
+
 
 시간 가계부
 
