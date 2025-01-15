@@ -309,6 +309,9 @@
     <script>
         let selectedColor = '#a5d8ff';
         const blockData = {};
+        let dragStartColors = new Map(); // To store original colors when drag starts
+        let selectedCells = new Set();
+
         let savedColors = [
             { color: '#ffffff', label: 'Rest' },
             { color: '#000000', label: 'Sleep' },
@@ -321,6 +324,31 @@
         //drag multiple time-blocks
         let isDragging = false;
         let startCell = null;
+
+        //style for previous color inside time-block
+        const previousColorStyle = `
+            .grid-cell.color-changed {
+                border: 1.5px solid #fa9d1b;
+                padding-left: 16px;
+                position: relative;
+            }
+
+            .grid-cell.color-changed::before {
+                content: '';
+                position: absolute;
+                top: -3px;
+                left: -3px;
+                border-style: solid;
+                border-width: 12px 12px 0 0;
+                border-right-color: transparent;
+            }
+            `;
+
+        // Add the styles to the document
+        const styleSheet = document.createElement("style");
+        styleSheet.textContent = previousColorStyle;
+        document.head.appendChild(styleSheet);
+
 
         function initializeGrid() {
             const grid = document.getElementById('timeGrid');
@@ -344,19 +372,42 @@
                     cell.dataset.hour = hour;
                     cell.dataset.block = block;
 
-
-                    cell.addEventListener('click', handleCellClick);
                     // Add mouse events for drag selection
                     cell.addEventListener('mousedown', (e) => {
-                        isDragging = true;
+                        isDragging = false;
                         startCell = cell;
-                        handleCellClick(e); // Handle initial click
+                        selectedCells.clear();
+
+                        storeCurrentColors();
+
+                        // Add initial cell to selected set
+                        const cellKey = `${hour}-${block}`;
+                        selectedCells.add(cellKey);
                     });
 
-                    cell.addEventListener('mouseover', (e) => {
-                        if (isDragging && e.buttons === 1) { // Check if left mouse button is pressed
-                            handleDragPaint(startCell, cell);
+                    cell.addEventListener('mousemove', (e) => {
+                        if (e.buttons === 1 && startCell) {
+                            const currentHour = cell.dataset.hour;
+                            const currentBlock = cell.dataset.block;
+                            const cellKey = `${currentHour}-${currentBlock}`;
+                            
+                            // Add cell to selected set
+                            selectedCells.add(cellKey);
+                            
+                            // If more than one cell is selected, it's a drag
+                            if (selectedCells.size > 1) {
+                                isDragging = true;
+                                handleDragPaint(startCell, cell);
+                            }
                         }
+                    });
+
+                    // Handle single cell click
+                    cell.addEventListener('mouseup', (e) => {
+                        if (!isDragging && selectedCells.size === 1) {
+                            handleCellClick(e);
+                        }
+                        selectedCells.clear();
                     });
 
                     grid.appendChild(cell);
@@ -367,6 +418,8 @@
             document.addEventListener('mouseup', () => {
                 isDragging = false;
                 startCell = null;
+                dragStartColors.clear(); 
+                selectedCells.clear();
             });
 
             // Prevent text selection while dragging
@@ -385,7 +438,6 @@
         }
 
         function handleCellClick(event) {
-            // const cell = event.target;
             const cell = event.target.classList.contains('grid-cell') ? 
                 event.target : 
                 event.target.closest('.grid-cell');
@@ -396,6 +448,25 @@
             const block = cell.dataset.block;
             const blockKey = `${hour}-${block}`;
 
+
+            // Get the original color from our stored Map
+            const originalColor = dragStartColors.get(blockKey);
+            const newColor = normalizeColor(selectedColor);
+
+
+            console.log("originalColor: ", normalizeColor(originalColor));
+            console.log("newColor: ", newColor);
+
+            if (originalColor && normalizeColor(originalColor) !== newColor) {
+                cell.classList.add('color-changed');
+                cell.style.borderColor = '#fa9d1b';
+            } else {
+                cell.classList.remove('color-changed');
+                cell.style.borderColor = '';
+                cell.style.removeProperty('border-top-color');
+            }
+
+            // Apply new color
             cell.style.backgroundColor = selectedColor;
 
             // Remove any existing textarea
@@ -408,7 +479,16 @@
             const textarea = document.createElement('textarea');
             textarea.className = 'editing-textarea';
             textarea.value = blockData[blockKey]?.text || '';
-            textarea.style.backgroundColor = 'transparent';
+            
+            // 색상이 검정색이면 글자색을 흰색으로 변경 
+            if (rgbToHex(selectedColor) === '#000000') {
+                cell.style.color = 'white';
+            } else {
+                cell.style.color = 'black';
+            }
+            
+            // textarea.style.backgroundColor = 'transparent';
+            
             textarea.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -434,6 +514,8 @@
             cell.textContent = text;
             cell.style.backgroundColor = selectedColor;
             
+            console.log("inside saveBlock, selectedColor: ", selectedColor)
+
             // Set text color to white if background is black
             if (rgbToHex(selectedColor) === '#000000') {
                 cell.style.color = 'white';
@@ -502,8 +584,11 @@
             });
         }
 
+
         // Add this function to handle drag painting
         function handleDragPaint(startCell, currentCell) {
+            console.log("inside handleDragPaint");
+
             // Get row and column indices
             const startHour = parseInt(startCell.dataset.hour);
             const startBlock = parseInt(startCell.dataset.block);
@@ -520,19 +605,42 @@
             for (let hour = startH; hour <= endH; hour++) {
                 for (let block = startB; block <= endB; block++) {
                     const cell = document.querySelector(`.grid-cell[data-hour="${hour}"][data-block="${block}"]`);
+            
                     if (cell) {
-                        cell.style.backgroundColor = selectedColor;
-                        if (rgbToHex(selectedColor) === '#000000') {
-                            cell.style.color = 'white';
+                        const cellKey = `${hour}-${block}`;
+                        // Get the original color from our stored Map
+                        const originalColor = dragStartColors.get(cellKey);
+                        const newColor = normalizeColor(selectedColor);
+
+                        // Only add triangle if there's an actual color change
+                        if (originalColor && normalizeColor(originalColor) !== newColor) {
+                            cell.classList.add('color-changed');
+                            cell.style.borderColor = '#fa9d1b';
+                            // cell.style.setProperty('border-top-color', originalColor);
                         } else {
-                            cell.style.color = 'black';
+                            cell.classList.remove('color-changed');
+                            cell.style.borderColor = '';
+                            cell.style.removeProperty('border-top-color');
                         }
+
+                        cell.style.backgroundColor = selectedColor;
+                        
+
                         // Save the cell data
                         const blockKey = `${hour}-${block}`;
                         blockData[blockKey] = {
                             text: blockData[blockKey]?.text || '',
                             color: selectedColor
                         };
+
+
+                        // 색상이 검정색이면 글자색을 흰색으로 변경 
+                        if (rgbToHex(selectedColor) === '#000000') {
+                            cell.style.color = 'white';
+                        } else {
+                            cell.style.color = 'black';
+                        }
+
                     }
                 }
             }
@@ -753,7 +861,7 @@
         async function loadJsonUponStart() {
             // Then load timeline.json
             try {
-                const response = await fetch('./timeline.json');
+                const response = await fetch('./examples/timeline.json');
                 const data = await response.json();
                 
                 // Load color palette
@@ -796,6 +904,23 @@
                 return hexValue.padStart(2, '0');
             });
             return `#${hex.join('')}`;
+        }
+
+        function normalizeColor(color) {
+            if (!color) return null;
+            if (color.startsWith('#')) {
+                return color.toLowerCase();
+            }
+            // If it's rgb, convert to hex
+            return rgbToHex(color).toLowerCase();
+        }
+
+        function storeCurrentColors() {
+            dragStartColors.clear(); // Clear previous stored colors
+            document.querySelectorAll('.grid-cell').forEach(cell => {
+                const key = `${cell.dataset.hour}-${cell.dataset.block}`;
+                dragStartColors.set(key, cell.style.backgroundColor);
+            });
         }
 
         function isDarkColor(color) {
