@@ -304,10 +304,9 @@
 
     </div>
 
-
-
     <script>
-        let selectedColor = '#a5d8ff';
+        let selectedColor = 'rgb(255, 255, 255)'; //default cell-background-color is white
+
         const blockData = {};
         let dragStartColors = new Map(); // To store original colors when drag starts
         let selectedCells = new Set();
@@ -438,6 +437,10 @@
             const cell = document.createElement('div');
             cell.className = className;
             cell.textContent = text;
+            if (className === 'grid-cell') {
+                // Explicitly set initial background color
+                cell.style.backgroundColor = 'rgb(255, 255, 255)';  // set default background color to white
+            }
             return cell;
         }
 
@@ -468,12 +471,8 @@
 
 
             // Get the original color from our stored Map
-            const originalColor = dragStartColors.get(blockKey);
+            const originalColor = dragStartColors.get(blockKey) || 'rgb(255, 255, 255)';
             const newColor = normalizeColor(selectedColor);
-
-
-            console.log("originalColor: ", normalizeColor(originalColor));
-            console.log("newColor: ", newColor);
 
             if (originalColor && normalizeColor(originalColor) !== newColor) {
                 cell.classList.add('color-changed');
@@ -489,7 +488,7 @@
             // Apply new color
             cell.style.backgroundColor = selectedColor;
 
-            // IMPORTANT: Clear the cell's text content before adding textarea
+            // Clear the cell's text content before adding textarea
             const existingText = cell.textContent;  // Store existing text
             cell.textContent = '';  // Clear the cell
 
@@ -541,8 +540,6 @@
             // Update cell display
             cell.textContent = text;
             cell.style.backgroundColor = selectedColor;
-            
-            console.log("inside saveBlock, selectedColor: ", selectedColor)
 
             // Set text color to white if background is black
             if (rgbToHex(selectedColor) === '#000000') {
@@ -882,7 +879,7 @@
 
         async function loadJsonUponStart() {
             try {
-                const response = await fetch('./timeline.json');
+                const response = await fetch('./examples/timeline.json');
                 const data = await response.json();
                 
                 // Load color palette
@@ -937,11 +934,18 @@
 
         function normalizeColor(color) {
             if (!color) return null;
+
             if (color.startsWith('#')) {
                 return color.toLowerCase();
             }
-            // If it's rgb, convert to hex
-            return rgbToHex(color).toLowerCase();
+
+            // If it's rgb format, convert to hex
+            if (color.startsWith('rgb')) {
+                const hex = rgbToHex(color);
+                return hex ? hex.toLowerCase() : null;
+            }
+            
+            return null;
         }
 
         function storeCurrentColors() {
