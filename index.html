@@ -529,9 +529,13 @@
 
 
         function saveBlock(blockKey, text, cell) {
+            // Get the current previous color if it exists
+            const previousColor = dragStartColors.get(blockKey);
+        
             blockData[blockKey] = {
                 text: text,
-                color: selectedColor
+                color: selectedColor,
+                previousColor: previousColor || null  
             };
 
             // Update cell display
@@ -650,21 +654,7 @@
                         cell.style.backgroundColor = selectedColor;
                         
 
-                        // Save the cell data
-                        const blockKey = `${hour}-${block}`;
-                        blockData[blockKey] = {
-                            text: blockData[blockKey]?.text || '',
-                            color: selectedColor
-                        };
-
-
-                        // 색상이 검정색이면 글자색을 흰색으로 변경 
-                        if (rgbToHex(selectedColor) === '#000000') {
-                            cell.style.color = 'white';
-                        } else {
-                            cell.style.color = 'black';
-                        }
-
+                        saveBlock(cellKey, blockData[cellKey]?.text || '', cell);
                     }
                 }
             }
@@ -863,6 +853,14 @@
                                 blockData[key] = value;
                                 cell.textContent = value.text || '';
                                 cell.style.backgroundColor = value.color;
+
+                                // Handle previous color if it exists
+                                if (value.previousColor && value.previousColor !== value.color) {
+                                    cell.classList.add('color-changed');
+                                    cell.style.borderColor = '#fa9d1b';
+                                    cell.style.setProperty('--previous-color', value.previousColor);
+                                }
+
                                 if (rgbToHex(value.color) === '#000000' || value.color === '#000000') {
                                     cell.style.color = 'white';
                                 } else {
@@ -883,7 +881,6 @@
         }
 
         async function loadJsonUponStart() {
-            // Then load timeline.json
             try {
                 const response = await fetch('./timeline.json');
                 const data = await response.json();
@@ -903,6 +900,14 @@
                             blockData[key] = value;
                             cell.textContent = value.text || '';
                             cell.style.backgroundColor = value.color;
+
+                            // Handle previous color if it exists
+                            if (value.previousColor && value.previousColor !== value.color) {
+                                cell.classList.add('color-changed');
+                                cell.style.borderColor = '#fa9d1b';
+                                cell.style.setProperty('--previous-color', value.previousColor);
+                            }
+
                             if (rgbToHex(value.color) === '#000000' || value.color === '#000000') {
                                 cell.style.color = 'white';
                             } else {
