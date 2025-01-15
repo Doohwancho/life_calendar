@@ -349,6 +349,9 @@
         styleSheet.textContent = previousColorStyle;
         document.head.appendChild(styleSheet);
 
+        // variable for editting cell
+        let currentlyEditingCell = null;
+
 
         function initializeGrid() {
             const grid = document.getElementById('timeGrid');
@@ -444,6 +447,20 @@
             
             if (!cell) return;
 
+            // If we're clicking on a different cell, save the previous cell's content
+            if (currentlyEditingCell && currentlyEditingCell !== cell) {
+                const textarea = currentlyEditingCell.querySelector('.editing-textarea');
+                if (textarea) {
+                    const prevHour = currentlyEditingCell.dataset.hour;
+                    const prevBlock = currentlyEditingCell.dataset.block;
+                    const prevKey = `${prevHour}-${prevBlock}`;
+                    saveBlock(prevKey, textarea.value, currentlyEditingCell);
+                    textarea.remove();
+                }
+            }
+
+            currentlyEditingCell = cell;
+
             const hour = cell.dataset.hour;
             const block = cell.dataset.block;
             const blockKey = `${hour}-${block}`;
@@ -469,6 +486,10 @@
             // Apply new color
             cell.style.backgroundColor = selectedColor;
 
+            // IMPORTANT: Clear the cell's text content before adding textarea
+            const existingText = cell.textContent;  // Store existing text
+            cell.textContent = '';  // Clear the cell
+
             // Remove any existing textarea
             const existingTextarea = document.querySelector('.editing-textarea');
             if (existingTextarea) {
@@ -478,9 +499,9 @@
             // Create and add new textarea
             const textarea = document.createElement('textarea');
             textarea.className = 'editing-textarea';
-            textarea.value = blockData[blockKey]?.text || '';
+            textarea.value = existingText || blockData[blockKey]?.text || '';
             
-            // 색상이 검정색이면 글자색을 흰색으로 변경 
+            // 배경색상이 검정색이면 글자색을 흰색으로 변경 
             if (rgbToHex(selectedColor) === '#000000') {
                 cell.style.color = 'white';
             } else {
@@ -488,12 +509,12 @@
             }
             
             // textarea.style.backgroundColor = 'transparent';
-            
             textarea.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     saveBlock(blockKey, textarea.value, cell);
                     textarea.remove();
+                    currentlyEditingCell = null;
                 }
             });
 
@@ -861,7 +882,7 @@
         async function loadJsonUponStart() {
             // Then load timeline.json
             try {
-                const response = await fetch('./examples/timeline.json');
+                const response = await fetch('./timeline.json');
                 const data = await response.json();
                 
                 // Load color palette
