@@ -341,6 +341,7 @@
                 border-style: solid;
                 border-width: 12px 12px 0 0;
                 border-right-color: transparent;
+                border-top-color: var(--previous-color);
             }
             `;
 
@@ -477,10 +478,12 @@
             if (originalColor && normalizeColor(originalColor) !== newColor) {
                 cell.classList.add('color-changed');
                 cell.style.borderColor = '#fa9d1b';
+                cell.style.setProperty('--previous-color', originalColor);
             } else {
                 cell.classList.remove('color-changed');
                 cell.style.borderColor = '';
                 cell.style.removeProperty('border-top-color');
+                cell.style.removeProperty('--previous-color');
             }
 
             // Apply new color
@@ -503,9 +506,9 @@
             
             // 배경색상이 검정색이면 글자색을 흰색으로 변경 
             if (rgbToHex(selectedColor) === '#000000') {
-                cell.style.color = 'white';
+                textarea.style.color = 'white'; //이게 텍스트 컬러 바꾸는게 아니라 triangle 컬러 바꾸더라 
             } else {
-                cell.style.color = 'black';
+                textarea.style.color = 'black';
             }
             
             // textarea.style.backgroundColor = 'transparent';
@@ -608,8 +611,6 @@
 
         // Add this function to handle drag painting
         function handleDragPaint(startCell, currentCell) {
-            console.log("inside handleDragPaint");
-
             // Get row and column indices
             const startHour = parseInt(startCell.dataset.hour);
             const startBlock = parseInt(startCell.dataset.block);
@@ -638,10 +639,12 @@
                             cell.classList.add('color-changed');
                             cell.style.borderColor = '#fa9d1b';
                             // cell.style.setProperty('border-top-color', originalColor);
+                            cell.style.setProperty('--previous-color', originalColor);
                         } else {
                             cell.classList.remove('color-changed');
                             cell.style.borderColor = '';
                             cell.style.removeProperty('border-top-color');
+                            cell.style.removeProperty('--previous-color');
                         }
 
                         cell.style.backgroundColor = selectedColor;
