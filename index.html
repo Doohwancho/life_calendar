@@ -985,6 +985,45 @@
         document.getElementById('colorPicker').addEventListener('click', (event) => {
             if (event.target.classList.contains('color-option')) {
                 selectedColor = event.target.style.backgroundColor;
+
+            // If we're currently editing a cell, apply the color immediately
+            if (currentlyEditingCell) {
+                const hour = currentlyEditingCell.dataset.hour;
+                const block = currentlyEditingCell.dataset.block;
+                const blockKey = `${hour}-${block}`;
+                
+                // Get the original color
+                const originalColor = dragStartColors.get(blockKey) || currentlyEditingCell.style.backgroundColor;
+                const newColor = normalizeColor(selectedColor);
+
+                // Handle color change styling
+                if (originalColor && normalizeColor(originalColor) !== newColor) {
+                    currentlyEditingCell.classList.add('color-changed');
+                    currentlyEditingCell.style.borderColor = '#fa9d1b';
+                    currentlyEditingCell.style.setProperty('--previous-color', originalColor);
+                } else {
+                    currentlyEditingCell.classList.remove('color-changed');
+                    currentlyEditingCell.style.borderColor = '';
+                    currentlyEditingCell.style.removeProperty('--previous-color');
+                }
+
+                // Apply the new color
+                currentlyEditingCell.style.backgroundColor = selectedColor;
+                
+                // Keep the textarea focused and maintain text color
+                const textarea = currentlyEditingCell.querySelector('.editing-textarea');
+                if (textarea) {
+                    textarea.style.backgroundColor = 'transparent';
+                    if (rgbToHex(selectedColor) === '#000000') {
+                        textarea.style.color = 'white';
+                    } else {
+                        textarea.style.color = 'black';
+                    }
+                    textarea.focus();
+                }
+
+                updateTimeSummary();
+            }
             }
         });
 
