@@ -488,6 +488,13 @@
             // Apply new color
             cell.style.backgroundColor = selectedColor;
 
+            // Save current state to blockData immediately
+            blockData[blockKey] = {
+                text: blockData[blockKey]?.text || '',
+                color: selectedColor,
+                previousColor: originalColor || null
+            };
+
             // Clear the cell's text content before adding textarea
             const existingText = cell.textContent;  // Store existing text
             cell.textContent = '';  // Clear the cell
@@ -1009,9 +1016,19 @@
 
                 // Apply the new color
                 currentlyEditingCell.style.backgroundColor = selectedColor;
+
+                // Update blockData with the new color and existing text
+                const textarea = currentlyEditingCell.querySelector('.editing-textarea');
+                const currentText = textarea ? textarea.value : (blockData[blockKey]?.text || '');
+                
+                // Save to blockData
+                blockData[blockKey] = {
+                    text: currentText,
+                    color: selectedColor,
+                    previousColor: originalColor || null
+                };
                 
                 // Keep the textarea focused and maintain text color
-                const textarea = currentlyEditingCell.querySelector('.editing-textarea');
                 if (textarea) {
                     textarea.style.backgroundColor = 'transparent';
                     if (rgbToHex(selectedColor) === '#000000') {
