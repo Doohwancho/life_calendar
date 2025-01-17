@@ -74,7 +74,7 @@
 
 
         /************************
-        * time blocks
+        * time summary 
         */
         .time-summary {
             position: absolute;
@@ -82,7 +82,8 @@
             right: -110%;
 
             margin-top: 45px; /* Align with grid top */
-            min-width: 120px;
+            min-width: 180px;
+            width: 230px;
             background-color: #f8f9fa;
             padding: 10px;
             border-radius: 4px;
@@ -98,16 +99,60 @@
             font-size: 14px;
         }
 
+        .ranking {
+            text-align: right;
+            flex-shrink: 0;
+            margin-right: 8px;
+            font-weight: bold;
+        }
+
         .color-indicator {
             width: 16px;
             height: 16px;
             border-radius: 3px;
             margin-right: 8px;
             border: 1px solid #ddd;
+            flex-shrink: 0;
+        }
+
+        .label {
+            flex: 1;
+            margin-right: 8px;
+        }
+
+        .rank-up, .rank-down {
+            width: 20px;
+            text-align: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .rank-up {
+            color: #e53e3e;
+        }
+
+        .rank-down {
+            color: #3182ce;
+        }
+        .time-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+            flex-shrink: 0;
         }
 
         .time-value {
-            margin-left: auto;
+            width: 55px;  /* Fixed width for time value */
+            text-align: right;
+            font-family: monospace;
+        }
+
+        .time-change {
+            width: 65px;  /* Fixed width for time change */
+            font-size: 12px;
+            color: #666;
+            text-align: right;
         }
 
         /************************
@@ -307,7 +352,9 @@
     <script>
         let selectedColor = 'rgb(255, 255, 255)'; //default cell-background-color is white
 
-        const blockData = {};
+        const blockData = {}; //모든 cell의 text, color, prev_color가 담긴 변수 
+        let previousColorTotals = {}; //실시간 시간 증감 tracking을 위한 변수
+
         let dragStartColors = new Map(); // To store original colors when drag starts
         let selectedCells = new Set();
 
@@ -753,57 +800,128 @@
         /*****************
          * time summary
          */
-         function updateTimeSummary() {
-            const summaryContainer = document.getElementById('timeSummary');
-            const colorTotals = {};
-
-            // Initialize totals for all saved colors
-            savedColors.forEach(({color, label}) => {
-                colorTotals[color] = 0;
+         function calculatePreviousRankings(colorTotals, timeChanges) {
+            // Calculate previous totals by subtracting changes
+            const previousTotals = {};
+            Object.keys(colorTotals).forEach(color => {
+                // colorTotals is in blocks (10-minute units)
+                const currentBlocks = colorTotals[color] || 0;
+                const changeBlocks = timeChanges[color] || 0;
+                
+                // Calculate previous blocks
+                const previousBlocks = currentBlocks - changeBlocks;
+                // Convert to minutes
+                previousTotals[color] = previousBlocks * 10;
             });
 
-            // Count blocks for each color
+            // Create array and sort by previous totals
+            const previousRankings = savedColors.map(({color, label}) => ({
+                color,
+                label,
+                totalMinutes: Math.max(0, previousTotals[color] || 0) // Ensure non-negative
+            }));
+
+            previousRankings.sort((a, b) => b.totalMinutes - a.totalMinutes);
+            
+            // Create ranking map
+            const rankMap = new Map();
+            previousRankings.forEach((item, index) => {
+                rankMap.set(item.color, index + 1);
+            });
+            
+            return rankMap;
+        }
+
+        function updateTimeSummary() {
+            const summaryContainer = document.getElementById('timeSummary');
+            const colorTotals = {};
+            const timeChanges = {};
+
+            // Initialize totals for all saved colors
+            savedColors.forEach(({color}) => {
+                colorTotals[color] = 0;
+                timeChanges[color] = 0;
+            });
+
+            // Count blocks and track changes
             Object.values(blockData).forEach(block => {
-                // Convert RGB to HEX for comparison
-                const blockColorHex = block.color.startsWith('rgb') ? rgbToHex(block.color) : block.color;
-                
-                // Find matching color in savedColors
-                const matchingColor = savedColors.find(({color}) => color.toLowerCase() === blockColorHex.toLowerCase());
-                
-                if (matchingColor) {
-                    colorTotals[matchingColor.color] += 1;
+                const currentColorHex = block.color.startsWith('rgb') ? rgbToHex(block.color) : block.color;
+                const previousColorHex = block.previousColor ? 
+                    (block.previousColor.startsWith('rgb') ? rgbToHex(block.previousColor) : block.previousColor) : 
+                    null;
+
+                // Count current color
+                if (savedColors.find(c => c.color.toLowerCase() === currentColorHex.toLowerCase())) {
+                    colorTotals[currentColorHex] += 1;
+                    
+                    // If there was a color change in this cell
+                    if (previousColorHex && previousColorHex !== currentColorHex) {
+                        timeChanges[currentColorHex] += 1;  // +1 block for new color
+                        if (savedColors.find(c => c.color.toLowerCase() === previousColorHex.toLowerCase())) {
+                            timeChanges[previousColorHex] -= 1;  // -1 block for old color
+                        }
+                    }
                 }
             });
 
-            // Clear existing summary
-            summaryContainer.innerHTML = '';
+            // Get previous rankings
+            const previousRankings = calculatePreviousRankings(colorTotals, timeChanges);
 
-            // Create array of color data with their total minutes
+            // Create array of color data with their totals
             const colorDataArray = savedColors.map(({color, label}) => {
                 const blocks = colorTotals[color] || 0;
                 const totalMinutes = blocks * 10;
+                const change = timeChanges[color] * 10;  // Convert blocks to minutes
+                
                 return {
                     color,
                     label,
                     totalMinutes,
                     hours: Math.floor(totalMinutes / 60),
-                    minutes: totalMinutes % 60
+                    minutes: totalMinutes % 60,
+                    change
                 };
             });
 
             // Sort by total minutes (descending)
             colorDataArray.sort((a, b) => b.totalMinutes - a.totalMinutes);
 
+            // Clear existing summary
+            summaryContainer.innerHTML = '';
+
             // Create summary items
-            colorDataArray.forEach(({color, label, hours, minutes}) => {
-                const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+            colorDataArray.forEach((data, index) => {
+                const currentRank = index + 1;
+                const previousRank = previousRankings.get(data.color);
+                const timeString = `${String(data.hours).padStart(2, '0')}:${String(data.minutes).padStart(2, '0')}`;
+                
+                // Create change indicator
+                const changeIndicator = formatTimeChange(data.change);
+                
+                // Create rank change indicator
+                let rankIndicator = '';
+                if (previousRank && currentRank !== previousRank) {
+                    if (currentRank < previousRank) {
+                        rankIndicator = '<span class="rank-up">▲</span>';
+                    } else {
+                        rankIndicator = '<span class="rank-down">▼</span>';
+                    }
+                } else {
+                    // Add empty span to maintain grid alignment
+                    rankIndicator = '<span class="rank-indicator"></span>';
+                }
 
                 const summaryItem = document.createElement('div');
                 summaryItem.className = 'color-summary-item';
                 summaryItem.innerHTML = `
-                    <div class="color-indicator" style="background-color: ${color}"></div>
-                    <span>${label}</span>
-                    <span class="time-value">${timeString}</span>
+                    <span class="ranking">${currentRank}.</span>
+                    <div class="color-indicator" style="background-color: ${data.color}"></div>
+                    <span class="label">${data.label}</span>
+                    <span class="rank-indicator">${rankIndicator}</span>
+                    <div class="time-wrapper">
+                        <span class="time-value">${timeString}</span>
+                        <span class="time-change">${changeIndicator}</span>
+                    </div>
                 `;
                 summaryContainer.appendChild(summaryItem);
             });
@@ -983,6 +1101,23 @@
             return luminance < 0.5;
         }
 
+        function formatTimeChange(minutes) {
+            if (minutes === 0) return "";
+            
+            const sign = minutes > 0 ? "+" : "-";
+            const absMinutes = Math.abs(minutes);
+            
+            if (absMinutes >= 60) {
+                const hours = Math.floor(absMinutes / 60);
+                const remainingMinutes = absMinutes % 60;
+                if (remainingMinutes === 0) {
+                    return `${sign}${hours}hr`;
+                }
+                return `${sign}${hours}hr ${remainingMinutes}m`;
+            }
+            
+            return `${sign}${absMinutes}m`;
+        }
 
         /*****************
          * Event Listener
