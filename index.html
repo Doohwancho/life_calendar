@@ -374,7 +374,6 @@
         //style for previous color inside time-block
         const previousColorStyle = `
             .grid-cell.color-changed {
-                border: 1.5px solid #fa9d1b;
                 padding-left: 16px;
                 position: relative;
             }
@@ -523,7 +522,7 @@
 
             if (originalColor && normalizeColor(originalColor) !== newColor) {
                 cell.classList.add('color-changed');
-                cell.style.borderColor = '#fa9d1b';
+                // cell.style.borderColor = '#fa9d1b';
                 cell.style.setProperty('--previous-color', originalColor);
             } else {
                 cell.classList.remove('color-changed');
@@ -692,7 +691,7 @@
                         // Only add triangle if there's an actual color change
                         if (originalColor && normalizeColor(originalColor) !== newColor) {
                             cell.classList.add('color-changed');
-                            cell.style.borderColor = '#fa9d1b';
+                            // cell.style.borderColor = '#fa9d1b';
                             // cell.style.setProperty('border-top-color', originalColor);
                             cell.style.setProperty('--previous-color', originalColor);
                         } else {
@@ -979,7 +978,7 @@
                                 // Handle previous color if it exists
                                 if (value.previousColor && value.previousColor !== value.color) {
                                     cell.classList.add('color-changed');
-                                    cell.style.borderColor = '#fa9d1b';
+                                    // cell.style.borderColor = '#fa9d1b';
                                     cell.style.setProperty('--previous-color', value.previousColor);
                                 }
 
@@ -1026,7 +1025,7 @@
                             // Handle previous color if it exists
                             if (value.previousColor && value.previousColor !== value.color) {
                                 cell.classList.add('color-changed');
-                                cell.style.borderColor = '#fa9d1b';
+                                // cell.style.borderColor = '#fa9d1b';
                                 cell.style.setProperty('--previous-color', value.previousColor);
                             }
 
@@ -1141,7 +1140,7 @@
                 // Handle color change styling
                 if (originalColor && normalizeColor(originalColor) !== newColor) {
                     currentlyEditingCell.classList.add('color-changed');
-                    currentlyEditingCell.style.borderColor = '#fa9d1b';
+                    // currentlyEditingCell.style.borderColor = '#fa9d1b';
                     currentlyEditingCell.style.setProperty('--previous-color', originalColor);
                 } else {
                     currentlyEditingCell.classList.remove('color-changed');
