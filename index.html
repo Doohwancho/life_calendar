@@ -713,6 +713,7 @@
         }
 
         function addStripedStyle() {
+            //feat) 6시부터 현재시간까지 지난 시간은 빗금표시한다. 
             const style = document.createElement('style');
             style.textContent = `
                 .elapsed-time {
@@ -761,6 +762,30 @@
             document.head.appendChild(style);
         }
 
+        function addCurrentTimeRedLineStyle() {
+            const currentTimeStyle = `
+                .current-time-block {
+                    position: relative;
+                }
+
+                .current-time-block::after{
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    bottom: 0;
+                    width: 3px;
+                    background-color: #ff0000;
+                    z-index: 3;
+                }
+            `;
+
+            // Add the styles to the document
+            const currentTimeStyleSheet = document.createElement("style");
+            currentTimeStyleSheet.textContent = currentTimeStyle;
+            document.head.appendChild(currentTimeStyleSheet);
+        }
+
         function updateElapsedTimeBlocks() {
             const now = new Date();
             const hours = now.getHours();
@@ -769,10 +794,17 @@
             // Calculate blocks since 6am
             let elapsedHours = (hours - 6 + 24) % 24;
             let totalElapsedBlocks = (elapsedHours * 6) + Math.floor(minutes / 10);
+
+            // Calculate current block
+            const currentHour = (hours - 6 + 24) % 24;
+            const currentBlock = Math.floor(minutes / 10);
             
             // Update all cells
             const cells = document.querySelectorAll('.grid-cell');
             cells.forEach(cell => {
+                // Remove current time block marker from all cells first
+                cell.classList.remove('current-time-block');
+
                 const hour = parseInt(cell.dataset.hour);
                 const block = parseInt(cell.dataset.block);
                 const blockIndex = (hour * 6) + block;
@@ -791,6 +823,11 @@
                     }
                 } else {
                     cell.classList.remove('elapsed-time', 'dark-bg', 'light-bg');
+                }
+
+                // Mark current time block
+                if (hour === currentHour && block === currentBlock) {
+                    cell.classList.add('current-time-block');
                 }
             });
         }
@@ -1186,6 +1223,8 @@
             loadJsonUponStart();
 
             addStripedStyle();
+            addCurrentTimeRedLineStyle();
+
             updateElapsedTimeBlocks(); // Initial update
 
             
