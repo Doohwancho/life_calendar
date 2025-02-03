@@ -10,7 +10,13 @@
             /* margin-left: 600px; */
             position: relative;
             width: fit-content;
-            left: 30%;
+            left: 20%;
+        }
+
+        .vertical-divider {
+            width: 60px;
+            background-color: #eee;
+            margin: 0 20px;
         }
 
         /* Container wrapper to maintain relative positioning */
@@ -21,9 +27,22 @@
             /* justify-content: center; */
         }
 
+        .timeline-container {
+            display: flex;
+            gap: 40px;
+            align-items: flex-start;
+        }
+
+        .grid-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
         .right-container {
-            /* position: relative; */
+            position: fixed;
             /* max-width: 200px; */
+            bottom: 0;
             margin: 0 auto;
             justify-content: center;
         }
@@ -47,12 +66,14 @@
             /* width: 30px;  */
             text-align: center;
             font-weight: bold;
+            user-select: none;  
         }
 
         .time-cell {
             background-color: #f8f9fa;
             padding: 8px;
             text-align: right;
+            user-select: none;  
         }
 
         .grid-cell {
@@ -428,11 +449,25 @@
             </div>
         </div>
 
-        <div class="right-container">
-            <div class="grid-container" id="timeGrid">
-                <!-- Grid will be populated by JavaScript -->
+        <div class="timeline-container">
+            <div class="grid-wrapper">
+                <div class="grid-label">Current Timeline</div>
+                <div class="grid-container" id="timeGrid">
+                    <!-- Grid will be populated by JavaScript -->
+                </div>
             </div>
-            
+
+            <div class="vertical-divider"></div>
+
+            <div class="grid-wrapper">
+                <div class="grid-label">Goal Timeline</div>
+                <div class="grid-container" id="goalTimeGrid">
+                    <!-- Second grid will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div class="right-container"> 
             <div class="color-picker" id="colorPicker">
                 <!-- Color options will be populated by JavaScript -->
                 <!-- <div class="color-option" style="background-color: #a5d8ff"></div> -->
@@ -451,12 +486,17 @@
     </div>
 
     <script>
+        let activeGrid = 'timeGrid'; //track which grid we're working with
         let selectedColor = 'rgb(255, 255, 255)'; //default cell-background-color is white
 
-        const blockData = {}; //모든 cell의 text, color, prev_color가 담긴 변수 
+        const blockData = {}; //모든 cell의 text, color, prev_color가 담긴 변수, for main timeline
+        const goalBlockData = {}; // for goal timeline
+
         let previousColorTotals = {}; //실시간 시간 증감 tracking을 위한 변수
 
-        let dragStartColors = new Map(); // To store original colors when drag starts
+        let timeGridStartColors = new Map(); // For current timeline, store original colors when drag starts
+        let goalGridStartColors = new Map(); // For goal timeline, store original colors when drag starts
+
         let selectedCells = new Set();
 
         let savedColors = [
@@ -500,8 +540,9 @@
         let currentlyEditingCell = null;
 
 
-        function initializeGrid() {
-            const grid = document.getElementById('timeGrid');
+        function initializeGrid(gridId) {
+            const grid = document.getElementById(gridId);
+            const dataStore = gridId === 'timeGrid' ? blockData : goalBlockData;
 
             // Add header row
             grid.appendChild(createCell('Hour', 'header-cell'));
@@ -522,13 +563,21 @@
                     cell.dataset.hour = hour;
                     cell.dataset.block = block;
 
+                    // Initialize data store with default values for each cell
+                    const blockKey = `${hour}-${block}`;
+                    dataStore[blockKey] = {
+                        text: '',
+                        color: 'rgb(255, 255, 255)',  // default white color
+                        previousColor: null
+                    };
+
                     // Add mouse events for drag selection
                     cell.addEventListener('mousedown', (e) => {
                         isDragging = false;
                         startCell = cell;
                         selectedCells.clear();
 
-                        storeCurrentColors();
+                        storeCurrentColors(gridId);
 
                         // Add initial cell to selected set
                         const cellKey = `${hour}-${block}`;
@@ -568,7 +617,8 @@
             document.addEventListener('mouseup', () => {
                 isDragging = false;
                 startCell = null;
-                dragStartColors.clear(); 
+                timeGridStartColors.clear();
+                goalGridStartColors.clear();
                 selectedCells.clear();
             });
 
@@ -597,6 +647,10 @@
                 event.target.closest('.grid-cell');
             
             if (!cell) return;
+
+            const gridId = cell.closest('.grid-container').id;
+            const colorStore = gridId === 'timeGrid' ? timeGridStartColors : goalGridStartColors;
+            activeGrid = cell.closest('.grid-container').id;
 
             // Create modal elements
             const modalOverlay = document.createElement('div');
@@ -688,7 +742,7 @@
             const block = cell.dataset.block;
             const blockKey = `${hour}-${block}`;
 
-            const originalColor = dragStartColors.get(blockKey) || 'rgb(255, 255, 255)';
+            const originalColor = colorStore.get(blockKey) || 'rgb(255, 255, 255)';
             const newColor = normalizeColor(selectedColor);
 
             if (originalColor && normalizeColor(originalColor) !== newColor) {
@@ -713,10 +767,14 @@
         }
 
         function saveBlock(blockKey, text, cell) {
+            const gridId = cell.closest('.grid-container').id;
+            const dataStore = gridId === 'timeGrid' ? blockData : goalBlockData;
+            const colorStore = gridId === 'timeGrid' ? timeGridStartColors : goalGridStartColors;
+
             // Get the current previous color if it exists
-            const previousColor = dragStartColors.get(blockKey);
+            const previousColor = colorStore.get(blockKey);
         
-            blockData[blockKey] = {
+            dataStore[blockKey] = {
                 text: text,
                 color: selectedColor,
                 previousColor: previousColor || null  
@@ -797,6 +855,11 @@
 
         // Add this function to handle drag painting
         function handleDragPaint(startCell, currentCell) {
+            // Get the grid we're working with
+            const gridId = startCell.closest('.grid-container').id;
+            const dataStore = gridId === 'timeGrid' ? blockData : goalBlockData;
+            const colorStore = gridId === 'timeGrid' ? timeGridStartColors : goalGridStartColors;
+
             // Get row and column indices
             const startHour = parseInt(startCell.dataset.hour);
             const startBlock = parseInt(startCell.dataset.block);
@@ -812,12 +875,12 @@
             // Paint all cells in the range
             for (let hour = startH; hour <= endH; hour++) {
                 for (let block = startB; block <= endB; block++) {
-                    const cell = document.querySelector(`.grid-cell[data-hour="${hour}"][data-block="${block}"]`);
+                    const cell = document.querySelector(`#${gridId} .grid-cell[data-hour="${hour}"][data-block="${block}"]`);
             
                     if (cell) {
                         const cellKey = `${hour}-${block}`;
                         // Get the original color from our stored Map
-                        const originalColor = dragStartColors.get(cellKey);
+                        const originalColor = colorStore.get(cellKey); //before) dragStartColors.get(cellKey);
                         const newColor = normalizeColor(selectedColor);
 
                         // Only add triangle if there's an actual color change
@@ -836,7 +899,7 @@
                         cell.style.backgroundColor = selectedColor;
                         
 
-                        saveBlock(cellKey, blockData[cellKey]?.text || '', cell);
+                        saveBlock(cellKey, dataStore[cellKey]?.text || '', cell);
                     }
                 }
             }
@@ -1102,7 +1165,8 @@
             return {
                 colorPalette: savedColors,
                 timeBlocks: blockData,
-                version: "1.0"  // for future compatibility
+                goalBlocks: goalBlockData,
+                version: "1.1"  
             };
         }
 
@@ -1136,28 +1200,12 @@
                     
                     // Load time blocks
                     if (data.timeBlocks) {
-                        Object.entries(data.timeBlocks).forEach(([key, value]) => {
-                            const [hour, block] = key.split('-');
-                            const cell = document.querySelector(`.grid-cell[data-hour="${hour}"][data-block="${block}"]`);
-                            if (cell) {
-                                blockData[key] = value;
-                                cell.textContent = value.text || '';
-                                cell.style.backgroundColor = value.color;
-
-                                // Handle previous color if it exists
-                                if (value.previousColor && value.previousColor !== value.color) {
-                                    cell.classList.add('color-changed');
-                                    // cell.style.borderColor = '#fa9d1b';
-                                    cell.style.setProperty('--previous-color', value.previousColor);
-                                }
-
-                                if (rgbToHex(value.color) === '#000000' || value.color === '#000000') {
-                                    cell.style.color = 'white';
-                                } else {
-                                    cell.style.color = 'black';
-                                }
-                            }
-                        });
+                        loadGridData(data.timeBlocks, 'timeGrid', blockData);
+                    }
+                    
+                    // Load goal blocks
+                    if (data.goalBlocks) {
+                        loadGridData(data.goalBlocks, 'goalTimeGrid', goalBlockData);
                     }
 
                     updateTimeSummary();
@@ -1170,9 +1218,45 @@
             reader.readAsText(file);
         }
 
+        function loadGridData(data, gridId, dataStore) {
+            // First initialize all cells with default values
+            for (let hour = 0; hour < 24; hour++) {
+                for (let block = 0; block < 6; block++) {
+                    const key = `${hour}-${block}`;
+                    dataStore[key] = {
+                        text: '',
+                        color: 'rgb(255, 255, 255)',
+                        previousColor: null
+                    };
+                }
+            }
+
+            // Then apply the loaded data
+            Object.entries(data).forEach(([key, value]) => {
+                const [hour, block] = key.split('-');
+                const cell = document.querySelector(`#${gridId} .grid-cell[data-hour="${hour}"][data-block="${block}"]`);
+                if (cell) {
+                    dataStore[key] = value;
+                    cell.textContent = value.text || '';
+                    cell.style.backgroundColor = value.color;
+
+                    if (value.previousColor && value.previousColor !== value.color) {
+                        cell.classList.add('color-changed');
+                        cell.style.setProperty('--previous-color', value.previousColor);
+                    }
+
+                    if (rgbToHex(value.color) === '#000000' || value.color === '#000000') {
+                        cell.style.color = 'white';
+                    } else {
+                        cell.style.color = 'black';
+                    }
+                }
+            });
+        }
+
         async function loadJsonUponStart() {
             try {
-                const response = await fetch('./timeline.json');
+                const response = await fetch('./examples/timeline.json');
                 const data = await response.json();
                 
                 // Load color palette
@@ -1183,28 +1267,12 @@
                 
                 // Load time blocks
                 if (data.timeBlocks) {
-                    Object.entries(data.timeBlocks).forEach(([key, value]) => {
-                        const [hour, block] = key.split('-');
-                        const cell = document.querySelector(`.grid-cell[data-hour="${hour}"][data-block="${block}"]`);
-                        if (cell) {
-                            blockData[key] = value;
-                            cell.textContent = value.text || '';
-                            cell.style.backgroundColor = value.color;
+                    loadGridData(data.timeBlocks, 'timeGrid', blockData);
+                }
 
-                            // Handle previous color if it exists
-                            if (value.previousColor && value.previousColor !== value.color) {
-                                cell.classList.add('color-changed');
-                                // cell.style.borderColor = '#fa9d1b';
-                                cell.style.setProperty('--previous-color', value.previousColor);
-                            }
-
-                            if (rgbToHex(value.color) === '#000000' || value.color === '#000000') {
-                                cell.style.color = 'white';
-                            } else {
-                                cell.style.color = 'black';
-                            }
-                        }
-                    });
+                // Load goal blocks
+                if (data.goalBlocks) {
+                    loadGridData(data.goalBlocks, 'goalTimeGrid', goalBlockData);
                 }
 
                 updateTimeSummary();
@@ -1241,11 +1309,15 @@
             return null;
         }
 
-        function storeCurrentColors() {
-            dragStartColors.clear(); // Clear previous stored colors
-            document.querySelectorAll('.grid-cell').forEach(cell => {
+        function storeCurrentColors(gridId) {
+            // Clear the appropriate Map
+            const colorStore = gridId === 'timeGrid' ? timeGridStartColors : goalGridStartColors;
+            colorStore.clear();
+
+            // Store colors only for the active grid
+            document.querySelectorAll(`#${gridId} .grid-cell`).forEach(cell => {
                 const key = `${cell.dataset.hour}-${cell.dataset.block}`;
-                dragStartColors.set(key, cell.style.backgroundColor);
+                colorStore.set(key, cell.style.backgroundColor);
             });
         }
 
@@ -1296,60 +1368,63 @@
             if (event.target.classList.contains('color-option')) {
                 selectedColor = event.target.style.backgroundColor;
 
-            // If we're currently editing a cell, apply the color immediately
-            if (currentlyEditingCell) {
-                const hour = currentlyEditingCell.dataset.hour;
-                const block = currentlyEditingCell.dataset.block;
-                const blockKey = `${hour}-${block}`;
-                
-                // Get the original color
-                const originalColor = dragStartColors.get(blockKey) || currentlyEditingCell.style.backgroundColor;
-                const newColor = normalizeColor(selectedColor);
+                // If we're currently editing a cell, apply the color immediately
+                if (currentlyEditingCell) {
+                    const gridId = currentlyEditingCell.closest('.grid-container').id;
+                    const colorStore = gridId === 'timeGrid' ? timeGridStartColors : goalGridStartColors;
+                    const hour = currentlyEditingCell.dataset.hour;
+                    const block = currentlyEditingCell.dataset.block;
+                    const blockKey = `${hour}-${block}`;
+                    
+                    // Get the original color
+                    const originalColor = colorStore.get(blockKey) || currentlyEditingCell.style.backgroundColor;
+                    const newColor = normalizeColor(selectedColor);
 
-                // Handle color change styling
-                if (originalColor && normalizeColor(originalColor) !== newColor) {
-                    currentlyEditingCell.classList.add('color-changed');
-                    // currentlyEditingCell.style.borderColor = '#fa9d1b';
-                    currentlyEditingCell.style.setProperty('--previous-color', originalColor);
-                } else {
-                    currentlyEditingCell.classList.remove('color-changed');
-                    currentlyEditingCell.style.borderColor = '';
-                    currentlyEditingCell.style.removeProperty('--previous-color');
-                }
-
-                // Apply the new color
-                currentlyEditingCell.style.backgroundColor = selectedColor;
-
-                // Update blockData with the new color and existing text
-                const textarea = currentlyEditingCell.querySelector('.editing-textarea');
-                const currentText = textarea ? textarea.value : (blockData[blockKey]?.text || '');
-                
-                // Save to blockData
-                blockData[blockKey] = {
-                    text: currentText,
-                    color: selectedColor,
-                    previousColor: originalColor || null
-                };
-                
-                // Keep the textarea focused and maintain text color
-                if (textarea) {
-                    textarea.style.backgroundColor = 'transparent';
-                    if (rgbToHex(selectedColor) === '#000000') {
-                        textarea.style.color = 'white';
+                    // Handle color change styling
+                    if (originalColor && normalizeColor(originalColor) !== newColor) {
+                        currentlyEditingCell.classList.add('color-changed');
+                        // currentlyEditingCell.style.borderColor = '#fa9d1b';
+                        currentlyEditingCell.style.setProperty('--previous-color', originalColor);
                     } else {
-                        textarea.style.color = 'black';
+                        currentlyEditingCell.classList.remove('color-changed');
+                        currentlyEditingCell.style.borderColor = '';
+                        currentlyEditingCell.style.removeProperty('--previous-color');
                     }
-                    textarea.focus();
-                }
 
-                updateTimeSummary();
-            }
+                    // Apply the new color
+                    currentlyEditingCell.style.backgroundColor = selectedColor;
+
+                    // Update blockData with the new color and existing text
+                    const textarea = currentlyEditingCell.querySelector('.editing-textarea');
+                    const currentText = textarea ? textarea.value : (blockData[blockKey]?.text || '');
+                    
+                    // Save to blockData
+                    blockData[blockKey] = {
+                        text: currentText,
+                        color: selectedColor,
+                        previousColor: originalColor || null
+                    };
+                    
+                    // Keep the textarea focused and maintain text color
+                    if (textarea) {
+                        textarea.style.backgroundColor = 'transparent';
+                        if (rgbToHex(selectedColor) === '#000000') {
+                            textarea.style.color = 'white';
+                        } else {
+                            textarea.style.color = 'black';
+                        }
+                        textarea.focus();
+                    }
+
+                    updateTimeSummary();
+                }
             }
         });
 
         // Initialize grid when page loads
         document.addEventListener('DOMContentLoaded', () => {
-            initializeGrid();
+            initializeGrid('timeGrid');
+            initializeGrid('goalTimeGrid');
             initializeColorPicker();  
 
             loadJsonUponStart();
