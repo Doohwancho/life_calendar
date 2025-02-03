@@ -57,21 +57,21 @@
 
         .grid-cell {
             background-color: white;
-            min-height: 24px;
+            /* min-height: 24px; */
+            /* width: 30px; */
+            max-width: 70px;
             border: 1px solid #ddd;
             padding: 4px;
             cursor: pointer;
             position: relative;
-            /* overflow: hidden; */
-            /* overflow: visible;  */
             white-space: nowrap; 
+            overflow: hidden;
             z-index: 1; 
         }
 
         .grid-cell:hover {
             border-color: #aaa;
         }
-
 
         /************************
         * time summary 
@@ -243,20 +243,121 @@
             margin-bottom: 10px;
         }
 
-        .editing-textarea {
-            position: absolute;
+        .modal-overlay {
+            position: fixed;
             top: 0;
             left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 24px;
+            border-radius: 12px;
+            width: 400px;
+            height: 220px;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            animation: slideIn 0.3s ease-out;
+            color: black;
+        }
+
+        .editing-textarea {
+            /* width: 200px; */
             width: 100%;
-            height: 100%;
+            height: 85%;
             border: 2px solid #4299e1;
             padding: 4px;
-            resize: none;
+            resize: vertical;
             font-family: inherit;
             font-size: inherit;
             box-sizing: border-box;
             background-color: transparent; /* time-block을 클릭하자마자 색칠되게 한다 */
+            z-index: 10;
+            /* box-shadow: 0 2px 10px rgba(0,0,0,0.1); */
         }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 8px;
+            gap: 12px;
+        }
+
+        .modal-button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .save-text-button, .cancel-text-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .save-text-button {
+            background-color: #4299e1;
+            color: white;
+        }
+
+        .save-text-button:hover {
+            background-color: #3182ce;
+            transform: translateY(-1px);
+        }
+
+        .save-text-button:active {
+            transform: translateY(0);
+        }
+
+        .cancel-text-button {
+            background-color: #f7f1ed;
+            color: #4a5568;
+        }
+
+        .cancel-text-button:hover {
+            background-color: #e2e8f0;
+            transform: translateY(-1px);
+        }
+
+        .cancel-text-button:active {
+            transform: translateY(0);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
 
 
         /************************
@@ -497,88 +598,119 @@
             
             if (!cell) return;
 
-            // If we're clicking on a different cell, save the previous cell's content
-            if (currentlyEditingCell && currentlyEditingCell !== cell) {
-                const textarea = currentlyEditingCell.querySelector('.editing-textarea');
-                if (textarea) {
-                    const prevHour = currentlyEditingCell.dataset.hour;
-                    const prevBlock = currentlyEditingCell.dataset.block;
-                    const prevKey = `${prevHour}-${prevBlock}`;
-                    saveBlock(prevKey, textarea.value, currentlyEditingCell);
-                    textarea.remove();
+            // Create modal elements
+            const modalOverlay = document.createElement('div');
+            modalOverlay.className = 'modal-overlay';
+
+            const modalContent = document.createElement('div');
+            modalContent.className = 'modal-content';
+
+            // Create textarea
+            const textarea = document.createElement('textarea');
+            textarea.className = 'editing-textarea';
+            textarea.value = cell.textContent || '';
+            
+            // Create buttons
+            const buttonsDiv = document.createElement('div');
+            buttonsDiv.className = 'modal-buttons';
+
+            const saveButton = document.createElement('button');
+            saveButton.className = 'modal-button save-text-button';
+            saveButton.textContent = 'Save';
+
+            const cancelButton = document.createElement('button');
+            cancelButton.className = 'modal-button cancel-text-button';
+            cancelButton.textContent = 'Cancel';
+
+            // Add event listeners
+            // Close modal when press 'esc'
+            const handleEscKey = (e) => {
+                if (e.key === 'Escape') {
+                    modalOverlay.remove();
+                    // Remove the event listener when modal is closed
+                    document.removeEventListener('keydown', handleEscKey);
                 }
-            }
+            };
 
-            currentlyEditingCell = cell;
+            document.addEventListener('keydown', handleEscKey);
 
+
+            saveButton.addEventListener('click', () => {
+                const hour = cell.dataset.hour;
+                const block = cell.dataset.block;
+                const blockKey = `${hour}-${block}`;
+                
+                saveBlock(blockKey, textarea.value, cell);
+                modalOverlay.remove();
+                document.removeEventListener('keydown', handleEscKey);
+            });
+
+            cancelButton.addEventListener('click', () => {
+                modalOverlay.remove();
+                document.removeEventListener('keydown', handleEscKey);
+            });
+
+            // Close modal when clicking outside
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    modalOverlay.remove();
+                    document.removeEventListener('keydown', handleEscKey);
+                }
+            });
+
+
+            // Handle Enter key
+            textarea.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    const hour = cell.dataset.hour;
+                    const block = cell.dataset.block;
+                    const blockKey = `${hour}-${block}`;
+                    
+                    saveBlock(blockKey, textarea.value, cell);
+                    modalOverlay.remove();
+                }
+            });
+
+            // Assemble modal
+            buttonsDiv.appendChild(cancelButton);
+            buttonsDiv.appendChild(saveButton);
+            modalContent.appendChild(textarea);
+            modalContent.appendChild(buttonsDiv);
+            modalOverlay.appendChild(modalContent);
+            document.body.appendChild(modalOverlay);
+
+            // Focus textarea
+            textarea.focus();
+
+            // Handle the cell color changes
             const hour = cell.dataset.hour;
             const block = cell.dataset.block;
             const blockKey = `${hour}-${block}`;
 
-
-            // Get the original color from our stored Map
             const originalColor = dragStartColors.get(blockKey) || 'rgb(255, 255, 255)';
             const newColor = normalizeColor(selectedColor);
 
             if (originalColor && normalizeColor(originalColor) !== newColor) {
                 cell.classList.add('color-changed');
-                // cell.style.borderColor = '#fa9d1b';
                 cell.style.setProperty('--previous-color', originalColor);
             } else {
                 cell.classList.remove('color-changed');
                 cell.style.borderColor = '';
-                cell.style.removeProperty('border-top-color');
                 cell.style.removeProperty('--previous-color');
             }
 
-            // Apply new color
             cell.style.backgroundColor = selectedColor;
-
-            // Save current state to blockData immediately
+            
+            // Update blockData
             blockData[blockKey] = {
                 text: blockData[blockKey]?.text || '',
                 color: selectedColor,
                 previousColor: originalColor || null
             };
 
-            // Clear the cell's text content before adding textarea
-            const existingText = cell.textContent;  // Store existing text
-            cell.textContent = '';  // Clear the cell
-
-            // Remove any existing textarea
-            const existingTextarea = document.querySelector('.editing-textarea');
-            if (existingTextarea) {
-                existingTextarea.remove();
-            }
-
-            // Create and add new textarea
-            const textarea = document.createElement('textarea');
-            textarea.className = 'editing-textarea';
-            textarea.value = existingText || blockData[blockKey]?.text || '';
-            
-            // 배경색상이 검정색이면 글자색을 흰색으로 변경 
-            if (rgbToHex(selectedColor) === '#000000') {
-                textarea.style.color = 'white'; //이게 텍스트 컬러 바꾸는게 아니라 triangle 컬러 바꾸더라 
-            } else {
-                textarea.style.color = 'black';
-            }
-            
-            // textarea.style.backgroundColor = 'transparent';
-            textarea.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    saveBlock(blockKey, textarea.value, cell);
-                    textarea.remove();
-                    currentlyEditingCell = null;
-                }
-            });
-
-            cell.appendChild(textarea);
-            textarea.focus();
-
             updateTimeSummary();
         }
-
 
         function saveBlock(blockKey, text, cell) {
             // Get the current previous color if it exists
