@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Ledger Pro</title>
+    <style>
+        /* --- Global Resets & Body --- */
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #f0f2f5; /* Light grey background */
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        /* --- Date Header --- */
+        .date-header {
+            padding: 10px 20px;
+            background-color: #1a2533; /* Darker, more professional blue-grey */
+            color: white;
+            text-align: center;
+            font-size: 1.1em; /* Slightly smaller */
+            height: auto; /* Adjust to content + padding */
+            min-height: 30px;
+            line-height: 30px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+
+        /* --- Main Page Container (3 columns) --- */
+        .page-container {
+            display: flex;
+            width: 100%;
+            flex-grow: 1;
+            padding: 15px;
+            gap: 15px;
+            overflow: hidden; /* Important for children with overflow-y: auto */
+        }
+
+        .left-pane, .center-pane, .right-pane {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08); /* Subtle shadow */
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        /* --- Left Pane (3 horizontal sections) --- */
+        .left-pane {
+            flex: 1 1 22%; /* Slightly narrower */
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .left-pane-top, .left-pane-middle, .left-pane-bottom {
+            border: 1px solid #e7eaf0;
+            border-radius: 6px;
+            padding: 0; /* 섹션 자체 패딩 제거, 내부 컨텐츠가 패딩 관리 */
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden; /* 내부 스크롤 요소와 함께 사용 */
+            color: #777;
+        }
+        .left-pane-top { 
+            flex: 0.4; 
+            min-height: 150px; 
+            /* position: relative;  */
+            overflow: visible !important; /* 중요: 하위 절대 위치 요소가 이 경계를 넘어 보이도록! */
+                                        /* 다른 .left-pane-* 섹션과 겹칠 수 있음 */
+            z-index: 30;
+            position:relative;
+            display: flex; 
+            flex-direction: column;
+        }
+        /* .left-pane-middle { flex: 2; min-height: 280px; padding:10px; overflow-y:auto;} */
+        .left-pane-middle { /* For general TODO List, #todo-app-container is inside this */
+            position:relative;
+            flex: 0.5; /* 높이 비율 조정 (기존 flex: 2에서 줄임) */
+            min-height: 220px; /* 대략 TODO 6개 + 버튼 높이, 필요시 미세조정 */
+            padding: 0; /* 내부 #todo-app-container가 패딩 관리 */
+            display: flex; /* 자식인 #todo-app-container가 100% 높이 차지하도록 */
+            overflow-y: auto; /* -- #todo-app-container 에서 처리 */
+            z-index: 20;
+        }
+        .left-pane-bottom { /* routines-app-container의 부모 */
+            position:relative;
+            flex: 1;
+            min-height: 150px; /* 최소 높이 설정, 내용이 적을 때를 대비 */
+            /* padding: 0; 이미 위에서 설정됨 */
+            /* display: flex; flex-direction: column; 이미 위에서 설정됨 */
+            /* overflow: hidden; 이미 위에서 설정됨 */
+            z-index: 10;
+            overflow: hidden;
+        }
+
+
+        /* --- Center Pane (Timelines & Color Picker) --- */
+        .center-pane {
+            flex: 2 1 56%; /* Wider */
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center children like timelines-wrapper and color-picker */
+            gap: 20px;
+        }
+
+        .timelines-side-by-side-wrapper {
+            display: flex;
+            flex-direction: row;
+            gap: 15px;
+            width: 100%;
+            justify-content: space-around; /* Or 'center' if they shouldn't fill */
+        }
+
+        .timelines-side-by-side-wrapper > .grid-wrapper {
+            flex: 1; /* Each timeline takes equal horizontal space */
+            min-width: 0; /* Important for flex item shrinking */
+        }
+
+        /* --- Right Pane --- */
+        .right-pane {
+            flex: 1 1 22%; /* Match left pane */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #aaa;
+            font-style: italic;
+        }
+
+        /* --- Grid Wrapper & Label (Common for both timelines) --- */
+        .grid-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 450px; /* Constrain timeline width if desired */
+        }
+
+        .grid-label {
+            font-weight: 600; /* Semibold */
+            margin-bottom: 12px;
+            font-size: 1.05em;
+            color: #2c3e50; /* Match darker header elements */
+        }
+
+        /* --- Grid Container & Cells (from timelines.js styling needs) --- */
+        .grid-container {
+            display: grid;
+            grid-template-columns: 45px repeat(6, 1fr); /* Time col slightly narrower */
+            gap: 1px;
+            background-color: #dde1e6; /* Grid lines color */
+            width: 100%;
+            border: 1px solid #c5cdd3;
+            border-radius: 4px; /* Rounded corners for the grid itself */
+            overflow: hidden; /* To clip cell borders with radius */
+        }
+
+        .header-cell, .time-cell {
+            background-color: #edf2f7; /* Light, neutral header */
+            padding: 7px 5px;
+            text-align: center;
+            font-weight: 500;
+            user-select: none;
+            font-size: 0.8em;
+            color: #4a5568; /* Header text color */
+        }
+        .time-cell { text-align: right; }
+
+        .grid-cell {
+            background-color: white;
+            min-height: 20px;
+            border: 1px solid #e2e8f0; /* Lighter cell borders */
+            padding: 3px;
+            cursor: pointer;
+            position: relative;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            z-index: 1;
+            font-size: 0.7em;
+            transition: border-color 0.2s ease;
+        }
+        .grid-cell:hover { border-color: #a0aec0; } /* Hover effect */
+
+        /* Triangle for previous color (style injected by timelines.js) */
+        /* .grid-cell.color-changed ... */
+
+        /* --- Time Summary (Hidden) --- */
+        .time-summary {
+            display: none !important;
+            /* ... other styles for when it's visible ... */
+            min-width: 280px; width: auto; max-width: 450px;
+            background-color: #f8f9fa; padding: 15px; border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+        .color-summary-item{display:flex;align-items:center;margin-bottom:8px;font-size:14px}.ranking{text-align:right;flex-shrink:0;margin-right:8px;font-weight:700;width:25px}.color-indicator{width:16px;height:16px;border-radius:3px;margin-right:8px;border:1px solid #ddd;flex-shrink:0}.label{flex:1;margin-right:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rank-indicator{width:20px;text-align:center;font-size:12px;flex-shrink:0}.rank-up{color:#e53e3e}.rank-down{color:#3182ce}.time-wrapper{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}.time-value{width:55px;text-align:right;font-family:monospace}.time-change{width:65px;font-size:12px;color:#666;text-align:right}
+
+        /* --- Color Picker --- */
+        .color-picker {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px; /* Slightly smaller gap */
+            padding: 12px;
+            max-width: 100%; /* Take full width available in center pane bottom area */
+            width: auto; /* Adjust based on content */
+            min-width: 280px; /* Ensure it has some minimum width */
+            align-items: center;
+            justify-content: center;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            /* margin-top: 10px; /* Spacing from timelines above, handled by center-pane gap */
+            position: relative; /* For the popup */
+        }
+        .add-color-btn{width:30px;height:30px;border:2px dashed #ccc;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;background:#fff;color:#777;transition:all .2s ease}.add-color-btn:hover{border-color:#aaa;color:#555}
+        .color-picker-popup{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);min-width:220px;background:#fff;padding:15px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:1000;display:none}.color-picker-popup.show{display:block}
+        .color-input-group{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}.color-input-group input[type="color"]{height:30px;padding:0 2px; border:1px solid #ddd; border-radius:4px;}.color-input-group input[type="text"]{padding:8px;border:1px solid #ddd;border-radius:4px;}
+        .color-option{width:28px;height:28px;border:1px solid #ccc;border-radius:4px;cursor:pointer;position:relative;transition:transform .1s ease}.color-option:hover{transform:scale(1.1);border-color:#999}.color-option:hover::after{content:attr(data-label);position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);padding:5px 8px;background:rgba(0,0,0,.85);color:#fff;border-radius:4px;font-size:11px;white-space:nowrap;z-index:1001}
+        #colorInput{margin-bottom:10px;}
+        .color-picker-popup .save-btn { /* Specific styling for add color button */
+            width:100%; padding:10px; font-size:0.9em; background-color: #28a745; border-color: #28a745;
+        }
+        .color-picker-popup .save-btn:hover { background-color: #218838; border-color: #1e7e34; }
+
+
+        /* --- Modal Styles (for cell editing) --- */
+        .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background-color:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:2000;backdrop-filter:blur(3px);animation:fadeIn .2s ease-out}
+        .modal-content{background-color:#fff;padding:20px 24px;border-radius:10px;width:90%;max-width:420px;min-height:200px;position:relative;box-shadow:0 5px 20px rgba(0,0,0,.2);animation:slideIn .25s ease-out;color:#000;display:flex;flex-direction:column}
+        .editing-textarea{width:100%;flex-grow:1;border:1px solid #ccc;padding:10px;resize:vertical;font-family:inherit;font-size:1em;box-sizing:border-box;background-color:transparent;z-index:10;border-radius:4px;margin-bottom:15px}
+        .modal-buttons{display:flex;justify-content:flex-end;padding-top:0;gap:10px}
+        .modal-button, .save-text-button, .cancel-text-button{padding:8px 18px;border:none;border-radius:5px;cursor:pointer;font-weight:500;font-size:0.9em;transition:all .2s ease}
+        .save-text-button{background-color:#007bff;color:#fff}.save-text-button:hover{background-color:#0056b3}
+        .cancel-text-button{background-color:#f0f0f0;color:#333}.cancel-text-button:hover{background-color:#e0e0e0}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        @keyframes slideIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+
+        /* --- Floating Controls (Save/Load - Hidden) --- */
+        .floating-controls{display:none!important;flex-direction:column;align-items:center;gap:10px}.control-btn{width:36px;height:36px;border-radius:50%;background-color:#fff;border:1px solid #ddd;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,.1);transition:all .2s ease}.control-btn:hover{transform:scale(1.1);box-shadow:0 3px 8px rgba(0,0,0,.15)}.control-btn svg{width:20px;height:20px;fill:#555}#loadInput{display:none}
+
+        /* --- TODO List Styles (from todo.js integration) --- */
+        #todo-app-container { /* This is a direct child of .left-pane-middle */
+            padding: 10px 10px 0 10px; /* 하단 패딩은 .todo-list 에서 관리 */
+            height: 100%; 
+            display: flex;
+            flex-direction: column;
+            position: relative; /* 자식의 absolute positioning 기준점 */
+            /* overflow: hidden; /* .todo-list가 내부 스크롤을 담당하므로 여기선 제거 가능 */
+        }
+
+        .todo-list { /* The UL element */
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1; 
+            overflow-y: auto;
+            /* 버튼 높이 + 여유 공간만큼 하단 패딩 추가 */
+            padding-bottom: 50px; /* 예: 버튼 높이가 30-40px 정도일 경우 */
+        }
+        /* ... .todo-item, .todo-number, .todo-checkbox, .todo-text-input, .todo-controls, .todo-delete-btn 등 기존 스타일 유지 ... */
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 5px;
+            border-bottom: 1px solid #f0f0f0;
+            gap: 6px; 
+            font-size: 0.9em;
+            position: relative; 
+        }
+        .todo-item:last-child { border-bottom: none; }
+        .todo-item.dragging-todo { 
+            opacity: 0.5;
+            background: #e6f7ff;
+        }
+        .todo-item.drag-over-todo { 
+            border-top: 2px dashed #007bff;
+        }
+
+        .todo-number { 
+            color: #909090;
+            font-size: 0.9em;
+            min-width: 20px; 
+            text-align: right;
+            margin-right: 3px;
+            user-select: none; 
+        }
+
+        .todo-item input[type="checkbox"] { margin-right: 6px; flex-shrink: 0; transform: scale(0.9); }
+        .todo-item .todo-text-input {
+            flex-grow: 1;
+            border: 1px solid transparent; 
+            padding: 5px;
+            border-radius: 3px;
+            font-size: 1em; 
+            background-color: transparent;
+        }
+        .todo-item .todo-text-input:focus {
+            border: 1px solid #007bff; 
+            background-color: #fff;
+        }
+        .todo-item .todo-text-input.completed { text-decoration: line-through; color: #a0a0a0; }
+
+        .todo-controls { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            flex-shrink: 0; 
+            margin-left: auto; 
+        }
+        .todo-controls .todo-importance {
+            width: 35px; 
+            padding: 3px 2px; border: 1px solid #ddd; border-radius: 3px; 
+            font-size: 0.9em; text-align: center;
+        }
+        .todo-controls .todo-time-label {
+            font-size: 0.9em; 
+            color: #555; 
+            display: flex; 
+            align-items: center;
+            cursor: default; 
+        }
+        .todo-controls .todo-time {
+            width: 40px; padding: 3px 2px; border: 1px solid #ddd; border-radius: 3px; 
+            font-size: 0.9em; text-align: center; margin-left: 2px;
+        }
+
+        .todo-delete-btn {
+            background-color: transparent; 
+            color: #adb5bd; 
+            border: none; 
+            padding: 3px 7px; 
+            border-radius: 3px; 
+            cursor: pointer; 
+            font-size: 0.8em; 
+            opacity: 0; 
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s, color 0.2s;
+            font-weight: bold;
+        }
+        .todo-item:hover .todo-delete-btn { 
+            opacity: 1;
+            visibility: visible;
+            color: #dc3545; 
+        }
+        .todo-delete-btn:hover {
+            color: #c82333 !important; 
+        }
+
+
+        /* "Add New TODO" 버튼 컨테이너 및 버튼 스타일 수정 */
+        #add-todo-btn-container { 
+            /* margin-top: auto; -- 제거: absolute positioning으로 변경 */
+            /* flex-shrink: 0; -- 제거: absolute positioning으로 변경 */
+            /* border-top: 1px solid #f0f0f0; -- 제거 또는 디자인에 맞게 조정 */
+            /* padding: 10px 0 0 0; -- 제거 또는 디자인에 맞게 조정 */
+            
+            position: absolute; /* 중요: 컨테이너 기준 절대 위치 */
+            bottom: 10px; /* 컨테이너 하단에서의 위치 */
+            left: 50%;
+            transform: translateX(-50%); /* 가로 중앙 정렬 */
+            width: calc(100% - 20px); /* 컨테이너 내부 패딩 고려한 너비, 또는 고정 너비 */
+            max-width: 300px; /* 최대 너비 설정 */
+            z-index: 10; /* 다른 TODO 항목들 위에 오도록 */
+
+            opacity: 0; 
+            visibility: hidden;
+            transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out, transform 0.2s ease-in-out;
+            /* 필요하다면 나타날 때 약간 위로 올라오는 효과 추가 */
+            /* transform: translateX(-50%) translateY(10px); */
+        }
+
+        #todo-app-container:hover #add-todo-btn-container { 
+            opacity: 1;
+            visibility: visible;
+            /* transform: translateX(-50%) translateY(0); */ /* Pop-up 효과 */
+        }
+
+        #add-todo-btn { /* 버튼 자체는 이전 스타일 유지 가능 */
+            width: 100%;
+            padding: 10px 12px; /* 패딩 조정 */
+            background-color: #3498db; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; /* 모서리 약간 더 둥글게 */
+            cursor: pointer; 
+            font-size: 0.95em; /* 글자 크기 조정 */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* 버튼에 약간의 그림자 */
+            transition: background-color 0.2s;
+        }
+        #add-todo-btn:hover { 
+            background-color: #2980b9; 
+        }
+
+
+        .todo-item.highlight-red {
+            background-color: #fff0f0; /* 매우 연한 빨간색 배경 */
+            /* border-left: 3px solid #e53935; /* 진한 빨간색 왼쪽 테두리 */
+        }
+        .todo-item.highlight-red .todo-number,
+        .todo-item.highlight-red .todo-text-input {
+            /* color: #c62828; /* 텍스트 색상도 약간 어둡게 (선택 사항) */
+        }
+
+
+        .todo-item.highlight-blue {
+            background-color: #e3f2fd; /* 매우 연한 파란색 배경 */
+            /* border-left: 3px solid #1e88e5; /* 진한 파란색 왼쪽 테두리 */
+        }
+        .todo-item.highlight-blue .todo-number,
+        .todo-item.highlight-blue .todo-text-input {
+            /* color: #1565c0; /* 텍스트 색상도 약간 어둡게 (선택 사항) */
+        }
+
+        /* 하이라이트 시 입력 필드 포커스 스타일과 충돌 방지 (선택 사항) */
+        .todo-item.highlight-red .todo-text-input:focus {
+            border-color: #e53935; /* 빨간색 계열 포커스 */
+            box-shadow: 0 0 0 0.2rem rgba(244, 67, 54, .25);
+        }
+        .todo-item.highlight-blue .todo-text-input:focus {
+            border-color: #1e88e5; /* 파란색 계열 포커스 */
+            box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, .25);
+        }
+
+
+        /* Project-Based TODO List Styles */
+        #project-todo-app-container { /* This is .left-pane-top */
+            /* padding:0; -- 이미 부모에서 설정됨 */
+            height: 100%; /* 부모(.left-pane-top)의 flex 공간을 채움 */
+            display: flex;
+            flex-direction: column;
+            position: static; 
+            /* overflow: hidden; -- .projects-scroll-area 가 스크롤 담당 */
+            /* position: static; */
+        }
+
+        .projects-scroll-area { /* NEW: For scrollable project items */
+            flex-grow: 1; /* 사용 가능한 모든 수직 공간 차지 */
+
+            overflow: visible; /* <<<<<<< 중요 변경: 하위 절대 위치 드롭다운이 벗어날 수 있도록 */
+            min-height: 0; 
+            padding: 10px 10px 0 10px; 
+            position: relative; 
+            z-index: 1; /* 드롭다운보다 낮은 z-index */
+
+            /* overflow-y: auto;  이 영역만 스크롤 */
+            /* min-height: 0;  flex 자식으로 스크롤이 올바르게 작동하도록 */
+            /* padding: 10px 10px 0 10px;  스크롤 영역 내부 패딩 (하단은 버튼과 겹치지 않게 0) */
+        }
+
+        #add-project-btn {
+            position: absolute; /* 중요: 플로팅 버튼으로 변경 */
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 30px); /* 부모 패딩 고려한 너비 (양쪽 15px씩) */
+            max-width: 250px; /* 최대 너비 */
+            z-index: 0; 
+
+            padding: 10px 12px; 
+            background-color: #3b82f6;
+            color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;
+            text-align: center;
+
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out, transform 0.2s ease-in-out;
+        }
+        #project-todo-app-container:hover #add-project-btn {
+            opacity: 1;
+            visibility: visible;
+        }
+        #add-project-btn:hover { background-color: #2563eb; }
+
+
+        .project-item-wrapper { /* ... (기존 스타일 유지) ... */
+            border-bottom: 1px solid #e8ebee;
+            position: relative;
+            z-index: 0;
+        }
+        
+        .project-item-wrapper.open {
+            z-index: 50; /* 다른 닫힌 프로젝트 항목들보다 확실히 위에 오도록 */
+        }
+
+        /* 드래그 중인 프로젝트 스타일 */
+        .project-item-wrapper.dragging-project {
+            opacity: 0.6;
+            background: #f0f8ff;
+            border: 1px dashed #007bff;
+        }
+        /* 드롭 대상 위 프로젝트 스타일 */
+        .project-item-wrapper.drag-over-project {
+            /* border-top: 2px solid #007bff; */ /* 또는 box-shadow inset */
+            box-shadow: inset 0 2px 0px #3b82f6;
+        }
+        .project-item-wrapper.drag-over-project-bottom { /* 아래 삽입 시 */
+            box-shadow: inset 0 -2px 0px #3b82f6;
+        }
+
+        .project-header {
+            display: flex;
+            align-items: center;
+            padding: 10px 8px 10px 12px; /* Adjusted padding for arrow */
+            cursor: pointer;
+            font-weight: 500;
+            color: #334155;
+            position: relative;
+            transition: background-color 0.15s ease;
+        }
+        .project-header:hover {
+            background-color: #f1f5f9;
+        }
+        .project-header:hover .project-action-btn { /* Show action buttons on hover */
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .project-header::before { /* Dropdown arrow indicator */
+            content: '▶';
+            margin-right: 8px;
+            font-size: 0.6em;
+            transition: transform 0.2s ease-in-out;
+            color: #64748b;
+            padding-top: 1px; /* Fine-tune alignment */
+        }
+
+        .project-item-wrapper.open > .project-header::before {
+            transform: rotate(90deg);
+        }
+
+        .project-name-text {
+            flex-grow: 1;
+            padding-right: 5px;
+            overflow: hidden; /* Prevent long names from breaking layout */
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .project-name-input {
+            flex-grow: 1;
+            padding: 4px 6px;
+            font-size: 1em;
+            font-weight: 500;
+            border: 1px solid #cbd5e1;
+            border-radius: 3px;
+            /* margin-right: 5px; /* Removed, let flex gap on controls handle */
+        }
+
+        .project-header-controls { /* Container for edit/delete buttons */
+            display: flex;
+            align-items: center;
+            margin-left: 5px; /* Space from project name if name is short */
+        }
+
+        .project-action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 2px; /* Smaller padding */
+            margin-left: 4px; /* Space between buttons */
+            font-size: 0.9em;
+            color: #94a3b8; /* Muted color for icons */
+            opacity: 0; 
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s, color 0.2s;
+            line-height: 1;
+        }
+        .project-action-btn:hover {
+            color: #0ea5e9; /* Blue for edit */
+        }
+        .delete-project-btn:hover {
+            color: #ef4444; /* Red for delete */
+        }
+
+
+        .project-completion-status {
+            font-size: 0.75em;
+            color: #64748b;
+            margin-left: auto; /* Push to the far right */
+            padding-left: 10px;
+            white-space: nowrap;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        .sub-todo-list-container {
+            position: absolute; /* <<<< 중요: 플로팅되도록 */
+            top: 100%; /* 프로젝트 헤더 바로 아래 */
+            left: 0;
+            right: 0;
+            width: 100%; /* 부모 .project-item-wrapper 너비에 맞춤 */
+            z-index: 100; /* 최상위로 (다른 프로젝트, 추가 버튼 등 보다 위) */
+            
+            max-height: 0; 
+            opacity: 0;
+            visibility: hidden;
+            overflow: hidden; /* 닫혔을 때는 내용 숨김 */
+
+            background-color: #ffffff; 
+            border: 1px solid #d1d5db; /* 테두리 명확하게 */
+            border-top: none; 
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15); /* 그림자 강조 */
+            border-radius: 0 0 6px 6px; 
+
+            transition: max-height 0.3s ease-in-out, 
+                        opacity 0.3s ease-in-out,
+                        visibility 0s linear 0.3s; /* visibility는 opacity 전환 후 변경 */
+        }
+        .project-item-wrapper.open > .sub-todo-list-container {
+            max-height: calc(80vh - 60px); /* 화면 높이의 80% - (페이지 헤더 높이 + 약간의 여유분) */
+                                 /* 이 값은 실제 레이아웃에 맞춰 정교하게 조정 필요 */
+            overflow-y: auto; /* 내용이 max-height를 넘으면 내부 스크롤 */
+            opacity: 1;
+            visibility: visible;
+            transition: max-height 0.3s ease-in-out, 
+                        opacity 0.2s ease-in-out, /* 나타날 때 opacity 전환은 빠르게 */
+                        visibility 0s linear 0s;
+
+            /* 패딩은 컨텐츠 양에 따라 적용 */
+            padding: 10px 15px;
+        }
+
+        /* ... (sub-todo-list-items, .sub-todo-item styles as before) ... */
+        .sub-todo-list-items {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sub-todo-list-items.drag-over-active { 
+            outline: 1px dashed #3b82f6; 
+            background-color: #eff6ff;
+        }
+
+        .sub-todo-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 2px; /* Adjust padding */
+            border-bottom: 1px solid #f3f4f6; 
+            gap: 6px; /* Increased gap slightly for number */
+            font-size: 0.85em;
+        }
+        .sub-todo-item:last-child { border-bottom: none; }
+        .sub-todo-item.dragging { opacity: 0.4; background: #e0e7ff; }
+
+        .sub-todo-number { /* For automatic numbering */
+            color: #94a3b8;
+            font-size: 0.9em;
+            min-width: 22px; /* Ensure space for two digits and dot */
+            text-align: right;
+            padding-right: 3px; /* Space after number */
+            flex-shrink: 0;
+            user-select: none;
+        }
+        .sub-todo-checkbox { margin-right: 4px; transform: scale(0.9); flex-shrink: 0;}
+        .sub-todo-text-input {
+            flex-grow: 1; border: 1px solid transparent; padding: 5px 4px; /* Adjusted padding */
+            border-radius: 3px; font-size: 1em; background-color: transparent;
+            color: #334155;
+        }
+        .sub-todo-text-input:focus { border: 1px solid #60a5fa; background-color: #fff; box-shadow: 0 0 0 2px rgba(59,130,246,.2); }
+        .sub-todo-text-input.completed { text-decoration: line-through; color: #9ca3af; }
+
+        .sub-todo-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left:auto; }
+        /* Importance and Minutes controls CSS are removed as per request */
+
+        .sub-todo-delete-btn {
+            background-color: transparent; color: #cbd5e1; /* Lighter initial color */
+            border: none; padding: 2px;
+            border-radius: 3px; cursor: pointer; font-size: 1.1em; 
+            font-weight: normal; opacity: 0.3; line-height:1; /* More subtle initially */
+            transition: opacity 0.2s, color 0.2s;
+        }
+        .sub-todo-item:hover .sub-todo-delete-btn { opacity: 1; color: #ef4444; }
+        .sub-todo-delete-btn:hover { color: #dc2626 !important; } /* Important to override item hover */
+
+        .add-sub-task-btn { /* ... (style as before or adjust) ... */
+         /* 이 버튼은 .sub-todo-list-container의 마지막 자식 요소로, 
+            부모가 스크롤되면 따라서 스크롤되어 항상 접근 가능해야 합니다. */
+            margin-top: 8px; 
+            margin-left: 22px; /* 번호 매기기와 유사한 들여쓰기 */
+            padding: 5px 10px; 
+            background-color: #f1f5f9; 
+            color: #475569;
+            border: 1px solid #e2e8f0; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 0.8em;
+            display: block; /* 버튼이 전체 너비를 차지하지 않도록 하거나, 필요에 따라 조정 */
+            width: fit-content; /* 내용에 맞게 너비 조정 */
+        }
+        .add-sub-task-btn:hover { background-color: #e2e8f0; border-color: #cbd5e1;}
+
+        #add-project-btn {
+            margin: 15px 10px 10px 10px;
+            padding: 10px 12px; background-color: #3b82f6;
+            color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;
+            display: block; width: calc(100% - 20px); text-align: center;
+        }
+        #add-project-btn:hover { background-color: #2563eb; }
+
+        /* Routines App CSS */
+        #routines-app-container { /* This is .left-pane-bottom 내부의 컨텐츠 영역 */
+            position: relative;
+            width: 100%; /* 부모(.left-pane-bottom)의 너비를 채움 */
+            height: 100%;/* 부모(.left-pane-bottom)의 높이를 채움 */
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* 이 컨테이너가 테이블과 버튼을 포함하여 스크롤 담당 */
+            padding: 10px; /* 컨테이너 내부 여백 */
+        }
+
+        .routines-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85em;
+            table-layout: fixed;
+            margin-bottom: auto; /* 테이블 아래 공간을 최대한 확보하여 버튼이 밀려나지 않도록 함 */
+        }
+
+        .routines-table thead {
+            display: table-header-group; /* 표준 aheade 동작 */
+            position: sticky;
+            top: -1px; /* 부모 padding 고려하여 미세조정, 스크롤시 헤더가 잘 보이도록 */
+            background-color: #f8f9fa; 
+            z-index: 1; /* 스크롤되는 내용 위에 있도록 */
+        }
+
+        .routines-table thead tr,
+        .routines-table tbody tr.routine-table-row {
+            display: table-row; /* 표준 tr 동작 */
+            /* width: 100%; 제거 - display:table-row 에서는 불필요 */
+            /* table-layout: fixed; 제거 - 부모 table 에서 이미 설정됨 */
+            position: relative; 
+        }
+
+        .routines-table tbody {
+            display: table-row-group; /* 표준 tbody 동작 */
+            /* overflow-y: auto; 제거 - 부모 #routines-app-container가 스크롤 담당 */
+            /* flex-grow: 1; 제거 */
+        }
+
+        .routines-table th, .routines-table td {
+            border: 1px solid #e7e9ec;
+            padding: 8px 10px; 
+            text-align: left;
+            vertical-align: middle; 
+            word-break: break-word; /* 긴 단어 자동 줄바꿈 */
+        }
+
+        .routines-table th {
+            font-weight: 600; /* 약간 더 굵게 */
+            color: #343a40; /* 약간 더 진하게 */
+            background-color: #f8f9fa; /* thead 배경색과 통일 */
+        }
+        .routines-table td {
+            background-color: #fff;
+        }
+        .routines-table tr:hover td:not(.editing-row td) { /* 편집 중이 아닌 행에 호버 */
+            background-color: #f8f9fa; /* 약간의 호버 효과 */
+        }
+
+        /* Column Widths - colgroup으로 제어 */
+        .routines-table colgroup col:nth-child(1) { width: 25%; } 
+        .routines-table colgroup col:nth-child(2) { width: 40%; } 
+        .routines-table colgroup col:nth-child(3) { width: 35%; } 
+
+
+        .routines-table select,
+        .routines-table input[type="text"],
+        .routines-table textarea {
+            width: 100%; 
+            padding: 6px; 
+            border: 1px solid #ced4da;
+            border-radius: 4px; /* 약간 더 둥글게 */
+            box-sizing: border-box; 
+            font-size: 1em; 
+            font-family: inherit;
+            background-color: #fff;
+        }
+        .routines-table textarea { 
+            resize: vertical; 
+            min-height: 40px; 
+            line-height: 1.4; /* 줄 간격 추가 */
+        }
+        .routines-table select:focus,
+        .routines-table input[type="text"]:focus,
+        .routines-table textarea:focus {
+            border-color: #86b7fe; 
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, .25);
+        }
+
+        /* Action Buttons Container */
+        .routine-row-actions-container {
+            position: absolute;
+            right: 8px; 
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center; /* 버튼들 수직 중앙 정렬 */
+            gap: 6px; /* 버튼 간 간격 조정 */
+            background-color: rgba(255, 255, 255, 0.9); /* 배경 약간 투명하게 해서 내용과 구분 */
+            padding: 4px 6px; /* 내부 여백 */
+            border-radius: 5px; /* 둥근 모서리 */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* 약간의 그림자 효과 */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+            z-index: 2; 
+        }
+
+        .routine-table-row:hover .routine-row-actions-container,
+        .routine-table-row.editing-row .routine-row-actions-container {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .routine-row-actions-container button.routine-action-btn {
+            background: none; border: none; cursor: pointer;
+            padding: 4px; /* 버튼 내부 여백 */
+            font-size: 1em; /* 아이콘 크기 조정 */
+            color: #6c757d; 
+            line-height: 1;
+        }
+        /* ... (버튼 hover 및 editing 상태별 display 스타일은 이전과 동일하게 유지) ... */
+        .routine-table-row.editing-row .routine-edit-btn,
+        .routine-table-row.editing-row .routine-delete-btn { display: none; }
+        .routine-table-row:not(.editing-row) .routine-confirm-btn,
+        .routine-table-row:not(.editing-row) .routine-cancel-btn { display: none; }
+
+        .routine-action-btn.routine-edit-btn:hover { color: #007bff; }
+        .routine-action-btn.routine-delete-btn:hover { color: #dc3545; }
+        .routine-action-btn.routine-confirm-btn { color: #198754; }
+        .routine-action-btn.routine-confirm-btn:hover { color: #157347; }
+        .routine-action-btn.routine-cancel-btn { color: #ffc107; }
+        .routine-action-btn.routine-cancel-btn:hover { color: #d39e00; }
+
+
+        .empty-routines-message {
+            text-align: center;
+            padding: 20px !important; /* 충분한 패딩 */
+            color: #6c757d;
+            font-style: italic;
+            font-size: 0.9em;
+        }
+
+        /* "+ 새 루틴 추가" 버튼 스타일 및 호버 효과 */
+        #add-routine-btn {
+            margin: 15px auto 10px auto; /* 위쪽 마진 늘리고, 좌우 auto로 중앙 정렬 */
+            padding: 10px 18px; /* 패딩 늘림 */
+            background-color: #0d6efd; 
+            color: white; 
+            border: none; 
+            border-radius: 5px;
+            cursor: pointer; 
+            font-size: 0.95em; /* 글자 크기 약간 키움 */
+            /* align-self: center; /* 부모가 flex-direction: column일 때 중앙 정렬 */
+            display: block; /* 너비를 지정하기 위해 block으로 변경 */
+            width: fit-content; /* 내용에 맞게 너비 */
+            flex-shrink: 0; 
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out, background-color 0.2s;
+        }
+
+        /* #routines-app-container에 호버했을 때 버튼 표시 */
+        #routines-app-container:hover #add-routine-btn {
+            opacity: 1;
+            visibility: visible;
+        }
+        #add-routine-btn:hover { 
+            background-color: #0b5ed7; 
+        }
+
+        /* 드래그 앤 드롭 시각적 피드백 */
+        .routine-table-row.dragging-routine { /* 드래그 중인 행 */
+            opacity: 0.6;
+            background: #f0f8ff; /* 연한 하늘색 배경 */
+            /* border: 1px dashed #007bff; -- 제거 또는 단순화 */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* 떠 있는 느낌 */
+        }
+        .routine-table-row.drag-over-routine { /* 드롭 대상 바로 위 행 */
+            /* border-top: 2px solid #007bff; */
+            /* box-shadow: inset 0 2px 0 #007bff; -- 기존 스타일 */
+        }
+        .routine-table-row.drag-over-indicator-top::before { /* 드롭 위치 표시 (위) */
+            content: ''; display: block; position: absolute;
+            top: -2px; left: 0; right: 0; height: 3px; background-color: #0d6efd; z-index:3;
+        }
+        .routine-table-row.drag-over-indicator-bottom::after { /* 드롭 위치 표시 (아래) */
+            content: ''; display: block; position: absolute;
+            bottom: -2px; left: 0; right: 0; height: 3px; background-color: #0d6efd; z-index:3;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="date-header">
+        <span id="current-date-display">YYYY / MM / DD</span>
+    </div>
+
+    <div class="page-container">
+        <div class="left-pane">
+            <div class="left-pane-top" id="project-todo-app-container"></div>
+            <div class="left-pane-middle" id="todo-app-container"></div>
+            <div class="left-pane-bottom" id="routines-app-container"></div>
+        </div>
+
+        <div class="center-pane">
+            <div class="timelines-side-by-side-wrapper">
+                <div class="grid-wrapper">
+                    <div class="grid-label">Goal Timeline</div>
+                    <div class="grid-container" id="goalTimeGridDOM"></div> </div>
+                <div class="grid-wrapper">
+                    <div class="grid-label">Current Timeline</div>
+                    <div class="grid-container" id="timeGridDOM"></div> </div>
+            </div>
+
+            <div class="color-picker" id="colorPicker">
+                <button class="add-color-btn" id="addColorBtn">+</button>
+                <div class="color-picker-popup" id="colorPickerPopup">
+                    <div class="color-input-group">
+                        <input type="color" id="colorInput" value="#a5d8ff">
+                        <input type="text" id="colorLabel" placeholder="Enter color label">
+                    </div>
+                    <button class="save-btn" id="saveColorBtn">Add Color</button>
+                </div>
+            </div>
+
+            <div class="time-summary" id="timeSummary"></div>
+
+            <div class="floating-controls">
+                <button id="saveButton" class="control-btn" title="Save Timeline"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg></button>
+                <button id="loadButton" class="control-btn" title="Load Timeline"><svg viewBox="0 0 24 24"><path d="M5 15h14l-7-7-7 7z"/></svg></button>
+                <input type="file" id="loadInput" accept=".json">
+            </div>
+        </div>
+
+        <div class="right-pane">
+            Right Pane (Placeholder)
+        </div>
+    </div>
+
+    <script type="module">
+        // Import initializers
+        import { 
+            initProjectTodoApp, 
+            getProjectTodoData, 
+            setProjectTodoDataAndRender as setAndRenderProjectTodos 
+        } from './projectTodos.js';
+        import { initTodoApp, getTodoData, setTodoDataAndRender as setAndRenderTodos } from './todo.js'; // Assuming todo.js is in the same directory
+        import { initRoutinesApp, getRoutinesData, setRoutinesDataAndRender as setAndRenderRoutines } from './routines.js'; 
+        import {
+            initTimelines,
+            getTimelineBlockData,
+            getTimelineGoalData,
+            setTimelineBlockDataAndRender,
+            setTimelineGoalDataAndRender,
+            applySelectedColorToCurrentlyEditingCell,
+            // clearCurrentlyEditingCellFlag, // Timelines.js handles this internally now
+            clearAllPreviousColorMarkers
+        } from './timelines.js'; // Assuming timelines.js is in the same directory
+
+        // --- Global Variables for Main Script ---
+        let selectedColor = 'rgb(255, 255, 255)';
+        let savedColors = [
+            { color: '#ffffff', label: 'Rest' }, { color: '#000000', label: 'Sleep' },
+            { color: '#44f275', label: 'Learn' }, { color: '#fcff5e', label: 'Fun' },
+            { color: '#38adf5', label: 'Prep' }, { color: '#ed2a02', label: '운동' },
+        ];
+
+        // --- Date Display ---
+        function displayCurrentDate() {
+            const dateDisplay = document.getElementById('current-date-display');
+            if (dateDisplay) {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                dateDisplay.textContent = `${year} / ${month} / ${day}`;
+            }
+        }
+
+        // --- Color Picker Logic ---
+        function initializeColorPicker() {
+            const colorPicker = document.getElementById('colorPicker');
+            const addColorBtn = document.getElementById('addColorBtn');
+            const existingOptions = colorPicker.querySelectorAll('.color-option');
+            existingOptions.forEach(opt => opt.remove());
+
+            savedColors.forEach(({color, label}) => {
+                const colorOption = document.createElement('div');
+                colorOption.className = 'color-option';
+                colorOption.style.backgroundColor = color;
+                colorOption.dataset.label = label;
+                colorOption.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectedColor = color;
+                    applySelectedColorToCurrentlyEditingCell();
+                });
+                colorPicker.insertBefore(colorOption, addColorBtn);
+            });
+            addColorBtn.removeEventListener('click', toggleColorPopup);
+            addColorBtn.addEventListener('click', toggleColorPopup);
+            const saveColorBtn = document.getElementById('saveColorBtn');
+            saveColorBtn.removeEventListener('click', handleSaveNewColorOption);
+            saveColorBtn.addEventListener('click', handleSaveNewColorOption);
+        }
+        function toggleColorPopup(e) { e.stopPropagation(); document.getElementById('colorPickerPopup').classList.toggle('show'); document.getElementById('colorLabel').value = '';}
+        function handleSaveNewColorOption() {
+            const colorInput = document.getElementById('colorInput'), colorLabel = document.getElementById('colorLabel');
+            const newColor = colorInput.value, newLabel = colorLabel.value.trim() || newColor;
+            if (!savedColors.some(c => normalizeColor(c.color) === normalizeColor(newColor))) {
+                savedColors.push({ color: newColor, label: newLabel });
+                initializeColorPicker();
+            }
+            document.getElementById('colorPickerPopup').classList.remove('show');
+        }
+        document.addEventListener('click', (e) => {
+            const popup = document.getElementById('colorPickerPopup'), addColorBtn = document.getElementById('addColorBtn');
+            if (popup && popup.classList.contains('show') && !popup.contains(e.target) && e.target !== addColorBtn && !addColorBtn.contains(e.target)) {
+                popup.classList.remove('show');
+            }
+        });
+
+        // --- Elapsed Time & Current Time Styling (Stripes and Red Line) ---
+        function addStripedStyle(){const sid='elapsedTimeStyle';if(document.getElementById(sid))return;const s=document.createElement('style');s.id=sid;s.textContent=`.elapsed-time{position:relative;}.elapsed-time::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:2;}.elapsed-time.light-bg::after{background-image:linear-gradient(45deg,rgba(0,0,0,0.07) 25%,transparent 25%,transparent 50%,rgba(0,0,0,0.07) 50%,rgba(0,0,0,0.07) 75%,transparent 75%);background-size:8px 8px;}.elapsed-time.dark-bg::after{background-image:linear-gradient(45deg,rgba(255,255,255,0.1) 25%,transparent 25%,transparent 50%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.1) 75%,transparent 75%);background-size:8px 8px;}`;document.head.appendChild(s);}
+        function addCurrentTimeRedLineStyle(){const sid='currentTimeLineStyle';if(document.getElementById(sid))return;const cs=document.createElement("style");cs.id=sid;cs.textContent=`.current-time-block{position:relative;}.current-time-block::before{content:'';position:absolute;top:-1px;bottom:-1px;left:0;width:3px;background-color:red;z-index:1;}`;document.head.appendChild(cs);}
+        function updateElapsedTimeBlocks(){
+            const n=new Date(),ch24=n.getHours(),cm=n.getMinutes(),gch=(ch24-6+24)%24,gcbi=Math.floor(cm/10),tebs6=(gch*6)+gcbi;
+            const cells=document.querySelectorAll('#timeGridDOM .grid-cell'); // Use new DOM ID
+            cells.forEach(c=>{
+                const cellH=parseInt(c.dataset.hour),cellB=parseInt(c.dataset.block),boi=(cellH*6)+cellB;
+                c.classList.remove('elapsed-time','light-bg','dark-bg','current-time-block');
+                const dsId='dynamicRedLineStyleFor-'+cellH+'-'+cellB;
+                let ds=document.getElementById(dsId);if(ds)ds.innerHTML='';
+                if(boi<tebs6){c.classList.add('elapsed-time');if(isDarkColor(c.style.backgroundColor))c.classList.add('dark-bg');else c.classList.add('light-bg');}
+                if(cellH===gch&&cellB===gcbi){c.classList.add('current-time-block');const ptb=((cm%10)/10)*100;let cds=document.getElementById(dsId);if(!cds){cds=document.createElement('style');cds.id=dsId;document.head.appendChild(cds);}cds.innerHTML=`#timeGridDOM .grid-cell[data-hour="${cellH}"][data-block="${cellB}"].current-time-block::before{left:${ptb}%;}`;
+                }
+            });
+        }
+
+        // --- Time Summary Logic ---
+        function calculatePreviousRankings(colorTotals, timeChanges) {
+            const ptm={};Object.keys(colorTotals).forEach(col=>{const cb=colorTotals[col]||0,cib=timeChanges[col]||0;ptm[col]=(cb-cib)*10;});
+            const pra=savedColors.map(({color,label})=>({color,label,totalMinutes:Math.max(0,ptm[normalizeColor(color)]||0) })); // use normalizeColor for map key
+            pra.sort((a,b)=>b.totalMinutes-a.totalMinutes);const rm=new Map();pra.forEach((item,idx)=>rm.set(item.color,idx+1));return rm;
+        }
+        function updateTimeSummary() {
+            const summaryContainer = document.getElementById('timeSummary');
+            if (!summaryContainer || summaryContainer.style.display === 'none') return;
+            const currentBlockData = getTimelineBlockData();
+            const currentColorTotalsInBlocks = {}; const changeInBlocksSinceLastSummary = {};
+            savedColors.forEach(({color}) => { const normColor = normalizeColor(color); currentColorTotalsInBlocks[normColor] = 0; changeInBlocksSinceLastSummary[normColor] = 0; });
+            Object.values(currentBlockData).forEach(b => {
+                const cch = normalizeColor(b.color); const pchfcd = normalizeColor(b.previousColor);
+                if (cch && currentColorTotalsInBlocks.hasOwnProperty(cch)) { // Check if color is tracked
+                    currentColorTotalsInBlocks[cch]++;
+                    if (pchfcd && pchfcd !== cch && currentColorTotalsInBlocks.hasOwnProperty(pchfcd)) {
+                        changeInBlocksSinceLastSummary[cch]++;
+                        changeInBlocksSinceLastSummary[pchfcd]--;
+                    }
+                }
+            });
+            const previousRankingsMap = calculatePreviousRankings(currentColorTotalsInBlocks, changeInBlocksSinceLastSummary);
+            const colorDataArray = savedColors.map(({color, label}) => {
+                const ncc = normalizeColor(color); const blks = currentColorTotalsInBlocks[ncc] || 0;
+                const tm = blks * 10; const cim = (changeInBlocksSinceLastSummary[ncc] || 0) * 10;
+                return { color, label, totalMinutes: tm, hours: Math.floor(tm/60), minutes: tm%60, change: cim };
+            });
+            colorDataArray.sort((a,b) => b.totalMinutes - a.totalMinutes); summaryContainer.innerHTML = '';
+            colorDataArray.forEach((d,i) => {
+                const cr=i+1,pr=previousRankingsMap.get(d.color),ts=`${String(d.hours).padStart(2,'0')}:${String(d.minutes).padStart(2,'0')}`,cih=formatTimeChange(d.change);
+                let rih='<span class="rank-indicator"></span>';if(pr&&cr!==pr)rih=cr<pr?'<span class="rank-indicator rank-up">▲</span>':'<span class="rank-indicator rank-down">▼</span>';
+                const si=document.createElement('div');si.className='color-summary-item';
+                si.innerHTML=`<span class="ranking">${cr}.</span><div class="color-indicator" style="background-color:${d.color}"></div><span class="label">${d.label}</span>${rih}<div class="time-wrapper"><span class="time-value">${ts}</span><span class="time-change">${cih}</span></div>`;
+                summaryContainer.appendChild(si);
+            });
+            clearAllPreviousColorMarkers('timeGrid'); // Clear for timeGrid (current timeline)
+        }
+
+        // --- Save & Load Logic ---
+        function getTimelineDataForSave() {
+            return {
+                colorPalette: savedColors,
+                timeBlocks: getTimelineBlockData(),
+                goalBlocks: getTimelineGoalData(),
+                todos: getTodoData(), // Get TODOs from todo.js
+                projectTodos: getProjectTodoData(),
+                routines: getRoutinesData(),
+                inverseGamification: {}, // Placeholder for future inverse/gamification
+                version: "1.8"        // Increment version
+            };
+        }
+        function saveTimelineToFile() { const d=getTimelineDataForSave(),b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.download='timeline_data.json';a.href=u;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u); }
+        function loadTimelineFromFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.colorPalette) {
+                        savedColors = data.colorPalette;
+                        initializeColorPicker();
+                    }
+                    if (data.timeBlocks) setTimelineBlockDataAndRender(data.timeBlocks, 'timeGridDOM');
+                    if (data.goalBlocks) setTimelineGoalDataAndRender(data.goalBlocks, 'goalTimeGridDOM');
+                    
+                    if (data.projectTodos) { 
+                        setAndRenderProjectTodos(data.projectTodos);
+                    } else {
+                        setAndRenderProjectTodos(null); // Initialize with defaults/backup if not in file
+                    }
+                    if (data.todos) { // Load TODOs if present
+                        setAndRenderTodos(data.todos); // Use the imported function
+                    } else {
+                        setAndRenderTodos([]); // Or initialize with empty if not in file
+                    }
+                    if (data.routines) { 
+                        setAndRenderRoutines(data.routines);
+                    } else {
+                        setAndRenderRoutines(null); // Initialize with defaults/backup if not in file
+                    }
+                    // Load routines and inverse here when implemented
+                    // if (data.routines) loadRoutines(data.routines); 
+                    // if (data.inverseGamification) loadInverse(data.inverseGamification);
+
+                    updateElapsedTimeBlocks();
+                } catch (err) { console.error('Error loading timeline:', err); alert('Error loading timeline file.'); }
+            };
+            reader.readAsText(file);
+        }
+
+        async function loadJsonUponStart() {
+            let dataToLoad = null;
+            console.log('Attempting to load data ONLY from JSON file.');
+
+            try {
+                // const storedData = localStorage.getItem('timeLedgerData_main'); // Use a distinct key for the main app data
+                // if (storedData) {
+                //     dataToLoad = JSON.parse(storedData);
+                //     // console.log(dataToLoad);
+                //     console.log('Loaded main data from localStorage.');
+                // } else {
+                    const rsp = await fetch('./timeline_data.json'); // Ensure this file exists and is structured correctly
+                    if (!rsp.ok) throw new Error(`Workspace default timeline.json failed: ${rsp.statusText}`);
+                    dataToLoad = await rsp.json();
+
+                    console.log('Loaded main data from default timeline.json.');
+                // }
+            } catch (fetchErr) {
+                console.warn('Could not load from localStorage or default timeline.json:', fetchErr);
+                // Initialize with empty/default structure if all loading fails
+                dataToLoad = {
+                    colorPalette: [ // Default palette if nothing loads
+                        { color: '#ffffff', label: 'Rest' }, { color: '#000000', label: 'Sleep' },
+                        { color: '#44f275', label: 'Learn' }, { color: '#fcff5e', label: 'Fun' },
+                        { color: '#38adf5', label: 'Prep' }, { color: '#ed2a02', label: '운동' },
+                    ],
+                    timeBlocks: {},
+                    goalBlocks: {},
+                    todos: null, // Will let todo.js use its local backup or default
+                    projectTodos: null,
+                    routines: [],
+                    inverseGamification: {}
+                };
+            }
+
+            try {
+                if (dataToLoad.colorPalette) savedColors = dataToLoad.colorPalette;
+                initializeColorPicker(); 
+                
+                // Initialize timelines first (they might create DOM elements needed by other updates)
+                // initTimelines is called in DOMContentLoaded, so data is set below
+
+                // console.log("Data to load into timelines.js - timeBlocks:", JSON.stringify(dataToLoad.timeBlocks, null, 2));
+                // console.log("Data to load into timelines.js - goalBlocks:", JSON.stringify(dataToLoad.goalBlocks, null, 2));
+
+
+                setTimelineBlockDataAndRender(dataToLoad.timeBlocks || {}, 'timeGridDOM');
+                setTimelineGoalDataAndRender(dataToLoad.goalBlocks || {}, 'goalTimeGridDOM');
+                
+                if (dataToLoad.projectTodos !== undefined) { // <-- NEW: Apply project TODOs
+                    setAndRenderProjectTodos(dataToLoad.projectTodos);
+                } else {
+                    setAndRenderProjectTodos(null); // Let projectTodos.js handle its own defaults/backup
+                }
+
+                // Initialize or set TODO data
+                // initTodoApp is called in DOMContentLoaded. We pass initial data if available.
+                // If dataToLoad.todos is null or undefined, initTodoApp in DOMContentLoaded will handle defaults.                
+                if (dataToLoad.todos !== undefined && dataToLoad.todos !== null) {
+                    setAndRenderTodos(dataToLoad.todos);
+                }
+                // Load routines and inverse here:
+                if (dataToLoad.routines !== undefined) { // <-- NEW: Apply routines
+                    setAndRenderRoutines(dataToLoad.routines);
+                } else {
+                    setAndRenderRoutines(null); 
+                }
+                // if (dataToLoad.routines) setAndRenderRoutines(dataToLoad.routines);
+                // if (dataToLoad.inverseGamification) setAndRenderInverse(dataToLoad.inverseGamification);
+
+                updateElapsedTimeBlocks();
+                // updateTimeSummary(); // Called by onTimeGridDataChange via setTimelineBlockDataAndRender
+            } catch (err) {
+                console.error('Error applying loaded data:', err);
+                // Fallback to safe defaults if applying data fails
+                initializeColorPicker();
+                setTimelineBlockDataAndRender({}, 'timeGridDOM');
+                setTimelineGoalDataAndRender({}, 'goalTimeGridDOM');
+                setAndRenderTodos([]); // Empty todos
+                updateElapsedTimeBlocks();
+            }
+        }
+        function autoSaveToLocalStorage() {
+            // This saves the *entire app state* including todos, timelines, etc.
+            // to the main localStorage key.
+            localStorage.setItem('timeLedgerData_main', JSON.stringify(getTimelineDataForSave()));
+            // console.log('Main app state auto-saved to localStorage.');
+        }
+
+        // --- Utility Functions ---
+        function rgbToHex(rgb){if(!rgb||typeof rgb!=='string')return'#ffffff';const res=rgb.match(/\d+/g);if(!res||res.length<3)return'#ffffff';return`#${res.slice(0,3).map(v=>parseInt(v,10).toString(16).padStart(2,'0')).join('')}`;}
+        function normalizeColor(color){if(!color||typeof color!=='string')return null;const s=color.toLowerCase().trim();if(s.startsWith('#'))return s.length===4?`#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}`:s;if(s.startsWith('rgb'))return rgbToHex(s);return s;}
+        function isDarkColor(cs){if(!cs)return false;let r,g,b;const h=normalizeColor(cs);if(h&&h.startsWith('#')){const hval=h.replace('#','');if(hval.length===3){r=parseInt(hval[0]+hval[0],16);g=parseInt(hval[1]+hval[1],16);b=parseInt(hval[2]+hval[2],16);}else if(hval.length===6){r=parseInt(hval.substring(0,2),16);g=parseInt(hval.substring(2,4),16);b=parseInt(hval.substring(4,6),16);}else return false;}else return false;return(0.299*r+0.587*g+0.114*b)/255<0.5;}
+        function formatTimeChange(mins){if(mins===0)return"";const s=mins>0?"+":"-",am=Math.abs(mins);if(am>=60){const h=Math.floor(am/60),rm=am%60;return rm===0?`${s}${h}h`:`${s}${h}h ${rm}m`;}return`${s}${am}m`;}
+
+        // --- DOMContentLoaded ---
+        document.addEventListener('DOMContentLoaded', () => {
+            displayCurrentDate();
+            addStripedStyle();
+            addCurrentTimeRedLineStyle();
+            
+            // Define the callback for todo.js (optional, if main needs to react to todo changes)
+            const handleGenericDataChange = () => { // Shared callback for auto-save
+                // autoSaveToLocalStorage(); // Call if/when re-enabled
+            };
+
+            // Initialize TODO app. Pass undefined for initialData so it uses its own backup/defaults first.
+            // loadJsonUponStart will later call setAndRenderTodos if data is in the main JSON.
+            initTodoApp('#todo-app-container', undefined, handleGenericDataChange); 
+            initProjectTodoApp('#project-todo-app-container', undefined, handleGenericDataChange); 
+            initRoutinesApp('#routines-app-container', undefined, handleGenericDataChange); 
+
+
+            const timelineCallbacks = {
+                getSelectedColor: () => selectedColor,
+                isDarkColor: isDarkColor,
+                normalizeColor: normalizeColor,
+                onTimeGridDataChange: () => {
+                    updateTimeSummary(); 
+                    updateElapsedTimeBlocks(); 
+                    handleGenericDataChange(); 
+                }
+            };
+            initTimelines('timeGridDOM', 'goalTimeGridDOM', timelineCallbacks);
+            
+            loadJsonUponStart(); // This will load all data including TODOs if available
+
+            // ... rest of your event listeners (save/load buttons, keyboard shortcuts, interval) ...
+            const saveBtnEl = document.getElementById('saveButton'),loadBtnEl = document.getElementById('loadButton'),loadInputEl = document.getElementById('loadInput');
+            if (saveBtnEl) saveBtnEl.addEventListener('click', saveTimelineToFile);
+            if (loadBtnEl) loadBtnEl.addEventListener('click', () => loadInputEl.click());
+            if (loadInputEl) loadInputEl.addEventListener('change', (e) => { if (e.target.files[0]) loadTimelineFromFile(e.target.files[0]); });
+            
+            document.addEventListener('keydown', (e) => { 
+                if ((e.metaKey || e.ctrlKey) && e.key === 's') { 
+                    e.preventDefault(); 
+                    saveTimelineToFile(); // This now includes TODOs, routines, inverse placeholders
+                    // autoSaveToLocalStorage(); // saveTimelineToFile implies a deliberate save, autoSave is for background
+                } 
+            });
+            
+            setInterval(() => { 
+                updateElapsedTimeBlocks(); 
+                // autoSaveToLocalStorage(); // Re-evaluate if this interval save is needed given other save points
+            }, 60000); 
+        });
+    </script>
+</body>
+</html>

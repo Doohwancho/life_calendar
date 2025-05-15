@@ -1,0 +1,1481 @@
+{
+  "colorPalette": [
+    {
+      "color": "#ffffff",
+      "label": "Rest"
+    },
+    {
+      "color": "#000000",
+      "label": "Sleep"
+    },
+    {
+      "color": "#44f275",
+      "label": "Learn"
+    },
+    {
+      "color": "#fcff5e",
+      "label": "Fun"
+    },
+    {
+      "color": "#38adf5",
+      "label": "Prep"
+    },
+    {
+      "color": "#40f5cb",
+      "label": "Exercise"
+    },
+    {
+      "color": "#f24ee2",
+      "label": "porn"
+    },
+    {
+      "color": "#ed2a02",
+      "label": "Fix"
+    }
+  ],
+  "timeBlocks": {
+    "0-0": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "0-1": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "0-2": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "0-3": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "0-4": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "0-5": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "1-0": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "1-1": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "1-2": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "1-3": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "1-4": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "1-5": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "2-0": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "2-1": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "2-2": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "2-3": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "2-4": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "2-5": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "3-0": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "3-1": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "3-2": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "3-3": {
+      "text": "",
+      "color": "rgb(242, 78, 226)",
+      "previousColor": null
+    },
+    "3-4": {
+      "text": "",
+      "color": "rgb(242, 78, 226)",
+      "previousColor": null
+    },
+    "3-5": {
+      "text": "",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": null
+    },
+    "4-0": {
+      "text": "",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": null
+    },
+    "4-1": {
+      "text": "",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": null
+    },
+    "4-2": {
+      "text": "",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": null
+    },
+    "4-3": {
+      "text": "",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": null
+    },
+    "4-4": {
+      "text": "",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": null
+    },
+    "4-5": {
+      "text": "",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": null
+    },
+    "5-0": {
+      "text": "",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": null
+    },
+    "5-1": {
+      "text": "",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": null
+    },
+    "5-2": {
+      "text": "",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": null
+    },
+    "5-3": {
+      "text": "",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": null
+    },
+    "5-4": {
+      "text": "",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": null
+    },
+    "5-5": {
+      "text": "",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": null
+    },
+    "6-0": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "6-1": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "6-2": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "6-3": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "6-4": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "6-5": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "7-0": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "7-1": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "7-2": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "7-3": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "7-4": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "7-5": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "8-0": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "8-1": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "8-2": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "8-3": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "8-4": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "8-5": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "9-0": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "9-1": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "9-2": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "9-3": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "9-4": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "9-5": {
+      "text": " ",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "10-0": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "10-1": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "10-2": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "10-3": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "10-4": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "10-5": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "11-0": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "11-1": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "11-2": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "11-3": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "11-4": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "11-5": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "12-0": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "12-1": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "12-2": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "12-3": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "12-4": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "12-5": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "13-0": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "13-1": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "13-2": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "13-3": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "13-4": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "13-5": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "14-0": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "14-1": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "14-2": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "14-3": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "14-4": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "14-5": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "15-0": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "15-1": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "15-2": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "15-3": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "15-4": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "15-5": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "16-0": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "16-1": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "16-2": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "16-3": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "16-4": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "16-5": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "17-0": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "17-1": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "17-2": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "17-3": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "17-4": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "17-5": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "18-0": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "18-1": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "18-2": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "18-3": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "18-4": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "18-5": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "19-0": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "19-1": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "19-2": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "19-3": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "19-4": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "19-5": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "20-0": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "20-1": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "20-2": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "20-3": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "20-4": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "20-5": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "21-0": {
+      "text": "",
+      "color": "rgb(242, 78, 226)",
+      "previousColor": null
+    },
+    "21-1": {
+      "text": "",
+      "color": "rgb(242, 78, 226)",
+      "previousColor": null
+    },
+    "21-2": {
+      "text": "",
+      "color": "rgb(242, 78, 226)",
+      "previousColor": null
+    },
+    "21-3": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "21-4": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "21-5": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "22-0": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "22-1": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "22-2": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "22-3": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "22-4": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "22-5": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "23-0": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "23-1": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "23-2": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "23-3": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "23-4": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "23-5": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    }
+  },
+  "goalBlocks": {
+    "0-0": {
+      "text": "오타니가 젤 먼저할 일은 미국가서 schedule design",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "0-1": {
+      "text": "a/b test",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "0-2": {
+      "text": "시간이 재일 중요자원",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "0-3": {
+      "text": "생각없이 수천판하는것보다 계속 생각하고 게임 지면 리플레이보면서 스스로 피드백하는 30판이 더 의미있음",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "0-4": {
+      "text": "remove biggest bottleneck",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "0-5": {
+      "text": "exceptional outcome requires exceptional method and input",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "1-0": {
+      "text": "정체성, 가치, 목표, 상황, 습관, 전략을 align 해서 노력을 안하고 자연스럽게 자아실현 하기 위해 행동",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "1-1": {
+      "text": "12 big questions",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "1-2": {
+      "text": "10000시간의 법칙 = 하루 3시간씩 10년은 expert, at age of 43",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "1-3": {
+      "text": "deliberate practice of 10,000 hour = expert \n1. 부족한 부분을 메타인지로 찾아서 \n2. divide and conquer \n3. 부족한 module을 어떻게 효과적으로 배울지 playground 만들기\n4. deliberate practice ",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "1-4": {
+      "text": "superior practice methodology = superior results",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "1-5": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "2-0": {
+      "text": "linear transfomration을 bottom up으로 머릿속에서 빌드업 해볼까? - boredom care",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "2-1": {
+      "text": "훈련환경을 최대한 실전과 가깝게 세팅해야 는다. 칼바람 300판해도 실력 1도 안느는 독케익처럼",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "2-2": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "2-3": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "2-4": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "2-5": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "3-0": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "3-1": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "3-2": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "3-3": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "3-4": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "3-5": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "4-0": {
+      "text": "시간압축(ego와 타협) + 숨참기 + 경쾌한 music 틀기. 좋은 기분 is key to productivity",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": null
+    },
+    "4-1": {
+      "text": "",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": null
+    },
+    "4-2": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "4-3": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": "rgb(56, 173, 245)"
+    },
+    "4-4": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": "rgb(56, 173, 245)"
+    },
+    "4-5": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": "rgb(56, 173, 245)"
+    },
+    "5-0": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": "rgb(56, 173, 245)"
+    },
+    "5-1": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": "rgb(56, 173, 245)"
+    },
+    "5-2": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": "rgb(56, 173, 245)"
+    },
+    "5-3": {
+      "text": "산책 비타민D",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": null
+    },
+    "5-4": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": "rgb(56, 173, 245)"
+    },
+    "5-5": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": "rgb(56, 173, 245)"
+    },
+    "6-0": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": "rgb(56, 173, 245)"
+    },
+    "6-1": {
+      "text": "공부법, ultimate\n1. challenge! (헝가리 모델, 일본 존나어려운 수능 -> 노벨상)\n2. 학: 개념 학은 absolute zero부터 문제점 해결책 빌드업(백지 공부법)\n3. 습: john carmack built everything from scratch \n4. steal like 도파 (copy from 원챔 장인)\n5. deliberate practice on my weakness, parts idk(delta learning)\n6. 단권화 \n7. DFS\n8. 병적인 과도한 집착\n9. input: paper output: code",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "6-2": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "6-3": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "6-4": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "6-5": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "7-0": {
+      "text": "test",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "7-1": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "7-2": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "7-3": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "7-4": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "7-5": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "8-0": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "8-1": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "8-2": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "8-3": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "8-4": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "8-5": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "9-0": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "9-1": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "9-2": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "9-3": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "9-4": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "9-5": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "10-0": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "10-1": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "10-2": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": "rgb(56, 173, 245)"
+    },
+    "10-3": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": "rgb(56, 173, 245)"
+    },
+    "10-4": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": "rgb(56, 173, 245)"
+    },
+    "10-5": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": "rgb(56, 173, 245)"
+    },
+    "11-0": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": "rgb(56, 173, 245)"
+    },
+    "11-1": {
+      "text": "",
+      "color": "rgb(56, 173, 245)",
+      "previousColor": "rgb(56, 173, 245)"
+    },
+    "11-2": {
+      "text": "money making project time! product, $ making, deployed",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "11-3": {
+      "text": "parkinson's law",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "11-4": {
+      "text": "essentialism",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "11-5": {
+      "text": "first principle thinking",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "12-0": {
+      "text": "FEAR: what's stopping you? 타인의 평가? 디스?\n원서넣기? 수학하기? ML하기?\n뭐가 그렇게 두렵니?\n",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "12-1": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "12-2": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "12-3": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "12-4": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "12-5": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "13-0": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "13-1": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "13-2": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "13-3": {
+      "text": "",
+      "color": "#38adf5",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "13-4": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "13-5": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "14-0": {
+      "text": "resume apply(사람인, linkedin) & look around CV time",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "14-1": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "14-2": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "14-3": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "14-4": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "14-5": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "15-0": {
+      "text": "incremental run",
+      "color": "rgb(64, 245, 203)",
+      "previousColor": null
+    },
+    "15-1": {
+      "text": "",
+      "color": "rgb(64, 245, 203)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "15-2": {
+      "text": "",
+      "color": "rgb(64, 245, 203)",
+      "previousColor": "rgb(56, 173, 245)"
+    },
+    "15-3": {
+      "text": "",
+      "color": "rgb(255, 255, 255)",
+      "previousColor": null
+    },
+    "15-4": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "15-5": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "16-0": {
+      "text": "you are avg of 5 ppl around you, b/c 니 주변인한테 인정받으려고 motivated 되는게 고름이면 던파태초고 opensource면 개발이기 때문",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "16-1": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": "rgb(252, 255, 94)"
+    },
+    "16-2": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": "rgb(252, 255, 94)"
+    },
+    "16-3": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": "rgb(252, 255, 94)"
+    },
+    "16-4": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": "rgb(252, 255, 94)"
+    },
+    "16-5": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": "rgb(252, 255, 94)"
+    },
+    "17-0": {
+      "text": "marking my personal project to core users in community",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "17-1": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": "rgb(252, 255, 94)"
+    },
+    "17-2": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "17-3": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": "rgb(252, 255, 94)"
+    },
+    "17-4": {
+      "text": "",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": "rgb(252, 255, 94)"
+    },
+    "17-5": {
+      "text": "avoid funnels",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "18-0": {
+      "text": "fix personal project time! 내가 직접 쓸걸 만들기",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "18-1": {
+      "text": "나만의 개발 playground 만들기",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "18-2": {
+      "text": "재미 위주의 DFS 공부법, 역추적 공부법",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "18-3": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "18-4": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "18-5": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "19-0": {
+      "text": "다른 분야 파기 for future entrepreneur: marketing & sales\ninput -> computation -> output feedbackloop 이용해서\ninput & system에 \n1. remove biggest bottleneck\n2. optimize",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "19-1": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": null
+    },
+    "19-2": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "19-3": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "19-4": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "19-5": {
+      "text": "",
+      "color": "rgb(68, 242, 117)",
+      "previousColor": "rgb(68, 242, 117)"
+    },
+    "20-0": {
+      "text": "누워서 15분 타임 맞춘다음 그 안에 끊기",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "20-1": {
+      "text": "무한탭X, 바로보기",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "20-2": {
+      "text": "ASMR + 고래 hug for 애정케어",
+      "color": "rgb(252, 255, 94)",
+      "previousColor": null
+    },
+    "20-3": {
+      "text": "dont put it down. put it away",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "20-4": {
+      "text": "양치 + 교정기",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "20-5": {
+      "text": "머릿속에서 컴파일가능한 수학개념",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "21-0": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "21-1": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "21-2": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "21-3": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": null
+    },
+    "21-4": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "21-5": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "22-0": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "22-1": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "22-2": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "22-3": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "22-4": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "22-5": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "23-0": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "23-1": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "23-2": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "23-3": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "23-4": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    },
+    "23-5": {
+      "text": "",
+      "color": "rgb(0, 0, 0)",
+      "previousColor": "rgb(0, 0, 0)"
+    }
+  },
+  "version": "1.4"
+}
