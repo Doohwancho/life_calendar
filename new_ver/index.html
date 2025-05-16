@@ -1091,17 +1091,62 @@
         // --- Elapsed Time & Current Time Styling (Stripes and Red Line) ---
         function addStripedStyle(){const sid='elapsedTimeStyle';if(document.getElementById(sid))return;const s=document.createElement('style');s.id=sid;s.textContent=`.elapsed-time{position:relative;}.elapsed-time::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:2;}.elapsed-time.light-bg::after{background-image:linear-gradient(45deg,rgba(0,0,0,0.07) 25%,transparent 25%,transparent 50%,rgba(0,0,0,0.07) 50%,rgba(0,0,0,0.07) 75%,transparent 75%);background-size:8px 8px;}.elapsed-time.dark-bg::after{background-image:linear-gradient(45deg,rgba(255,255,255,0.1) 25%,transparent 25%,transparent 50%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.1) 75%,transparent 75%);background-size:8px 8px;}`;document.head.appendChild(s);}
         function addCurrentTimeRedLineStyle(){const sid='currentTimeLineStyle';if(document.getElementById(sid))return;const cs=document.createElement("style");cs.id=sid;cs.textContent=`.current-time-block{position:relative;}.current-time-block::before{content:'';position:absolute;top:-1px;bottom:-1px;left:0;width:3px;background-color:red;z-index:1;}`;document.head.appendChild(cs);}
-        function updateElapsedTimeBlocks(){
-            const n=new Date(),ch24=n.getHours(),cm=n.getMinutes(),gch=(ch24-6+24)%24,gcbi=Math.floor(cm/10),tebs6=(gch*6)+gcbi;
-            const cells=document.querySelectorAll('#timeGridDOM .grid-cell'); // Use new DOM ID
-            cells.forEach(c=>{
-                const cellH=parseInt(c.dataset.hour),cellB=parseInt(c.dataset.block),boi=(cellH*6)+cellB;
-                c.classList.remove('elapsed-time','light-bg','dark-bg','current-time-block');
-                const dsId='dynamicRedLineStyleFor-'+cellH+'-'+cellB;
-                let ds=document.getElementById(dsId);if(ds)ds.innerHTML='';
-                if(boi<tebs6){c.classList.add('elapsed-time');if(isDarkColor(c.style.backgroundColor))c.classList.add('dark-bg');else c.classList.add('light-bg');}
-                if(cellH===gch&&cellB===gcbi){c.classList.add('current-time-block');const ptb=((cm%10)/10)*100;let cds=document.getElementById(dsId);if(!cds){cds=document.createElement('style');cds.id=dsId;document.head.appendChild(cds);}cds.innerHTML=`#timeGridDOM .grid-cell[data-hour="${cellH}"][data-block="${cellB}"].current-time-block::before{left:${ptb}%;}`;
-                }
+
+        function updateElapsedTimeBlocks() {
+            const now = new Date();
+            const currentHour24 = now.getHours();
+            const currentMinutes = now.getMinutes();
+
+            // 그리드 시간은 6AM을 0시로 간주하여 계산
+            const gridCurrentHour = (currentHour24 - 6 + 24) % 24;
+            const gridCurrentBlockIndex = Math.floor(currentMinutes / 10); // 0-5 (10분 단위)
+            const totalElapsedBlocksSince6AM = (gridCurrentHour * 6) + gridCurrentBlockIndex;
+
+            // 적용할 그리드의 DOM ID 배열
+            const gridDomIdsToProcess = ['timeGridDOM', 'goalTimeGridDOM']; // <<<< Goal Timeline ID 포함
+
+            gridDomIdsToProcess.forEach(gridDomId => {
+                const cells = document.querySelectorAll(`#${gridDomId} .grid-cell`);
+                cells.forEach(cell => {
+                    const cellHour = parseInt(cell.dataset.hour); // 그리드 내부 0-23시
+                    const cellBlock = parseInt(cell.dataset.block); // 0-5 (10분 단위)
+                    const blockOverallIndex = (cellHour * 6) + cellBlock; // 6AM부터 시작하는 전체 블록 인덱스
+
+                    // 이전 상태 초기화
+                    cell.classList.remove('elapsed-time', 'light-bg', 'dark-bg', 'current-time-block');
+                    const dynamicStyleId = `dynamicRedLineStyleFor-${gridDomId}-${cellHour}-${cellBlock}`;
+                    let dynamicStyleElement = document.getElementById(dynamicStyleId);
+                    if (dynamicStyleElement) dynamicStyleElement.innerHTML = ''; // 해당 셀의 이전 스타일 초기화
+
+                    // 1. 빗금 처리 (양쪽 그리드 모두에 적용)
+                    if (blockOverallIndex < totalElapsedBlocksSince6AM) {
+                        cell.classList.add('elapsed-time');
+                        if (isDarkColor(cell.style.backgroundColor)) { // isDarkColor 콜백은 main.js에 정의되어 있음
+                            cell.classList.add('dark-bg');
+                            cell.classList.remove('light-bg');
+                        } else {
+                            cell.classList.add('light-bg');
+                            cell.classList.remove('dark-bg');
+                        }
+                    }
+
+                    // 2. 현재 시간 빨간색 세로줄 (양쪽 그리드 모두에 적용)
+                    if (cellHour === gridCurrentHour && cellBlock === gridCurrentBlockIndex) {
+                        cell.classList.add('current-time-block');
+                        const percentageThroughBlock = ((currentMinutes % 10) / 10) * 100;
+                        
+                        if (!dynamicStyleElement) {
+                            dynamicStyleElement = document.createElement('style');
+                            dynamicStyleElement.id = dynamicStyleId;
+                            document.head.appendChild(dynamicStyleElement);
+                        }
+                        // 각 그리드의 해당 셀에만 스타일 적용
+                        dynamicStyleElement.innerHTML = 
+                            `#${gridDomId} .grid-cell[data-hour="${cellHour}"][data-block="${cellBlock}"].current-time-block::before { 
+                                left: ${percentageThroughBlock}%; 
+                            }`;
+                    }
+                });
             });
         }
 

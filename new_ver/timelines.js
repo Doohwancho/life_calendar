@@ -1,30 +1,25 @@
 // timelines.js
 
-// --- Module-Scoped Variables for Timelines ---
-let blockData = {};       // Data for Current Timeline (timeGrid)
-let goalBlockData = {};   // Data for Goal Timeline (goalTimeGrid)
+// --- Module-Scoped Variables (이전과 동일) ---
+let blockData = {};
+let goalBlockData = {};
+let timeGridActualDomId = ''; // initTimelines에서 설정됨
+let goalGridActualDomId = ''; // initTimelines에서 설정됨
+let timeGridStartColors = new Map();
+let goalGridStartColors = new Map();
 
-let timeGridActualDomId = '';
-let goalGridActualDomId = '';
-
-let timeGridStartColors = new Map(); // For current timeline, store original colors when drag starts
-let goalGridStartColors = new Map(); // For goal timeline, store original colors when drag starts
-
-let activeGridIdInternal = null; // Tracks which grid is being interacted with
-let selectedCellsInternal = new Set();
+let activeGridIdInternal = null; // 'timeGrid' 또는 'goalTimeGrid' (내부 키)
 let isDraggingInternal = false;
-let dragStartCellInternal = null;
-let currentlyEditingCellInternal = null; // Cell being edited in a modal
+let dragStartCellInternal = null; // 드래그 시작 셀 (DOM 요소)
+let currentlyEditingCellInternal = null;
 
-// --- Callbacks & Refs from Main Script ---
+// --- Callbacks & Refs (이전과 동일) ---
 let getSelectedColorCallback = () => 'rgb(255,255,255)';
 let isDarkColorCallback = () => false;
 let normalizeColorCallback = color => color;
-let onTimeGridDataChangeCallback = () => {}; // Called when blockData changes
-
+let onTimeGridDataChangeCallback = () => {};
 
 // --- Core Timeline Functions ---
-
 function applyPreviousColorStyle() {
     const styleId = 'timelinePreviousColorStyle';
     if (document.getElementById(styleId)) return;
@@ -49,76 +44,87 @@ function createCell(text, className) {
     if (className === 'grid-cell') {
         cell.style.backgroundColor = 'rgb(255, 255, 255)'; // Default white
     }
-    return cell;
+    return cell; // 이 return 문이 반드시 있어야 합니다.
 }
 
-function storeCurrentColorsForGrid(internalGridKey) {  // internalGridKey is 'timeGrid' or 'goalTimeGrid'
+function storeCurrentColorsForGrid(internalGridKey) {
     const dataStore = internalGridKey === 'timeGrid' ? blockData : goalBlockData;
     const colorStoreMap = internalGridKey === 'timeGrid' ? timeGridStartColors : goalGridStartColors;
     colorStoreMap.clear();
 
     const actualDomId = internalGridKey === 'timeGrid' ? timeGridActualDomId : goalGridActualDomId;
-    if (!actualDomId) {
-        console.error("DOM ID not set for grid key:", internalGridKey);
-        return;
-    }
+    if (!actualDomId) return;
 
-    document.querySelectorAll(`#${actualDomId} .grid-cell`).forEach(cell => { // Use actualDomId
-        const key = `<span class="math-inline">\{cell\.dataset\.hour\}\-</span>{cell.dataset.block}`;
-        const currentBlockData = dataStore[key];
-        const colorToStore = currentBlockData ? currentBlockData.color : cell.style.backgroundColor;
-        colorStoreMap.set(key, colorToStore || 'rgb(255,255,255)');
+    document.querySelectorAll(`#${actualDomId} .grid-cell`).forEach(cell => {
+        const key = `${cell.dataset.hour}-${cell.dataset.block}`;
+        const currentCellData = dataStore[key];
+        const colorToStore = currentCellData ? currentCellData.color : 'rgb(255,255,255)';
+        colorStoreMap.set(key, colorToStore);
     });
 }
 
-function internalSaveBlock(blockKey, text, cell, gridId, newColor, previousColorForTriangle) {
-    const dataStore = gridId === 'timeGrid' ? blockData : goalBlockData;
+function internalSaveBlock(blockKey, text, cellElement, internalGridKey, newColor, previousColorForInteractionStart) {
+    const dataStore = internalGridKey === 'timeGrid' ? blockData : goalBlockData;
 
-    if (!dataStore[blockKey]) {
-        dataStore[blockKey] = { text: '', color: 'rgb(255,255,255)', previousColor: null };
+    if (!dataStore[blockKey]) { // Initialize if new
+        if (internalGridKey === 'timeGrid') {
+            dataStore[blockKey] = { text: '', color: 'rgb(255,255,255)', previousColor: null };
+        } else { // goalTimeGrid
+            dataStore[blockKey] = { text: '', color: 'rgb(255,255,255)' };
+        }
     }
 
     dataStore[blockKey].text = text;
-    dataStore[blockKey].color = newColor || dataStore[blockKey].color; // Use newColor if provided
+    dataStore[blockKey].color = newColor;
 
-    // Handle previousColor for triangle
-    // previousColorForTriangle is the color *before* the current coloring action started
-    const normalizedNewColor = normalizeColorCallback(dataStore[blockKey].color);
-    const normalizedPrevColorForTriangle = normalizeColorCallback(previousColorForTriangle);
+    if (internalGridKey === 'timeGrid') {
+        const normalizedNewColor = normalizeColorCallback(newColor);
+        const normalizedPrevColor = normalizeColorCallback(previousColorForInteractionStart);
 
-    if (previousColorForTriangle && normalizedNewColor !== normalizedPrevColorForTriangle) {
-        dataStore[blockKey].previousColor = previousColorForTriangle; // This is what the triangle shows
-        cell.classList.add('color-changed');
-        cell.style.setProperty('--previous-color', previousColorForTriangle);
-    } else {
-        // If new color is same as what triangle would show, or no triangle needed
-        dataStore[blockKey].previousColor = null;
-        cell.classList.remove('color-changed');
-        cell.style.removeProperty('--previous-color');
+        if (previousColorForInteractionStart && normalizedNewColor !== normalizedPrevColor) {
+            dataStore[blockKey].previousColor = previousColorForInteractionStart;
+            cellElement.classList.add('color-changed');
+            cellElement.style.setProperty('--previous-color', previousColorForInteractionStart);
+        } else {
+            dataStore[blockKey].previousColor = null;
+            cellElement.classList.remove('color-changed');
+            cellElement.style.removeProperty('--previous-color');
+        }
+        onTimeGridDataChangeCallback(); // Only for Current Timeline
+    } else { // For goalTimeGrid
+        delete dataStore[blockKey].previousColor; // Ensure no previousColor property
+        cellElement.classList.remove('color-changed');
+        cellElement.style.removeProperty('--previous-color');
     }
     
-    cell.textContent = text;
-    cell.style.backgroundColor = dataStore[blockKey].color;
-    cell.style.color = isDarkColorCallback(dataStore[blockKey].color) ? 'white' : 'black';
-
-    if (gridId === 'timeGrid') {
-        onTimeGridDataChangeCallback();
-    }
+    cellElement.style.backgroundColor = newColor;
+    cellElement.textContent = text;
+    cellElement.style.color = isDarkColorCallback(newColor) ? 'white' : 'black';
 }
 
 
-function handleCellClickInternal(event, gridId) {
+function handleCellClickInternal(event, internalGridKey) {
     const cell = event.target.closest('.grid-cell');
     if (!cell) return;
 
-    activeGridIdInternal = gridId;
+    activeGridIdInternal = internalGridKey;
     currentlyEditingCellInternal = cell;
 
-    const dataStore = gridId === 'timeGrid' ? blockData : goalBlockData;
+    const dataStore = internalGridKey === 'timeGrid' ? blockData : goalBlockData;
+    const colorStoreMap = internalGridKey === 'timeGrid' ? timeGridStartColors : goalGridStartColors;
     const blockKey = `${cell.dataset.hour}-${cell.dataset.block}`;
-    const cellData = dataStore[blockKey] || { text: '', color: cell.style.backgroundColor, previousColor: null };
+    
+    let cellData = dataStore[blockKey];
+    if (!cellData) { // Should ideally be pre-initialized
+        if (internalGridKey === 'timeGrid') {
+            cellData = { text: cell.textContent, color: cell.style.backgroundColor || 'rgb(255,255,255)', previousColor: null };
+        } else {
+            cellData = { text: cell.textContent, color: cell.style.backgroundColor || 'rgb(255,255,255)' };
+        }
+        dataStore[blockKey] = cellData;
+    }
 
-    // --- Modal creation and handling ---
+    // 모달 생성
     const modalOverlay = document.createElement('div');
     modalOverlay.className = 'modal-overlay';
     const modalContent = document.createElement('div');
@@ -127,7 +133,6 @@ function handleCellClickInternal(event, gridId) {
     textarea.className = 'editing-textarea';
     textarea.value = cellData.text;
 
-    // Style modal based on cell color
     modalContent.style.backgroundColor = cellData.color;
     textarea.style.color = isDarkColorCallback(cellData.color) ? 'white' : 'black';
 
@@ -141,15 +146,20 @@ function handleCellClickInternal(event, gridId) {
     const closeModal = () => {
         modalOverlay.remove();
         document.removeEventListener('keydown', handleEscKey);
-        currentlyEditingCellInternal = null;
+        currentlyEditingCellInternal = null; // clearCurrentlyEditingCellFlag()와 동일한 역할
     };
-
     const handleEscKey = (e) => { if (e.key === 'Escape') closeModal(); };
     document.addEventListener('keydown', handleEscKey);
 
     saveBtn.addEventListener('click', () => {
-        // When saving text, color is cell's current color. Previous color logic handled by coloring actions.
-        internalSaveBlock(blockKey, textarea.value, cell, gridId, cell.style.backgroundColor, dataStore[blockKey]?.previousColor);
+        const currentCellColor = cell.style.backgroundColor; // The color visual on cell
+        const originalColorAtInteractionStart = colorStoreMap.get(blockKey) || cellData.color; // Color when mousedown happened
+        
+        // If current timeline, previousColor is the one from interaction start.
+        // If goal timeline, previousColor is irrelevant for triangle.
+        const effectivePreviousColor = internalGridKey === 'timeGrid' ? originalColorAtInteractionStart : null;
+
+        internalSaveBlock(blockKey, textarea.value, cell, internalGridKey, currentCellColor, effectivePreviousColor);
         closeModal();
     });
     cancelBtn.addEventListener('click', closeModal);
@@ -157,67 +167,59 @@ function handleCellClickInternal(event, gridId) {
     textarea.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            internalSaveBlock(blockKey, textarea.value, cell, gridId, cell.style.backgroundColor, dataStore[blockKey]?.previousColor);
+            internalSaveBlock(blockKey, textarea.value, cell, internalGridKey, cell.style.backgroundColor, dataStore[blockKey]?.previousColor);
             closeModal();
         }
     });
-
     buttonsDiv.appendChild(cancelBtn); buttonsDiv.appendChild(saveBtn);
     modalContent.appendChild(textarea); modalContent.appendChild(buttonsDiv);
     modalOverlay.appendChild(modalContent); document.body.appendChild(modalOverlay);
     textarea.focus();
 
-    // Apply selected color from palette IF it's different from cell's current color
-    const selectedColor = getSelectedColorCallback();
-    const normalizedSelectedColor = normalizeColorCallback(selectedColor);
-    const normalizedCellColor = normalizeColorCallback(cell.style.backgroundColor);
+    const selectedColorFromPicker = getSelectedColorCallback();
+    const colorBeforeThisClick = colorStoreMap.get(blockKey) || cellData.color;
 
-    if (normalizedSelectedColor !== normalizedCellColor) {
-        const colorStoreMap = gridId === 'timeGrid' ? timeGridStartColors : goalGridStartColors;
-        const colorBeforeInteraction = colorStoreMap.get(blockKey) || cell.style.backgroundColor;
-        internalSaveBlock(blockKey, cellData.text, cell, gridId, selectedColor, colorBeforeInteraction);
-        // Update modal appearance if color changed
-        modalContent.style.backgroundColor = selectedColor;
-        textarea.style.color = isDarkColorCallback(selectedColor) ? 'white' : 'black';
-    }
+    internalSaveBlock(blockKey, cellData.text, cell, internalGridKey, selectedColorFromPicker, colorBeforeThisClick);
+    
+    if(modalContent) modalContent.style.backgroundColor = selectedColorFromPicker;
+    if(textarea) textarea.style.color = isDarkColorCallback(selectedColorFromPicker) ? 'white' : 'black';
 }
 
 
-function handleDragPaintInternal(dragStartCell, currentHoverCell, gridId) {
-    const dataStore = gridId === 'timeGrid' ? blockData : goalBlockData;
-    const colorStoreMap = gridId === 'timeGrid' ? timeGridStartColors : goalGridStartColors; // Colors at the start of the drag
+function handleDragPaintInternal(draggedStartCell, currentHoverCell, internalGridKey) {
+    const actualDomId = internalGridKey === 'timeGrid' ? timeGridActualDomId : goalGridActualDomId;
+    if (!actualDomId) { return; }
 
-    const startHour = parseInt(dragStartCell.dataset.hour);
-    const startBlock = parseInt(dragStartCell.dataset.block);
-    const currentHour = parseInt(currentHoverCell.dataset.hour);
-    const currentBlock = parseInt(currentHoverCell.dataset.block);
+    const dataStore = internalGridKey === 'timeGrid' ? blockData : goalBlockData;
+    const startColorsMap = internalGridKey === 'timeGrid' ? timeGridStartColors : goalGridStartColors;
 
-    const minHour = Math.min(startHour, currentHour);
-    const maxHour = Math.max(startHour, currentHour);
-    const minBlock = Math.min(startBlock, currentBlock);
-    const maxBlock = Math.max(startBlock, currentBlock);
+    const minHour = Math.min(parseInt(draggedStartCell.dataset.hour), parseInt(currentHoverCell.dataset.hour));
+    const maxHour = Math.max(parseInt(draggedStartCell.dataset.hour), parseInt(currentHoverCell.dataset.hour));
+    const minBlock = Math.min(parseInt(draggedStartCell.dataset.block), parseInt(currentHoverCell.dataset.block));
+    const maxBlock = Math.max(parseInt(draggedStartCell.dataset.block), parseInt(currentHoverCell.dataset.block));
 
-    const newColor = getSelectedColorCallback();
+    const newColorFromPicker = getSelectedColorCallback();
 
     for (let h = minHour; h <= maxHour; h++) {
         for (let b = minBlock; b <= maxBlock; b++) {
             const cellKey = `${h}-${b}`;
-            const cellElement = document.querySelector(`#${gridId} .grid-cell[data-hour="${h}"][data-block="${b}"]`);
+            const cellElement = document.querySelector(`#${actualDomId} .grid-cell[data-hour="${h}"][data-block="${b}"]`);
             if (cellElement) {
-                const colorBeforeThisDragInteraction = colorStoreMap.get(cellKey) || cellElement.style.backgroundColor;
+                const colorBeforeDragStarted = startColorsMap.get(cellKey); // Color from mousedown state
                 const currentText = dataStore[cellKey]?.text || '';
-                internalSaveBlock(cellKey, currentText, cellElement, gridId, newColor, colorBeforeThisDragInteraction);
+                
+                // For goal timeline, previousColorForInteractionStart is not used for triangle, so pass null or undefined
+                const effectivePreviousColor = internalGridKey === 'timeGrid' ? colorBeforeDragStarted : null;
+
+                internalSaveBlock(cellKey, currentText, cellElement, internalGridKey, newColorFromPicker, effectivePreviousColor);
             }
         }
     }
-    // onTimeGridDataChangeCallback will be called by internalSaveBlock if gridId is 'timeGrid'
 }
 
-// --- Exported Functions ---
-
 export function initTimelines(timeGridDomId, goalGridDomId, callbacks) {
-    timeGridActualDomId = timeGridDomId; // Store actual DOM ID
-    goalGridActualDomId = goalGridDomId; // Store actual DOM ID
+    timeGridActualDomId = timeGridDomId;
+    goalGridActualDomId = goalGridDomId;
 
     if (callbacks) {
         getSelectedColorCallback = callbacks.getSelectedColor || getSelectedColorCallback;
@@ -227,26 +229,26 @@ export function initTimelines(timeGridDomId, goalGridDomId, callbacks) {
     }
 
     applyPreviousColorStyle();
-    initializeGridInternal(timeGridDomId, 'timeGrid'); // 'timeGrid' is our internal key for blockData
-    initializeGridInternal(goalGridDomId, 'goalTimeGrid'); // 'goalTimeGrid' for goalBlockData
+    initializeGridInternal(timeGridActualDomId, 'timeGrid'); // DOM ID 전달
+    initializeGridInternal(goalGridActualDomId, 'goalTimeGrid'); // DOM ID 전달
 
-    // Global mouseup listener for drag operations
     document.addEventListener('mouseup', () => {
         if (isDraggingInternal) {
             if (activeGridIdInternal === 'timeGrid') {
-                 // Data change callback already called during drag by internalSaveBlock
+                // onTimeGridDataChangeCallback(); // internalSaveBlock에서 이미 처리됨
             }
         }
         isDraggingInternal = false;
         dragStartCellInternal = null;
-        selectedCellsInternal.clear();
-        timeGridStartColors.clear(); // Clear both, or be specific based on activeGridIdInternal if needed
-        goalGridStartColors.clear();
-        activeGridIdInternal = null;
+        activeGridIdInternal = null; 
+        // timeGridStartColors 와 goalGridStartColors 는 mousedown 시점에 채워지므로 여기서 반드시 비울 필요는 없음
+        // 필요하다면 여기서 clear() 호출:
+        // timeGridStartColors.clear();
+        // goalGridStartColors.clear();
     });
 }
 
-function initializeGridInternal(gridDomId, internalGridKey) { // internalGridKey is 'timeGrid' or 'goalTimeGrid'
+function initializeGridInternal(gridDomId, internalGridKey) {
     const gridElement = document.getElementById(gridDomId);
     if (!gridElement) {
         console.error(`Grid element with ID "${gridDomId}" not found.`);
@@ -254,7 +256,7 @@ function initializeGridInternal(gridDomId, internalGridKey) { // internalGridKey
     }
     const dataStore = internalGridKey === 'timeGrid' ? blockData : goalBlockData;
 
-    gridElement.innerHTML = ''; // Clear previous content
+    gridElement.innerHTML = ''; 
 
     gridElement.appendChild(createCell('Hour', 'header-cell'));
     for (let i = 1; i <= 6; i++) {
@@ -269,37 +271,45 @@ function initializeGridInternal(gridDomId, internalGridKey) { // internalGridKey
             const cell = createCell('', 'grid-cell');
             cell.dataset.hour = hour;
             cell.dataset.block = block;
-            const blockKey = `${hour}-${block}`;
+            
+            // ***** blockKey 선언이 이 위치에 있어야 합니다 *****
+            const blockKey = `${hour}-${block}`; 
 
+            // 이제 blockKey가 정의되었으므로 아래 라인에서 에러가 발생하지 않아야 합니다.
             if (!dataStore[blockKey]) {
-                dataStore[blockKey] = { text: '', color: 'rgb(255, 255, 255)', previousColor: null };
+                if (internalGridKey === 'timeGrid') {
+                    dataStore[blockKey] = { text: '', color: 'rgb(255,255,255)', previousColor: null };
+                } else { // goalTimeGrid
+                    dataStore[blockKey] = { text: '', color: 'rgb(255,255,255)' }; // No previousColor
+                }
             }
             const cellData = dataStore[blockKey];
+            
             cell.style.backgroundColor = cellData.color;
             cell.textContent = cellData.text;
             cell.style.color = isDarkColorCallback(cellData.color) ? 'white' : 'black';
 
-            if (cellData.previousColor && normalizeColorCallback(cellData.previousColor) !== normalizeColorCallback(cellData.color)) {
+            if (internalGridKey === 'timeGrid' && cellData.previousColor && 
+                normalizeColorCallback(cellData.previousColor) !== normalizeColorCallback(cellData.color)) {
                 cell.classList.add('color-changed');
                 cell.style.setProperty('--previous-color', cellData.previousColor);
+            } else { // Goal timeline or no change on current timeline
+                cell.classList.remove('color-changed');
+                cell.style.removeProperty('--previous-color');
             }
 
             cell.addEventListener('mousedown', (e) => {
-                isDraggingInternal = false;
-                dragStartCellInternal = cell;
-                activeGridIdInternal = internalGridKey; // Set active grid key
-                selectedCellsInternal.clear();
-                storeCurrentColorsForGrid(internalGridKey); // Use internalGridKey
-                selectedCellsInternal.add(`${cell.dataset.hour}-${cell.dataset.block}`);
+                isDraggingInternal = false; 
+                dragStartCellInternal = cell; 
+                activeGridIdInternal = internalGridKey; 
+                storeCurrentColorsForGrid(internalGridKey); 
+                // selectedCellsInternal.clear(); // 드래그 로직에서 selectedCellsInternal을 적극적으로 사용하지 않으므로 필수 아님
+                // selectedCellsInternal.add(blockKey); // 필요시 추가
             });
 
             cell.addEventListener('mousemove', (e) => {
                 if (e.buttons === 1 && dragStartCellInternal && activeGridIdInternal === internalGridKey) {
-                    const currentCellKey = `${cell.dataset.hour}-${cell.dataset.block}`;
-                    if (!selectedCellsInternal.has(currentCellKey)) {
-                        selectedCellsInternal.add(currentCellKey);
-                    }
-                    if (cell !== dragStartCellInternal) { // If moved to a different cell
+                    if (cell !== dragStartCellInternal && !isDraggingInternal) { 
                         isDraggingInternal = true;
                     }
                     if (isDraggingInternal) {
@@ -308,41 +318,54 @@ function initializeGridInternal(gridDomId, internalGridKey) { // internalGridKey
                 }
             });
 
-            cell.addEventListener('mouseup', (e) => { // This mouseup is cell-specific
-                if (dragStartCellInternal && activeGridIdInternal === internalGridKey) {
-                    if (!isDraggingInternal) { // Click
-                        handleCellClickInternal(e, internalGridKey);
-                    } else { // Drag end on a cell
-                        // drag paint already handled data changes, onTimeGridDataChangeCallback called if 'timeGrid'
+            cell.addEventListener('mouseup', (e) => {
+                if (activeGridIdInternal === internalGridKey) { 
+                    if (!isDraggingInternal) { 
+                        handleCellClickInternal(e, internalGridKey); 
+                    } else {
+                        if (internalGridKey === 'timeGrid') {
+                            // onTimeGridDataChangeCallback(); // 필요시, 하지만 internalSaveBlock 에서 이미 호출될 수 있음
+                        }
                     }
                 }
-                // Don't reset global drag states here, let the document mouseup handle it
-                // to cover drags ending outside cells.
             });
             gridElement.appendChild(cell);
         }
     }
 }
 
-
-export function getTimelineBlockData() {
-    return { ...blockData }; // Return a copy
-}
-
+export function getTimelineBlockData() { return JSON.parse(JSON.stringify(blockData)); } // Deep copy
 export function getTimelineGoalData() {
-    return { ...goalBlockData }; // Return a copy
+    // Ensure goal data doesn't have previousColor (it shouldn't due to internalSaveBlock)
+    const cleanGoalData = {};
+    for (const key in goalBlockData) {
+        cleanGoalData[key] = {
+            text: goalBlockData[key].text,
+            color: goalBlockData[key].color
+        };
+    }
+    return JSON.parse(JSON.stringify(cleanGoalData)); // Deep copy
 }
 
-export function setTimelineBlockDataAndRender(newData, timeGridDomId) {
-    blockData = newData || {};
-    initializeGridInternal(timeGridDomId, 'timeGrid');
-    onTimeGridDataChangeCallback(); // Notify main script of data change
+export function setTimelineBlockDataAndRender(newData, timeGridDomIdToRender) {
+    blockData = newData || {}; // Expects {text, color, previousColor}
+    initializeGridInternal(timeGridDomIdToRender, 'timeGrid');
+    onTimeGridDataChangeCallback(); 
+}
+export function setTimelineGoalDataAndRender(newGoalData, goalGridDomIdToRender) {
+    goalBlockData = {}; // Clear first
+    if (newGoalData) { // Strip previousColor if present from old files
+        for (const key in newGoalData) {
+            goalBlockData[key] = {
+                text: newGoalData[key].text,
+                color: newGoalData[key].color
+                // previousColor is deliberately omitted
+            };
+        }
+    }
+    initializeGridInternal(goalGridDomIdToRender, 'goalTimeGrid');
 }
 
-export function setTimelineGoalDataAndRender(newGoalData, goalGridDomId) {
-    goalBlockData = newGoalData || {};
-    initializeGridInternal(goalGridDomId, 'goalTimeGrid');
-}
 
 export function applySelectedColorToCurrentlyEditingCell() {
     if (currentlyEditingCellInternal && activeGridIdInternal) {
@@ -374,33 +397,20 @@ export function clearCurrentlyEditingCellFlag() {
 // Helper: Function to reset previousColor markers after summary/saving
 export function clearAllPreviousColorMarkers(internalGridKeyToClear // 'timeGrid' or 'goalTimeGrid' or 'all'
 ) {
-    const dataStoresToProcess = [];
-    const domIdsToQuery = []; // Use actual DOM IDs for querying
-
     if (internalGridKeyToClear === 'timeGrid' || internalGridKeyToClear === 'all') {
-        dataStoresToProcess.push(blockData);
-        if (timeGridActualDomId) domIdsToQuery.push(timeGridActualDomId);
-    }
-    if (internalGridKeyToClear === 'goalTimeGrid' || internalGridKeyToClear === 'all') {
-        dataStoresToProcess.push(goalBlockData);
-        if (goalGridActualDomId) domIdsToQuery.push(goalGridActualDomId);
-    }
-
-    dataStoresToProcess.forEach(dataStore => {
-        Object.keys(dataStore).forEach(key => {
-            if (dataStore[key]) {
-                dataStore[key].previousColor = null;
+        Object.keys(blockData).forEach(key => {
+            if (blockData[key]) {
+                blockData[key].previousColor = null;
             }
         });
-    });
-
-    domIdsToQuery.forEach(domId => { // Iterate over actual DOM IDs
-        const gridElement = document.getElementById(domId);
-        if (gridElement) {
-            gridElement.querySelectorAll('.grid-cell.color-changed').forEach(cell => {
-                cell.classList.remove('color-changed');
-                cell.style.removeProperty('--previous-color');
-            });
+        if (timeGridActualDomId) {
+            const gridElement = document.getElementById(timeGridActualDomId);
+            if (gridElement) {
+                gridElement.querySelectorAll('.grid-cell.color-changed').forEach(cell => {
+                    cell.classList.remove('color-changed');
+                    cell.style.removeProperty('--previous-color');
+                });
+            }
         }
-    });
+    }
 }
