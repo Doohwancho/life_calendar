@@ -173,34 +173,34 @@
 
         /* --- Left Pane (3 horizontal sections) --- */
         .left-pane {
+            position: relative;
             flex: 1 1 22%; /* Slightly narrower */
             display: flex;
             flex-direction: column;
             gap: 15px;
             overflow-y: auto;
-            position: relative;
         }
 
         .left-pane-top, .left-pane-middle, .left-pane-bottom {
+            position: relative;
+            display: flex;
             border: 1px solid #e7eaf0;
             border-radius: 6px;
             padding: 0; /* 섹션 자체 패딩 제거, 내부 컨텐츠가 패딩 관리 */
-            display: flex;
             flex-direction: column;
-            position: relative;
             overflow: hidden; /* 내부 스크롤 요소와 함께 사용 */
             color: #777;
         }
         .left-pane-top { 
-            flex: 0.4; 
-            min-height: 150px; 
-            /* position: relative;  */
-            overflow: visible !important; /* 중요: 하위 절대 위치 요소가 이 경계를 넘어 보이도록! */
-                                        /* 다른 .left-pane-* 섹션과 겹칠 수 있음 */
-            z-index: 30;
-            position:relative;
-            display: flex; 
+            flex: 0.4; /* 또는 원하는 비율. 예: flex: 1;로 설정하고 min-height 조절 */
+            min-height: 250px; /* 프로젝트 목록이 충분히 표시될 최소 높이 */
+            border: 1px solid #e0e4e8;
+            border-radius: 6px;
+            padding: 0; /* 내부에서 패딩 관리 */
+            display: flex;
             flex-direction: column;
+            position: relative; /* 플로팅 드롭다운의 기준점 */
+            overflow: hidden;   /* 내부 스크롤 영역(.projects-scroll-area) 넘침 제어 */
         }
         /* .left-pane-middle { flex: 2; min-height: 280px; padding:10px; overflow-y:auto;} */
         .left-pane-middle { /* For general TODO List, #todo-app-container is inside this */
@@ -565,50 +565,43 @@
         
         /* Project-Based TODO List Styles */
         .projects-scroll-area { /* NEW: For scrollable project items */
-            flex-grow: 1; /* 사용 가능한 모든 수직 공간 차지 */
-
-            overflow: visible; /* <<<<<<< 중요 변경: 하위 절대 위치 드롭다운이 벗어날 수 있도록 */
-            min-height: 0; 
-            padding: 10px 10px 0 10px; 
-            position: relative; 
-            z-index: 1; /* 드롭다운보다 낮은 z-index */
-
-            /* overflow-y: auto;  이 영역만 스크롤 */
-            /* min-height: 0;  flex 자식으로 스크롤이 올바르게 작동하도록 */
-            /* padding: 10px 10px 0 10px;  스크롤 영역 내부 패딩 (하단은 버튼과 겹치지 않게 0) */
+            flex-grow: 1; /* .left-pane-top 내부의 남은 공간 모두 차지 */
+            overflow-y: auto; /* 수직 스크롤 활성화 */
+            padding: 10px;    /* 스크롤 영역 내부 여백 */
+            position: relative; /* 드래그 오버 표시기 기준점 */
         }
 
         #add-project-btn {
-            position: absolute; /* 중요: 플로팅 버튼으로 변경 */
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: calc(100% - 30px); /* 부모 패딩 고려한 너비 (양쪽 15px씩) */
-            max-width: 250px; /* 최대 너비 */
-            z-index: 0; 
-
-            padding: 10px 12px; 
-            background-color: #3b82f6;
-            color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;
+            display: none; /* 기본적으로 숨김 */
+            width: calc(100% - 0px); /* 부모(.projects-scroll-area)의 패딩을 고려하여 너비 설정. 현재 .projects-scroll-area 좌우 패딩이 있으므로 100% */
+            margin: 15px 0 10px 0; /* 버튼 위아래 여백. 좌우 auto는 max-width와 함께 사용 시 중앙정렬 */
+                                /* 기존 margin: 15px 10px 10px 10px; 대신 내부에서 전체 너비를 가지도록 함 */
+            /* max-width: 280px; */ /* 버튼 너비를 제한하고 싶다면 활성화 */
+            padding: 10px 12px;
+            background-color: #3b82f6; /* 기존 색상 유지 */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em; /* 기존 크기 유지 */
             text-align: center;
-
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out, transform 0.2s ease-in-out;
+            box-sizing: border-box; /* padding과 width:100%를 함께 사용할 때 권장 */
         }
         #project-todo-app-container:hover #add-project-btn {
-            opacity: 1;
-            visibility: visible;
+            display: block;
         }
         #add-project-btn:hover { background-color: #2563eb; }
 
 
         .project-item-wrapper { /* ... (기존 스타일 유지) ... */
-            border-bottom: 1px solid #e8ebee;
-            position: relative;
-            z-index: 0;
+            background-color: #fff;
+            border-bottom: 1px solid #f0f0f0;
+            margin-bottom: 6px; /* 프로젝트 간 간격 */
+            border-radius: 4px;
+            /* box-shadow: 0 1px 2px rgba(0,0,0,0.04); */
+            position: relative; /* 드래그 오버 표시기 기준점 */
         }
-        
+
         .project-item-wrapper.open {
             z-index: 50; /* 다른 닫힌 프로젝트 항목들보다 확실히 위에 오도록 */
         }
@@ -631,11 +624,9 @@
         .project-header {
             display: flex;
             align-items: center;
-            padding: 10px 8px 10px 12px; /* Adjusted padding for arrow */
+            padding: 10px 12px;
             cursor: pointer;
-            font-weight: 500;
-            color: #334155;
-            position: relative;
+            user-select: none; /* 텍스트 선택 방지 */
             transition: background-color 0.15s ease;
         }
         .project-header:hover {
@@ -647,16 +638,11 @@
         }
 
         .project-header::before { /* Dropdown arrow indicator */
-            content: '▶';
             margin-right: 8px;
             font-size: 0.6em;
             transition: transform 0.2s ease-in-out;
             color: #64748b;
             padding-top: 1px; /* Fine-tune alignment */
-        }
-
-        .project-item-wrapper.open > .project-header::before {
-            transform: rotate(90deg);
         }
 
         .project-name-text {
@@ -712,120 +698,274 @@
             flex-shrink: 0; /* Prevent shrinking */
         }
 
-        .sub-todo-list-container {
-            position: absolute; /* <<<< 중요: 플로팅되도록 */
-            top: 100%; /* 프로젝트 헤더 바로 아래 */
-            left: 0;
-            right: 0;
-            width: 100%; /* 부모 .project-item-wrapper 너비에 맞춤 */
-            z-index: 100; /* 최상위로 (다른 프로젝트, 추가 버튼 등 보다 위) */
-            
-            max-height: 0; 
-            opacity: 0;
-            visibility: hidden;
-            overflow: hidden; /* 닫혔을 때는 내용 숨김 */
 
-            background-color: #ffffff; 
-            border: 1px solid #d1d5db; /* 테두리 명확하게 */
-            border-top: none; 
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15); /* 그림자 강조 */
-            border-radius: 0 0 6px 6px; 
-
-            transition: max-height 0.3s ease-in-out, 
-                        opacity 0.3s ease-in-out,
-                        visibility 0s linear 0.3s; /* visibility는 opacity 전환 후 변경 */
-        }
-        .project-item-wrapper.open > .sub-todo-list-container {
-            max-height: calc(80vh - 60px); /* 화면 높이의 80% - (페이지 헤더 높이 + 약간의 여유분) */
-                                 /* 이 값은 실제 레이아웃에 맞춰 정교하게 조정 필요 */
-            overflow-y: auto; /* 내용이 max-height를 넘으면 내부 스크롤 */
-            opacity: 1;
-            visibility: visible;
-            transition: max-height 0.3s ease-in-out, 
-                        opacity 0.2s ease-in-out, /* 나타날 때 opacity 전환은 빠르게 */
-                        visibility 0s linear 0s;
-
-            /* 패딩은 컨텐츠 양에 따라 적용 */
-            padding: 10px 15px;
+        .sub-todo-list-container.floating-dropdown {
+            /* position: absolute; /* Set by JS, relative to #project-todo-app-container */
+            /* display: none; /* Set by JS */
+            /* z-index: 1000; /* Set by JS */
+            background-color: #ffffff;
+            border: 1px solid #d1d5db; /* Softer border */
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15); /* More pronounced shadow */
+            border-radius: 6px; /* Consistent rounding */
+            min-width: 250px; /* Minimum width */
+            /* width will be set by JS to match header width */
+            max-height: clamp(200px, 50vh, 450px); /* Responsive max height: min 200px, up to 50% of viewport, max 450px */
+            overflow-y: auto; /* Allow scrolling within the dropdown if content is too tall */
+            padding: 0; /* Padding will be handled by the inner UL or add-task-button container */
         }
 
-        /* ... (sub-todo-list-items, .sub-todo-item styles as before) ... */
-        .sub-todo-list-items {
+        .floating-dropdown > .sub-todo-list-items {
             list-style: none;
-            padding: 0;
+            padding: 10px 15px; /* Padding for the list items area */
             margin: 0;
         }
-        .sub-todo-list-items.drag-over-active { 
-            outline: 1px dashed #3b82f6; 
-            background-color: #eff6ff;
+
+        .floating-dropdown > .add-sub-task-btn {
+            /* Styles are from your existing .add-sub-task-btn */
+            /* Ensure it has some padding/margin if it's directly in floatingSubTodoListContainer */
+            /* display: block; */
+            margin: 0 15px 10px 15px; /* Align with list padding, add bottom margin */
+            /* padding: 5px 10px; ... etc. */
         }
 
-        .sub-todo-item {
+        
+        .project-item-wrapper:hover > .project-header {
+            background-color: #f7f9fa;
+        } 
+
+        .project-item-wrapper.open > .project-header { /* 열린 프로젝트 헤더 강조 */
+            background-color: #e9f3ff; /* 연한 파란색 계열 */
+            /* border-bottom: 1px solid #d0e0f0; */ /* 드롭다운과 구분선 (선택 사항) */
+        }
+
+        .project-arrow {
+            font-size: 0.65em;
+            margin-right: 10px;
+            color: #667788;
+            transition: transform 0.2s ease-out;
+            display: inline-block;
+        }
+
+        .project-item-wrapper.open .project-arrow {
+            transform: rotate(90deg);
+        }
+
+        .project-item-wrapper.open > .project-header::before {
+            transform: rotate(90deg);
+        }
+
+        .project-name {
+            flex-grow: 1; /* 이름 영역이 남은 공간 차지 */
+            font-weight: 500;
+            color: #2c3e50;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; /* 긴 이름 ... 처리 */
+            padding-right: 8px;
+        }
+
+        .project-completion {
+            font-size: 0.8em;
+            color: #52616b;
+            margin-left: auto; /* 오른쪽으로 밀기 (컨트롤 버튼 전) */
+            padding-left: 10px; /* 이름과 간격 */
+            white-space: nowrap;
+            flex-shrink: 0; /* 줄어들지 않도록 */
+        }
+
+        .project-controls {
             display: flex;
             align-items: center;
-            padding: 6px 2px; /* Adjust padding */
-            border-bottom: 1px solid #f3f4f6; 
-            gap: 6px; /* Increased gap slightly for number */
-            font-size: 0.85em;
+            opacity: 0; /* 기본 숨김 */
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            margin-left: 8px; /* 완료 상태와 간격 */
         }
-        .sub-todo-item:last-child { border-bottom: none; }
-        .sub-todo-item.dragging { opacity: 0.4; background: #e0e7ff; }
+        .project-item-wrapper:hover .project-controls {
+            opacity: 1;
+            visibility: visible;
+        }
+        .project-action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 3px;
+            margin-left: 5px;
+            font-size: 1em; /* 이모지 크기에 맞게 조절 */
+            color: #7f8c8d;
+            line-height: 1;
+        }
+        .project-action-btn:hover {
+            color: #34495e;
+        }
+        .project-delete-btn:hover {
+            color: #c0392b; /* 삭제 버튼 호버 시 빨간색 */
+        }
 
-        .sub-todo-number { /* For automatic numbering */
-            color: #94a3b8;
+        /* 플로팅 드롭다운 컨테이너 */
+        #floating-project-dropdown { /* 또는 .sub-todo-list-container.floating-dropdown */
+            /* position: fixed;  <-- JS에서 설정 */
+            /* display: none;    <-- JS에서 설정 */
+            /* z-index: 1001;  <-- JS에서 설정 */
+            background-color: #ffffff;
+            border: 1px solid #d1dce5;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+            border-radius: 5px; /* 전체적으로 둥근 모서리 또는 아래쪽만 */
+            min-width: 280px; /* 헤더 너비에 맞춰 JS가 width 설정 */
+            max-height: 80vh; /* 화면 높이 대비 최대 높이 */
+            overflow-y: auto;   /* 내용 많으면 드롭다운 내부 스크롤 */
+            padding-bottom: 8px; /* Add Task 버튼 등 하단 여유 */
+            box-sizing: border-box;
+
+            transform: translate(15px, 15px);
+        }
+
+        /* 플로팅 드롭다운 내부의 투두 목록 UL */
+        .sub-todo-list {
+            list-style: none;
+            padding: 8px 12px; /* 투두 아이템들 주변 여백 */
+            margin: 0;
+        }
+
+        /* 플로팅 드롭다운 내부의 각 투두 아이템 */
+        .sub-todo-item {
+            position: relative; /* 드래그 오버 표시기용 */
+            display: flex;
+            align-items: center;
+            padding: 7px 3px; /* 투두 아이템 상하 여백 */
+            border-bottom: 1px solid #f2f4f6; /* 구분선 */
             font-size: 0.9em;
-            min-width: 22px; /* Ensure space for two digits and dot */
+        }
+        .sub-todo-item:last-child {
+            border-bottom: none;
+        }
+
+        .sub-todo-item.completed .sub-todo-text,
+        .sub-todo-item.completed .sub-todo-text-edit { /* 수정 중일 때도 적용 */
+            text-decoration: line-through;
+            color: #a0a0a0;
+            opacity: 0.7;
+        }
+        .sub-todo-item.dragging-sub-todo { /* 드래그 중인 투두 */
+            opacity: 0.4;
+            background: #e6f7ff;
+        }
+        /* 드래그 오버 시 대상 투두 아이템에 표시 (선택 사항) */
+        .sub-todo-item.drag-over-sub-todo-top::before {
+            content: ''; position: absolute; top: -1px; left: 0; right: 0; height: 2px; background: #007bff;
+        }
+        .sub-todo-item.drag-over-sub-todo-bottom::after {
+            content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: #007bff;
+        }
+
+
+        .sub-todo-number {
+            margin-right: 7px;
+            color: #888;
+            font-size: 0.9em;
+            min-width: 20px; /* 숫자 정렬용 */
             text-align: right;
-            padding-right: 3px; /* Space after number */
-            flex-shrink: 0;
             user-select: none;
         }
-        .sub-todo-checkbox { margin-right: 4px; transform: scale(0.9); flex-shrink: 0;}
-        .sub-todo-text-input {
-            flex-grow: 1; border: 1px solid transparent; padding: 5px 4px; /* Adjusted padding */
-            border-radius: 3px; font-size: 1em; background-color: transparent;
-            color: #334155;
+        .sub-todo-checkbox {
+            margin-right: 8px;
+            transform: scale(0.9); /* 약간 작게 */
+            cursor: pointer;
         }
-        .sub-todo-text-input:focus { border: 1px solid #60a5fa; background-color: #fff; box-shadow: 0 0 0 2px rgba(59,130,246,.2); }
-        .sub-todo-text-input.completed { text-decoration: line-through; color: #9ca3af; }
-
-        .sub-todo-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left:auto; }
-        /* Importance and Minutes controls CSS are removed as per request */
-
+        .sub-todo-text {
+            flex-grow: 1;
+            padding: 2px 4px;
+            cursor: text; /* 더블클릭으로 편집 가능 암시 */
+            line-height: 1.4;
+        }
+        .sub-todo-text-edit { /* 투두 텍스트 편집용 input */
+            flex-grow: 1;
+            padding: 3px 5px;
+            font-size: inherit; /* .sub-todo-item 폰트 크기 따름 */
+            border: 1px solid #badcff;
+            border-radius: 3px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.07);
+        }
+        /* 서브 투두 삭제 버튼 스타일 */
         .sub-todo-delete-btn {
-            background-color: transparent; color: #cbd5e1; /* Lighter initial color */
-            border: none; padding: 2px;
-            border-radius: 3px; cursor: pointer; font-size: 1.1em; 
-            font-weight: normal; opacity: 0.3; line-height:1; /* More subtle initially */
-            transition: opacity 0.2s, color 0.2s;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #c0c0c0; /* 기본 색상 (흐리게) */
+            font-size: 1.1em; /* 아이콘 크기 */
+            padding: 2px 6px; /* 클릭 영역 확보 */
+            margin-left: 8px; /* 텍스트와의 간격 */
+            opacity: 0; /* 평소에는 투명하게 */
+            visibility: hidden; /* 평소에는 숨김 (클릭 방지) */
+            transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out, color 0.2s ease-in-out;
+            line-height: 1; /* 버튼 높이 안정화 */
         }
-        .sub-todo-item:hover .sub-todo-delete-btn { opacity: 1; color: #ef4444; }
-        .sub-todo-delete-btn:hover { color: #dc2626 !important; } /* Important to override item hover */
 
-        .add-sub-task-btn { /* ... (style as before or adjust) ... */
-         /* 이 버튼은 .sub-todo-list-container의 마지막 자식 요소로, 
-            부모가 스크롤되면 따라서 스크롤되어 항상 접근 가능해야 합니다. */
-            margin-top: 8px; 
-            margin-left: 22px; /* 번호 매기기와 유사한 들여쓰기 */
-            padding: 5px 10px; 
-            background-color: #f1f5f9; 
-            color: #475569;
-            border: 1px solid #e2e8f0; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            font-size: 0.8em;
-            display: block; /* 버튼이 전체 너비를 차지하지 않도록 하거나, 필요에 따라 조정 */
-            width: fit-content; /* 내용에 맞게 너비 조정 */
+        .sub-todo-item:hover .sub-todo-delete-btn {
+            opacity: 1; /* 호버 시 보이도록 */
+            visibility: visible;
+            color: #e74c3c; /* 호버 시 색상 (예: 빨간색) */
         }
-        .add-sub-task-btn:hover { background-color: #e2e8f0; border-color: #cbd5e1;}
+        .sub-todo-delete-btn:hover {
+            color: #c0392b !important; /* 버튼 자체에 호버 시 더 진한 색상 (선택적) */
+        }
 
+        .add-sub-task-btn {
+            display: block; /* 새 줄 차지 */
+            margin: 10px 15px 5px 35px; /* 왼쪽 들여쓰기 및 상하 여백 (번호와 비슷하게) */
+            padding: 6px 12px;
+            font-size: 0.85em;
+            color: #333;
+            background-color: #f0f2f5;
+            border: 1px solid #d1dce5;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: left; /* 버튼 텍스트 왼쪽 정렬 */
+            width: auto; /* 내용에 맞게 너비 */
+        }
+        .add-sub-task-btn:hover {
+            background-color: #e4e9ed;
+            border-color: #c1cdd8;
+        }
+
+
+        /* "+ New Project List" 버튼 */
         #add-project-btn {
-            margin: 15px 10px 10px 10px;
-            padding: 10px 12px; background-color: #3b82f6;
-            color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;
-            display: block; width: calc(100% - 20px); text-align: center;
+            display: none; /* 기본 숨김 */
+            width: calc(100% - 20px); /* 스크롤 영역 패딩 고려 (좌10+우10) */
+            margin: 15px auto 10px auto; /* 위, (좌우 자동 중앙), 아래 */
+            padding: 10px 15px;
+            font-size: 0.9em;
+            font-weight: 500;
+            color: #fff;
+            background-color: #28a745; /* 예시: 녹색 계열 */
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            transition: background-color 0.2s ease;
         }
-        #add-project-btn:hover { background-color: #2563eb; }
+        #project-todo-app-container:hover #add-project-btn { /* 전체 섹션 호버 시 표시 */
+            display: block;
+        }
+        #add-project-btn:hover {
+            background-color: #218838; /* 호버 시 약간 어둡게 */
+        }
+
+        /* 프로젝트 드래그 앤 드롭 시각적 표시 */
+        .project-item-wrapper.dragging-project {
+            opacity: 0.5;
+            background: #d6eaff !important; /* 드래그 중 배경색 */
+            /* border: 1px dashed #007bff; */
+        }
+        .project-item-wrapper.drag-over-project-top::before {
+            content: ''; position: absolute; top: -2px; left: 0; right: 0; height: 3px; background-color: #007bff; z-index: 1;
+        }
+        .project-item-wrapper.drag-over-project-bottom::after {
+            content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 3px; background-color: #007bff; z-index: 1;
+        }
+
+
 
         /* Routines App CSS */
         #routines-app-container { /* This is .left-pane-bottom 내부의 컨텐츠 영역 */
