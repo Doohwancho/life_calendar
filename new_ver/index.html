@@ -96,6 +96,62 @@
         }
 
 
+        /* --- Day Progress Bar Container --- */
+        .day-progress-container {
+            width: 100%;
+            height: 12px; /* <<<< 전체 막대의 높이 (매우 얇게) */
+            background-color: #e0e4e8; /* 컨테이너 배경색 (선택 사항) */
+            padding: 2px 0; /* 위아래 약간의 여백 */
+            box-sizing: border-box;
+            display: flex; /* 내부 막대가 높이를 채우도록 */
+        }
+
+        .day-progress-bar-visual { /* JS에서 생성되는 실제 막대 컨테이너 */
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            height: 100%; /* .day-progress-container의 높이를 채움 */
+            border-left: 1px solid #b0b8c0; /* 시작 구분선 */
+            border-right: 1px solid #b0b8c0; /* 끝 구분선 */
+        }
+
+        .time-segment {
+            flex: 1 1 auto; /* 모든 세그먼트가 공간을 균등하게 나눠 가짐 */
+            position: relative; /* 구분선 pseudo-element의 기준점 */
+        }
+
+        /* 기본 10분 단위 구분선 (얇고 짧게) */
+        .time-segment::after {
+            content: '';
+            position: absolute;
+            right: -1px; /* 오른쪽 경계선 위에 겹치도록 (또는 border-right 사용) */
+            top: 25%;    /* 상단에서 25% 위치 */
+            height: 50%; /* 전체 높이의 50% (짧은 선) */
+            width: 1px;  /* 얇은 선 */
+            background-color: rgba(0, 0, 0, 0.2); /* 구분선 색상 */
+        }
+
+        /* 시간 단위 구분선 (굵고 길게) */
+        .time-segment.hour-marker::after {
+            top: 10%;    /* 상단에서 10% 위치 */
+            height: 80%; /* 전체 높이의 80% (긴 선) */
+            width: 2px;  /* 굵은 선 */
+            background-color: rgba(0, 0, 0, 0.4); /* 더 진한 구분선 색상 */
+            z-index: 1; /* 다른 구분선 위에 오도록 */
+        }
+
+        /* 마지막 세그먼트의 오른쪽 구분선은 그리지 않음 (또는 day-progress-bar-visual의 border-right로 대체) */
+        .time-segment:last-child::after {
+            display: none;
+        }
+
+        .time-segment.passed-time {
+            background-color: #64b5f6; /* 예: 하늘색 */
+        }
+
+        .time-segment.future-time {
+            background-color: #d0d4d8; /* 예: 연한 회색 */
+        }
 
         /* --- Main Page Container (3 columns) --- */
         .page-container {
@@ -1020,11 +1076,8 @@
     </style>
 </head>
 <body>
-    <div class="date-header" id="year-progress-header-container">
-        </div>
-    <div class="page-container">
-        </div>
-    </body>
+    <div class="date-header" id="year-progress-header-container"></div>
+    <div class="day-progress-container" id="day-progress-bar-host"> </div>
 
     <div class="page-container">
         <div class="left-pane">
@@ -1071,6 +1124,7 @@
     <script type="module">
         // Import initializers
         import { initYearProgress } from './yearProgress.js';
+        import { initDayProgress } from './dayProgress.js';
         import { 
             initProjectTodoApp, 
             getProjectTodoData, 
@@ -1408,7 +1462,8 @@
 
         // --- DOMContentLoaded ---
         document.addEventListener('DOMContentLoaded', () => {
-            initYearProgress('#year-progress-header-container'); // <<<< NEW: 연간 진행률 표시줄 초기화
+            initYearProgress('#year-progress-header-container'); 
+            initDayProgress('#day-progress-bar-host'); 
 
             addStripedStyle();
             addCurrentTimeRedLineStyle();
