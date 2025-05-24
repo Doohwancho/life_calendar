@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yearly Calendar Project</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="toolbar-container">
+            <div class="toolbar-section calendar-navigation">
+                <div class="yearly-nav">
+                    <button id="prevYearBtn" title="Previous Year">&lt;</button>
+                    <span id="currentYearDisplay">2025</span>
+                    <button id="nextYearBtn" title="Next Year">&gt;</button>
+                </div>
+                <div class="weekly-nav">
+                    <button id="prevWeekBtn" title="Previous Week">&lt;</button>
+                    <input type="date" id="weekJumpInput" title="Jump to week containing this date">
+                    <span id="currentWeekDisplay">YYYY-MM-DD - YYYY-MM-DD</span>
+                    <button id="nextWeekBtn" title="Next Week">&gt;</button>
+                </div>
+            </div>
+            <div class="toolbar-section label-management">
+                <div id="labelsContainer">
+                    <button id="addLabelBtn" title="Add New Label">+</button>
+                </div>
+            </div>
+            <div class="toolbar-section file-operations">
+                <button id="saveDataBtn" title="Save Data (Ctrl/Cmd+S)">Save</button>
+                <button id="loadDataBtn" title="Load Data">Load</button>
+                <input type="file" id="fileInput" accept=".json" style="display:none;">
+            </div>
+        </header>
+
+        <main class="main-content-grid">
+            <section id="yearly-calendar-area" class="grid-area yearly-view">
+                <div id="calendarHeaderDaysYearly" class="calendar-header-days-yearly">
+                    </div>
+                <div id="calendarGridYearly" class="calendar-grid-yearly">
+                    </div>
+            </section>
+            <section id="weekly-calendar-area" class="grid-area weekly-view">
+                <!-- <p>Weekly Calendar Area</p> -->
+            </section>
+
+            <aside id="backlog-panel-area" class="grid-area backlog-view">
+                <header class="backlog-header">
+                    <h3>Backlog</h3>
+                    <button id="showAddTodoFormBtn" title="Add New Todo">+</button>
+                </header>
+
+                <div id="addTodoFormContainer" class="add-todo-form" style="display: none;">
+                    <input type="text" id="newTodoTextInput" placeholder="Enter new todo...">
+                    <div class="add-todo-controls">
+                        <label for="newTodoPriorityInput">Priority:</label>
+                        <input type="number" id="newTodoPriorityInput" min="0" max="3" value="0" title="Priority (0-3)">
+                        <button id="saveNewTodoBtn">Add</button>
+                        <button id="cancelNewTodoBtn">Cancel</button>
+                    </div>
+                </div>
+
+                <div id="backlogListContainer" class="backlog-list">
+                    </div>
+            </aside>
+        </main>
+    </div>
+
+    <div id="addLabelModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>Add New Label</h3>
+            <input type="text" id="labelNameInput" placeholder="Label Name">
+            <div class="color-picker-wrapper">
+                <label for="labelColorInput">Label Color:</label>
+                <input type="color" id="labelColorInput" value="#ff0000">
+            </div>
+            <div class="modal-actions">
+                <button id="saveLabelBtn">Save</button>
+                <button id="cancelLabelBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js" type="module"></script>
+</body>
+</html>
