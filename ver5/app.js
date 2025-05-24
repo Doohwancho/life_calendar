@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const todayForInit = new Date(); // Use provided date as "today"
 
   data.updateCurrentDisplayYear(todayForInit.getFullYear());
-  data.updateCurrentWeeklyViewStartDate(getMondayOfWeek(todayForInit));
+  data.updateCurrentWeeklyViewStartDate(todayForInit);
 
   // --- DOM Element References ---
   const currentYearDisplay = document.getElementById("currentYearDisplay");
@@ -40,18 +40,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (currentYearDisplay) {
       currentYearDisplay.textContent = state.currentDisplayYear;
     }
-    // if (currentWeekDisplay && data.currentWeeklyViewStartDate) {
-    //   const endDate = new Date(data.currentWeeklyViewStartDate);
-    //   endDate.setDate(data.currentWeeklyViewStartDate.getDate() + 6);
-    //   currentWeekDisplay.textContent = `${formatDate(
-    //     data.currentWeeklyViewStartDate
-    //   )} - ${formatDate(endDate)}`;
-    // }
-    // weekJumpInput의 초기 값 및 변경 시 값 설정
-    if (weekJumpInput && todayForInit) { // 초기 로드 시 todayForInit 사용
-      if (!weekJumpInput.value) { // 이미 값이 설정되어 있지 않은 경우에만 초기화
-           weekJumpInput.value = formatDate(todayForInit);
-      }
+    // weekJumpInput의 값을 포커싱된 주의 월요일로 설정
+    if (weekJumpInput && state.currentWeeklyViewStartDate) {
+      weekJumpInput.value = formatDate(state.currentWeeklyViewStartDate);
     }
   }
 
@@ -64,6 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
         `APP.JS: eventBus 'dataChanged' received. Source: ${payload?.source}. Timestamp: ${new Date().toLocaleTimeString()}`
     );
 
+    updateToolbarDisplays();
     const state = data.getState(); //최신 상태 가져오기
 
     // 1. 툴바의 라벨 목록 업데이트
@@ -71,8 +63,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 2. 연간 달력의 셀 내용(프로젝트 막대, 할 일 박스) 업데이트
     if (typeof renderAllYearlyCellContent === "function") {
-      // yearlyCalendar.js가 로드되었는지 확인
-      renderAllYearlyCellContent();
+      if (payload?.source === 'updateCurrentWeeklyViewStartDate' || payload?.source === 'updateCurrentDisplayYear') {
+          renderYearlyCalendar(state.currentDisplayYear); // 연도나 주가 바뀌면 연간 달력 다시 그림
+      } else {
+          renderAllYearlyCellContent(); // 그 외 데이터 변경은 셀 내용만
+      }
     } else {
       console.error(
         "renderAllYearlyCellContent is not a function or not imported in app.js"
@@ -92,43 +87,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // --- Navigation Listeners (Update to use getState and render functions) ---
-  // Yearly Navigation
-  // if (prevYearBtn)
-  //   prevYearBtn.addEventListener("click", () => {
-  //     const currentState = data.getState();
-  //     data.updateCurrentDisplayYear(currentState.currentDisplayYear - 1);
-  //     updateToolbarDisplays();
-  //     renderYearlyCalendar(data.getState().currentDisplayYear);
-  //   });
-
-  // if (nextYearBtn)
-  //   nextYearBtn.addEventListener("click", () => {
-  //     const currentState = data.getState();
-  //     data.updateCurrentDisplayYear(currentState.currentDisplayYear + 1);
-  //     updateToolbarDisplays();
-  //     renderYearlyCalendar(data.getState().currentDisplayYear); // Call actual render
-  //   });
-
-  // Weekly Navigation (Still stubs rendering weekly, but updates state)
-  // if (prevWeekBtn)
-  //   prevWeekBtn.addEventListener("click", () => {
-  //     const state = data.getState();
-  //     const newStartDate = new Date(state.currentWeeklyViewStartDate);
-  //     newStartDate.setDate(newStartDate.getDate() - 7);
-  //     data.updateCurrentWeeklyViewStartDate(newStartDate);
-  //     updateToolbarDisplays();
-  //     renderWeeklyCalendar(data.getState().currentWeeklyViewStartDate);
-  //   });
-  // if (nextWeekBtn)
-  //   nextWeekBtn.addEventListener("click", () => {
-  //     const state = data.getState();
-  //     const newStartDate = new Date(state.currentWeeklyViewStartDate);
-  //     newStartDate.setDate(newStartDate.getDate() + 7);
-  //     data.updateCurrentWeeklyViewStartDate(newStartDate);
-  //     updateToolbarDisplays();
-  //     renderWeeklyCalendar(data.getState().currentWeeklyViewStartDate);
-  //   });
   if (weekJumpInput) {
     weekJumpInput.addEventListener("change", (event) => {
         const selectedDate = new Date(event.target.value || todayForInit); // 유효하지 않은 값일 경우 todayForInit 사용
@@ -165,32 +123,26 @@ document.addEventListener("DOMContentLoaded", () => {
       labelEl.appendChild(nameEl);
 
       labelEl.addEventListener("click", () => {
-        // 1. 현재 클릭한 라벨이 이미 선택된 상태인지 확인합니다.
-        const isAlreadySelected = labelEl.classList.contains(
-          "selected-for-drawing"
-        );
-
-        // 2. 일단 모든 라벨의 선택 효과를 제거합니다.
+        const isAlreadySelected = labelEl.classList.contains("selected-for-drawing");
         const allLabelItems = labelsContainer.querySelectorAll(".label-item");
-        allLabelItems.forEach((item) =>
-          item.classList.remove("selected-for-drawing")
-        );
-
-        // 3. 이미 선택된 상태였다면, 선택을 해제하고 상태를 초기화합니다.
+        allLabelItems.forEach((item) => item.classList.remove("selected-for-drawing"));
+    
         if (isAlreadySelected) {
-          data.setSelectedLabel(null);
-          // console.log(
-          //   "APP.JS: Label deselected. Current selectedLabel:",
-          //   data.getState().selectedLabel
-          // ); // 로그 추가
+            data.setSelectedLabel(null);
+            console.log("APP.JS (Label Click): Label DESELECTED. state.selectedLabel is now:", JSON.stringify(data.getState().selectedLabel));
         } else {
-          labelEl.classList.add("selected-for-drawing");
-          data.setSelectedLabel(label); // 'label'은 forEach 루프의 현재 라벨 객체여야 합니다.
-          // console.log("APP.JS: Label selected. Clicked label object:", label); // 로그 추가
-          // console.log(
-          //   "APP.JS: Current selectedLabel in dataManager:",
-          //   data.getState().selectedLabel
-          // ); // 로그 추가
+            // 'label' 변수는 forEach 루프의 현재 라벨 객체입니다.
+            console.log("APP.JS (Label Click): Selecting label. Object from forEach:", JSON.stringify(label));
+            if (!label || !label.id) {
+                console.error("APP.JS (Label Click): Clicked label object is invalid or missing ID!", label);
+            }
+            data.setSelectedLabel(label); // dataManager의 setSelectedLabel 호출
+            
+            const currentSelected = data.getState().selectedLabel;
+            console.log("APP.JS (Label Click): state.selectedLabel in dataManager AFTER set:", JSON.stringify(currentSelected));
+            if (currentSelected && !currentSelected.id) {
+                console.error("APP.JS (Label Click): state.selectedLabel was set BUT IS MISSING ID!", currentSelected);
+            }
         }
       });
 
@@ -277,16 +229,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   if (saveLabelBtn)
     saveLabelBtn.addEventListener("click", () => {
-      const name = labelNameInput.value.trim();
-      const color = labelColorInput.value;
-      if (name) {
-        const newLabel = { id: generateId(), name, color };
-        data.addLabel(newLabel); // Using the function from dataManager
-        renderLabels();
-        if (addLabelModal) addLabelModal.style.display = "none";
-      } else {
-        alert("Label name cannot be empty.");
-      }
+        const name = labelNameInput.value.trim();
+        const color = labelColorInput.value;
+        if (name) {
+            const newLabel = { id: generateId(), name, color }; // generateId() 호출 확인!
+            console.log("APP.JS (Save Label): Creating new label:", JSON.stringify(newLabel)); // 생성된 newLabel 확인
+            data.addLabel(newLabel); 
+            // renderLabels(); // data.addLabel이 eventBus를 호출하고, app.js의 리스너가 renderLabels를 호출하므로 중복일 수 있음
+                              // 하지만 직접 호출하는 것이 즉각적인 피드백에는 더 좋을 수 있습니다. 현재 코드는 유지.
+            if (addLabelModal) addLabelModal.style.display = "none";
+        } else {
+            alert("Label name cannot be empty.");
+        }
     });
 
   // --- === PHASE 4: SAVE & LOAD IMPLEMENTATION === ---

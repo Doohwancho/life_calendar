@@ -610,8 +610,9 @@ input[type="color"] {
 
 /* Temporary Highlight for Dragging */
 .day-cell-yearly.temp-highlight {
-  background-color: rgba(0, 123, 255, 0.2); /* Light blue semi-transparent */
-  transition: background-color 0.05s ease;
+  background-color: rgba(0, 123, 255, 0.3) !important; /* 강조 및 투명도 조절 */
+  outline: 1px dashed rgba(0, 123, 255, 0.7) !important; /* 테두리 추가로 확인 */
+  z-index: 5; /* 다른 요소 위에 보이도록 (필요시) */
 }
 
 /* Drag & Drop Visual Feedback */

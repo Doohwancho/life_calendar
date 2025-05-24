@@ -40,8 +40,17 @@ export function updateCurrentDisplayYear(year) {
 }
 
 export function updateCurrentWeeklyViewStartDate(date) {
-    state.currentWeeklyViewStartDate = getMondayOfWeek(new Date(date));
-    // Potentially trigger events or updates
+    const newMonday = getMondayOfWeek(new Date(date));
+    newMonday.setHours(0, 0, 0, 0); // <<< 시간 정규화 추가!
+
+    // 이미 같은 주의 월요일이면 변경하지 않음 (불필요한 이벤트 방지)
+    if (state.currentWeeklyViewStartDate && 
+        newMonday.getTime() === state.currentWeeklyViewStartDate.getTime()) {
+        return;
+    }
+    state.currentWeeklyViewStartDate = newMonday;
+    console.log("DataManager: currentWeeklyViewStartDate updated to", formatDate(state.currentWeeklyViewStartDate));
+    eventBus.dispatch('dataChanged', { source: 'updateCurrentWeeklyViewStartDate' });
 }
 
 export function setSelectedLabel(label) {

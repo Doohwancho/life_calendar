@@ -10,6 +10,9 @@ import {
   generateId,
 } from "./uiUtils.js";
 
+const today = new Date(); // 실제 오늘 날짜
+today.setHours(0,0,0,0); // 시간 정규화
+
 const yearlyCalendarArea = document.getElementById("yearly-calendar-area");
 let calendarHeaderDaysEl = null;
 let calendarGridYearlyEl = null;
@@ -24,6 +27,25 @@ let isResizing = false;
 let resizeHandleType = null; // 'left' or 'right'
 
 let customContextMenu = null;
+
+function handleYearlyCellClick(e) {
+  // --- 중요: 만약 현재 새로운 프로젝트를 그리고 있는 중이라면,
+  // --- 주간 포커스 변경 로직을 실행하지 않습니다.
+  if (isDrawing) {
+      // console.log("Yearly cell click ignored because drawing is in progress.");
+      return; 
+  }
+  // ----------------------------------------------------
+
+  const cell = e.currentTarget;
+  const clickedDateStr = cell.dataset.date;
+
+  if (clickedDateStr) {
+      console.log(`Yearly cell clicked (not drawing): ${clickedDateStr}`);
+      data.updateCurrentWeeklyViewStartDate(new Date(clickedDateStr));
+  }
+}
+
 
 function handleMouseDown(e) {
   // 1. 이미 존재하는 프로젝트 막대 또는 그 내부 요소에서 이벤트가 시작되었다면,
@@ -67,46 +89,76 @@ function handleMouseDown(e) {
 function handleMouseMove(e) {
   if (!isDrawing) return;
 
-  const cell = e.target.closest(".day-cell-yearly.interactive");
-  if (cell && cell.dataset.date !== dragCurrentDate) {
-    dragCurrentDate = cell.dataset.date;
-    renderTemporaryHighlight();
+  // 마우스 위치에 따라 가장 가까운 .day-cell-yearly.interactive 찾기
+  // e.target 대신 document.elementFromPoint(e.clientX, e.clientY) 사용 고려 가능 (더 정확할 수 있음)
+  let cellUnderMouse = e.target.closest(".day-cell-yearly.interactive");
+  
+  // 만약 마우스가 빠르게 움직여 셀 밖으로 나갔다가 다시 들어올 경우,
+  // e.target이 grid 자체가 될 수 있으므로, 포인터 위치로 셀을 찾는 것이 더 안정적일 수 있습니다.
+  // 여기서는 일단 e.target.closest로 유지합니다.
+  
+  if (cellUnderMouse && cellUnderMouse.dataset.date && cellUnderMouse.dataset.date !== dragCurrentDate) {
+      dragCurrentDate = cellUnderMouse.dataset.date;
+      renderTemporaryHighlight();
+  } else if (!cellUnderMouse && dragCurrentDate) {
+      // 마우스가 달력 그리드 밖으로 나갔지만 여전히 isDrawing 상태일 때,
+      // dragCurrentDate를 마지막 유효한 셀로 유지하거나, null로 설정하여 하이라이트 범위를 조절할 수 있습니다.
+      // 여기서는 dragCurrentDate를 유지하여 마지막 셀까지 하이라이트되도록 합니다.
   }
 }
 
 function handleMouseUp(e) {
   if (!isDrawing) return;
+
+  const wasActuallyDragging = dragStartDate !== dragCurrentDate; // 실제로 드래그가 발생했는지 여부
   const state = data.getState();
 
-  isDrawing = false; // 먼저 isDrawing을 false로 설정
+  isDrawing = false;
   clearTemporaryHighlight();
 
-  if (!dragStartDate || !dragCurrentDate || !state.selectedLabel) {
-    return;
+  if (!dragStartDate || !dragCurrentDate || !state.selectedLabel || !state.selectedLabel.id) {
+      // dragStartDate가 있는데 selectedLabel이 없다는 것은 거의 발생 안 함 (mousedown에서 체크하므로)
+      // 하지만 방어적으로 코딩
+      dragStartDate = null; // 상태 초기화
+      dragCurrentDate = null;
+      return;
   }
 
   let finalStartDate = dragStartDate;
   let finalEndDate = dragCurrentDate;
+
   if (new Date(finalStartDate) > new Date(finalEndDate)) {
-    [finalStartDate, finalEndDate] = [finalEndDate, finalStartDate];
+      [finalStartDate, finalEndDate] = [finalEndDate, finalStartDate];
   }
 
-  const newEvent = {
-    // name과 color 속성 제거
-    id: generateId(),
-    labelId: state.selectedLabel.id,
-    startDate: finalStartDate,
-    endDate: finalEndDate,
-  };
+  // --- 수정된 로직: 실제 드래그를 했는지, 아니면 단순 클릭에 가까웠는지 판단 ---
+  // "단순 클릭"의 기준: 시작 날짜와 끝 날짜가 동일하고, 마우스 이동이 거의 없었음을 의미할 수 있음
+  // 여기서는 시작 날짜와 현재 (마우스업 시점의) 커서 위치 날짜가 같은지로 판단
+  const isSimpleClickEquivalent = (dragStartDate === dragCurrentDate);
 
-  if (data.isDuplicateEvent(newEvent)) {
-    // isDuplicateEvent는 labelId, startDate, endDate만 비교해야 함
-    console.log("Duplicate event prevented.");
-    return;
+  if (isSimpleClickEquivalent && dragStartDate) {
+      // 드래그가 거의 없었고, 클릭에 가까운 동작이었다면 주간 포커싱 변경
+      console.log(`Yearly cell simple click detected on: ${dragStartDate}`);
+      data.updateCurrentWeeklyViewStartDate(new Date(dragStartDate));
+  } else {
+      // 드래그가 발생했다면 새 이벤트 생성
+      const newEvent = {
+          id: generateId(),
+          labelId: state.selectedLabel.id,
+          startDate: finalStartDate,
+          endDate: finalEndDate,
+      };
+
+      if (data.isDuplicateEvent(newEvent)) {
+          console.log("Duplicate event prevented.");
+      } else {
+          data.addEvent(newEvent);
+      }
   }
-
-  data.addEvent(newEvent);
-  // renderAllYearlyCellContent(); // dataChanged 이벤트가 처리하므로 직접 호출 불필요
+  
+  // 상태 변수 초기화
+  dragStartDate = null;
+  dragCurrentDate = null;
 }
 
 function handleDragOver(e) {
@@ -372,62 +424,61 @@ function clearAllCellItems() {
 
 function ensureCalendarStructure() {
   if (!yearlyCalendarArea) {
-    console.error("Yearly calendar area not found!");
-    return false;
+      console.error("Yearly calendar area (yearly-calendar-area) not found!");
+      return false;
   }
+
   calendarHeaderDaysEl = document.getElementById("calendarHeaderDaysYearly");
   if (!calendarHeaderDaysEl) {
-    calendarHeaderDaysEl = document.createElement("div");
-    calendarHeaderDaysEl.id = "calendarHeaderDaysYearly";
-    calendarHeaderDaysEl.className = "calendar-header-days-yearly";
-    yearlyCalendarArea.appendChild(calendarHeaderDaysEl);
+      console.log("Creating calendarHeaderDaysYearly element.");
+      calendarHeaderDaysEl = document.createElement("div");
+      calendarHeaderDaysEl.id = "calendarHeaderDaysYearly";
+      calendarHeaderDaysEl.className = "calendar-header-days-yearly";
+      // yearlyCalendarArea에 header를 grid보다 먼저 추가하기 위해 insertBefore 사용 고려
+      // 또는 yearlyCalendarArea의 자식 순서를 CSS로 제어 (예: flex-direction: column)
+      // 여기서는 HTML 구조가 <div id="calendarHeaderDaysYearly"></div> <div id="calendarGridYearly"></div> 순서라고 가정
+      yearlyCalendarArea.appendChild(calendarHeaderDaysEl); // 또는 insertBefore
   }
 
   calendarGridYearlyEl = document.getElementById("calendarGridYearly");
   if (!calendarGridYearlyEl) {
-    calendarGridYearlyEl = document.createElement("div");
-    calendarGridYearlyEl.id = "calendarGridYearly";
-    calendarGridYearlyEl.className = "calendar-grid-yearly";
-    yearlyCalendarArea.appendChild(calendarGridYearlyEl);
+      console.log("Creating calendarGridYearly element.");
+      calendarGridYearlyEl = document.createElement("div");
+      calendarGridYearlyEl.id = "calendarGridYearly";
+      calendarGridYearlyEl.className = "calendar-grid-yearly";
+      yearlyCalendarArea.appendChild(calendarGridYearlyEl);
+  }
+  
+  if (!calendarHeaderDaysEl || !calendarGridYearlyEl) {
+      console.error("Failed to obtain header or grid elements for yearly calendar.");
+      return false;
   }
   return true;
 }
 
+
 export function renderYearlyCalendar(year) {
   if (!ensureCalendarStructure()) return;
 
-  // DOM 요소 가져오기 또는 생성
-  const yearlyArea = document.getElementById("yearly-calendar-area");
-  if (!yearlyArea) {
-    console.error("Yearly calendar area not found!");
-    return;
+  // 내용 채우기 전에 기존 내용 비우기
+  calendarHeaderDaysEl.innerHTML = '';
+  calendarGridYearlyEl.innerHTML = '';
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  // '이번 주 하이라이트'를 위한 기준 날짜 (포커싱된 주의 월요일)
+  const state = data.getState(); // 상태 가져오기
+  const focusedWeekMonday = state.currentWeeklyViewStartDate;
+  let focusedWeekSunday = null;
+  if (focusedWeekMonday) {
+      focusedWeekSunday = new Date(focusedWeekMonday);
+      focusedWeekSunday.setDate(focusedWeekMonday.getDate() + 6);
+      focusedWeekSunday.setHours(0,0,0,0); // 시간 정규화
+      console.log("YEARLY_CALENDAR - renderYearlyCalendar: Focused week for highlight: Mon=", formatDate(focusedWeekMonday), "Sun=", formatDate(focusedWeekSunday));
+  } else {
+    console.warn("YEARLY_CALENDAR - renderYearlyCalendar: focusedWeekMonday is not set!");
   }
-
-  let headerDaysEl = document.getElementById("calendarHeaderDaysYearly");
-  if (!headerDaysEl) {
-    headerDaysEl = document.createElement("div");
-    headerDaysEl.id = "calendarHeaderDaysYearly";
-    headerDaysEl.className = "calendar-header-days-yearly";
-    yearlyArea.insertBefore(headerDaysEl, yearlyArea.firstChild); // 그리드보다 먼저 추가
-  }
-
-  let gridEl = document.getElementById("calendarGridYearly");
-  if (!gridEl) {
-    gridEl = document.createElement("div");
-    gridEl.id = "calendarGridYearly";
-    gridEl.className = "calendar-grid-yearly";
-    yearlyArea.appendChild(gridEl);
-  }
-
-  calendarHeaderDaysEl = headerDaysEl; // 모듈 변수 업데이트 (필요하다면)
-  calendarGridYearlyEl = gridEl; // 모듈 변수 업데이트 (필요하다면)
-
-  // calendarHeaderDaysEl.innerHTML = '';
-  // calendarGridYearlyEl.innerHTML = '';
-
-  // Detach event listeners before clearing grid to avoid memory leaks
-  calendarGridYearlyEl.removeEventListener("mousemove", handleMouseMove);
-  window.removeEventListener("mouseup", handleMouseUp);
 
   // ... (Day Header rendering from Phase 2, same code) ...
   const monthPlaceholder = document.createElement("div");
@@ -439,8 +490,6 @@ export function renderYearlyCalendar(year) {
     dayHeaderCell.textContent = i;
     calendarHeaderDaysEl.appendChild(dayHeaderCell);
   }
-
-  const today = new Date();
 
   KOREAN_MONTH_NAMES.forEach((monthName, monthIndex) => {
     const monthRow = document.createElement("div");
@@ -465,6 +514,7 @@ export function renderYearlyCalendar(year) {
 
       if (day <= daysInCurrentMonth) {
         const currentDateObj = new Date(year, monthIndex, day);
+        currentDateObj.setHours(0,0,0,0); // 비교를 위해 시간 정규화
         const dateStr = formatDate(currentDateObj);
         dayCell.dataset.date = dateStr;
         dayCell.classList.add("interactive");
@@ -474,10 +524,17 @@ export function renderYearlyCalendar(year) {
         dayCell.addEventListener("dragleave", handleDragLeave);
         dayCell.addEventListener("drop", handleDrop);
         dayCell.addEventListener("mousedown", handleMouseDown);
+        dayCell.addEventListener('click', handleYearlyCellClick);
 
         if (isSameDate(currentDateObj, today)) dayCell.classList.add("today");
-        if (isDateInCurrentWeek(currentDateObj, today))
-          dayCell.classList.add("current-week-day");
+
+        // '포커싱된 주' 하이라이트 (state.currentWeeklyViewStartDate 기준)
+        if (focusedWeekMonday && focusedWeekSunday && 
+          currentDateObj.getTime() >= focusedWeekMonday.getTime() && 
+          currentDateObj.getTime() <= focusedWeekSunday.getTime()) {
+          dayCell.classList.add('current-week-day');
+          // console.log("YEARLY_CALENDAR (renderYearlyCalendar): Adding current-week-day to:", formatDate(currentDateObj));
+        }
       } else {
         dayCell.classList.add("empty");
       }
@@ -488,7 +545,7 @@ export function renderYearlyCalendar(year) {
 
   // Attach delegated/global event listeners for drawing
   calendarGridYearlyEl.addEventListener("mousemove", handleMouseMove);
-  window.addEventListener("mouseup", handleMouseUp);
+  // window.addEventListener("mouseup", handleMouseUp);
 
   // After creating the grid, render all events
   renderAllYearlyCellContent();
@@ -575,57 +632,63 @@ function handleProjectBarContextMenu(e, eventItem) {
 
 // Attach a single mousemove to the window for resizing performance
 window.addEventListener("mousemove", (e) => {
-  if (!isResizing) return;
-  const cell = e.target.closest(".day-cell-yearly.interactive");
-  if (cell) {
-    const currentDate = cell.dataset.date;
-    const event = data
-      .getState()
-      .events.find((ev) => ev.id === selectedEventId);
-    if (!event) return;
+  if (!isDrawing) return;
 
-    // Create a temporary copy for preview
-    const tempEvent = { ...event };
-    if (resizeHandleType === "left") {
-      tempEvent.startDate = currentDate;
-    } else {
-      tempEvent.endDate = currentDate;
-    }
+  // if (!isResizing) return;
+  // const cell = e.target.closest(".day-cell-yearly.interactive");
+  // if (cell) {
+  //   const currentDate = cell.dataset.date;
+  //   const event = data
+  //     .getState()
+  //     .events.find((ev) => ev.id === selectedEventId);
+  //   if (!event) return;
 
-    // Preview the resize
-    renderAllYearlyCellContent(); // Re-render all
-    // In a more advanced version, you'd only clear and re-render the previewed event
-  }
+  //   // Create a temporary copy for preview
+  //   const tempEvent = { ...event };
+  //   if (resizeHandleType === "left") {
+  //     tempEvent.startDate = currentDate;
+  //   } else {
+  //     tempEvent.endDate = currentDate;
+  //   }
+
+  //   // Preview the resize
+  //   renderAllYearlyCellContent(); // Re-render all
+  //   // In a more advanced version, you'd only clear and re-render the previewed event
+  // }
+
+  handleMouseMove(e); 
 });
 
-window.addEventListener("mouseup", (e) => {
-  if (!isResizing) return;
-
-  document.body.style.cursor = "default";
-  const cell = e.target.closest(".day-cell-yearly.interactive");
-  if (cell && selectedEventId) {
-    const finalDate = cell.dataset.date;
-    const event = data
-      .getState()
-      .events.find((ev) => ev.id === selectedEventId);
-
-    let { startDate, endDate } = event;
-    if (resizeHandleType === "left") {
-      startDate = finalDate;
-    } else {
-      endDate = finalDate;
-    }
-
-    if (new Date(startDate) > new Date(endDate)) {
-      [startDate, endDate] = [endDate, startDate]; // Swap if needed
-    }
-
-    data.updateEventDates(selectedEventId, startDate, endDate);
+window.addEventListener("mouseup", (e) => { // 이름 변경: handleGlobalMouseUp
+  // 이 함수는 isResizing 플래그와 isDrawing 플래그를 모두 확인해야 합니다.
+  if (isResizing) {
+      // 리사이징 종료 로직 (이전 Phase 8 코드)
+      document.body.style.cursor = "default";
+      const cell = e.target.closest(".day-cell-yearly.interactive");
+      if (cell && selectedEventId) {
+          const finalDate = cell.dataset.date;
+          const event = data.getState().events.find((ev) => ev.id === selectedEventId);
+          if (event) { // event가 존재하는지 확인
+              let { startDate, endDate } = event;
+              if (resizeHandleType === 'left') {
+                  startDate = finalDate;
+              } else {
+                  endDate = finalDate;
+              }
+              if (new Date(startDate) > new Date(endDate)) {
+                  [startDate, endDate] = [endDate, startDate];
+              }
+              data.updateEventDates(selectedEventId, startDate, endDate);
+          }
+      }
+      isResizing = false;
+      resizeHandleType = null;
+      selectedEventId = null; // 선택 해제 또는 renderAllYearlyCellContent에서 처리
   }
-
-  isResizing = false;
-  resizeHandleType = null;
-  // The dataChanged event from updateEventDates will handle the final re-render
+  
+  if (isDrawing) { // 그리기 종료 로직
+      handleMouseUp(e); // 모듈 내부의 handleMouseUp 호출
+  }
 });
 
 // Deselect when clicking outside
