@@ -12,18 +12,18 @@ import { initBacklog, renderBacklog } from "./js/backlog.js"; // Import backlog 
 import { eventBus } from "./js/eventBus.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-  const todayForInit = new Date("2025-05-23T12:00:00"); // Use provided date as "today"
+  const todayForInit = new Date(); // Use provided date as "today"
 
   data.updateCurrentDisplayYear(todayForInit.getFullYear());
   data.updateCurrentWeeklyViewStartDate(getMondayOfWeek(todayForInit));
 
   // --- DOM Element References ---
   const currentYearDisplay = document.getElementById("currentYearDisplay");
-  const currentWeekDisplay = document.getElementById("currentWeekDisplay");
-  const prevYearBtn = document.getElementById("prevYearBtn");
-  const nextYearBtn = document.getElementById("nextYearBtn");
-  const prevWeekBtn = document.getElementById("prevWeekBtn");
-  const nextWeekBtn = document.getElementById("nextWeekBtn");
+  // const currentWeekDisplay = document.getElementById("currentWeekDisplay");
+  // const prevYearBtn = document.getElementById("prevYearBtn");
+  // const nextYearBtn = document.getElementById("nextYearBtn");
+  // const prevWeekBtn = document.getElementById("prevWeekBtn");
+  // const nextWeekBtn = document.getElementById("nextWeekBtn");
   const weekJumpInput = document.getElementById("weekJumpInput");
 
   const labelsContainer = document.getElementById("labelsContainer");
@@ -40,12 +40,18 @@ document.addEventListener("DOMContentLoaded", () => {
     if (currentYearDisplay) {
       currentYearDisplay.textContent = state.currentDisplayYear;
     }
-    if (currentWeekDisplay && data.currentWeeklyViewStartDate) {
-      const endDate = new Date(data.currentWeeklyViewStartDate);
-      endDate.setDate(data.currentWeeklyViewStartDate.getDate() + 6);
-      currentWeekDisplay.textContent = `${formatDate(
-        data.currentWeeklyViewStartDate
-      )} - ${formatDate(endDate)}`;
+    // if (currentWeekDisplay && data.currentWeeklyViewStartDate) {
+    //   const endDate = new Date(data.currentWeeklyViewStartDate);
+    //   endDate.setDate(data.currentWeeklyViewStartDate.getDate() + 6);
+    //   currentWeekDisplay.textContent = `${formatDate(
+    //     data.currentWeeklyViewStartDate
+    //   )} - ${formatDate(endDate)}`;
+    // }
+    // weekJumpInput의 초기 값 및 변경 시 값 설정
+    if (weekJumpInput && todayForInit) { // 초기 로드 시 todayForInit 사용
+      if (!weekJumpInput.value) { // 이미 값이 설정되어 있지 않은 경우에만 초기화
+           weekJumpInput.value = formatDate(todayForInit);
+      }
     }
   }
 
@@ -88,48 +94,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Navigation Listeners (Update to use getState and render functions) ---
   // Yearly Navigation
-  if (prevYearBtn)
-    prevYearBtn.addEventListener("click", () => {
-      const currentState = data.getState();
-      data.updateCurrentDisplayYear(currentState.currentDisplayYear - 1);
-      updateToolbarDisplays();
-      renderYearlyCalendar(data.getState().currentDisplayYear);
-    });
+  // if (prevYearBtn)
+  //   prevYearBtn.addEventListener("click", () => {
+  //     const currentState = data.getState();
+  //     data.updateCurrentDisplayYear(currentState.currentDisplayYear - 1);
+  //     updateToolbarDisplays();
+  //     renderYearlyCalendar(data.getState().currentDisplayYear);
+  //   });
 
-  if (nextYearBtn)
-    nextYearBtn.addEventListener("click", () => {
-      const currentState = data.getState();
-      data.updateCurrentDisplayYear(currentState.currentDisplayYear + 1);
-      updateToolbarDisplays();
-      renderYearlyCalendar(data.getState().currentDisplayYear); // Call actual render
-    });
+  // if (nextYearBtn)
+  //   nextYearBtn.addEventListener("click", () => {
+  //     const currentState = data.getState();
+  //     data.updateCurrentDisplayYear(currentState.currentDisplayYear + 1);
+  //     updateToolbarDisplays();
+  //     renderYearlyCalendar(data.getState().currentDisplayYear); // Call actual render
+  //   });
 
   // Weekly Navigation (Still stubs rendering weekly, but updates state)
-  if (prevWeekBtn)
-    prevWeekBtn.addEventListener("click", () => {
-      const state = data.getState();
-      const newStartDate = new Date(state.currentWeeklyViewStartDate);
-      newStartDate.setDate(newStartDate.getDate() - 7);
-      data.updateCurrentWeeklyViewStartDate(newStartDate);
-      updateToolbarDisplays();
-      renderWeeklyCalendar(data.getState().currentWeeklyViewStartDate);
-    });
-  if (nextWeekBtn)
-    nextWeekBtn.addEventListener("click", () => {
-      const state = data.getState();
-      const newStartDate = new Date(state.currentWeeklyViewStartDate);
-      newStartDate.setDate(newStartDate.getDate() + 7);
-      data.updateCurrentWeeklyViewStartDate(newStartDate);
-      updateToolbarDisplays();
-      renderWeeklyCalendar(data.getState().currentWeeklyViewStartDate);
-    });
-  if (weekJumpInput)
+  // if (prevWeekBtn)
+  //   prevWeekBtn.addEventListener("click", () => {
+  //     const state = data.getState();
+  //     const newStartDate = new Date(state.currentWeeklyViewStartDate);
+  //     newStartDate.setDate(newStartDate.getDate() - 7);
+  //     data.updateCurrentWeeklyViewStartDate(newStartDate);
+  //     updateToolbarDisplays();
+  //     renderWeeklyCalendar(data.getState().currentWeeklyViewStartDate);
+  //   });
+  // if (nextWeekBtn)
+  //   nextWeekBtn.addEventListener("click", () => {
+  //     const state = data.getState();
+  //     const newStartDate = new Date(state.currentWeeklyViewStartDate);
+  //     newStartDate.setDate(newStartDate.getDate() + 7);
+  //     data.updateCurrentWeeklyViewStartDate(newStartDate);
+  //     updateToolbarDisplays();
+  //     renderWeeklyCalendar(data.getState().currentWeeklyViewStartDate);
+  //   });
+  if (weekJumpInput) {
     weekJumpInput.addEventListener("change", (event) => {
-      const selectedDate = new Date(event.target.value || new Date());
-      data.updateCurrentWeeklyViewStartDate(getMondayOfWeek(selectedDate));
-      updateToolbarDisplays();
-      renderWeeklyCalendar(data.getState().currentWeeklyViewStartDate);
+        const selectedDate = new Date(event.target.value || todayForInit); // 유효하지 않은 값일 경우 todayForInit 사용
+        data.updateCurrentWeeklyViewStartDate(getMondayOfWeek(selectedDate));
+        // updateToolbarDisplays(); // weekJumpInput의 값은 사용자가 직접 변경했으므로 여기서 다시 설정할 필요 없음
+        renderWeeklyCalendar(data.getState().currentWeeklyViewStartDate);
     });
+  }
 
   // --- Label Management ---
   let draggedLabelId = null; // For label reordering
@@ -138,10 +145,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!labelsContainer) return;
     const { labels } = data.getState();
 
-    // Preserve the add button, clear only labels
-    const existingLabelElements =
-      labelsContainer.querySelectorAll(".label-item");
-    existingLabelElements.forEach((el) => el.remove());
+    // 라벨 아이템들만 지웁니다. 이제 addLabelBtn은 labelsContainer의 자식이 아닙니다.
+    labelsContainer.innerHTML = ''; // 간결하게 모든 자식 제거
 
     labels.forEach((label) => {
       const labelEl = document.createElement("div");
@@ -174,18 +179,18 @@ document.addEventListener("DOMContentLoaded", () => {
         // 3. 이미 선택된 상태였다면, 선택을 해제하고 상태를 초기화합니다.
         if (isAlreadySelected) {
           data.setSelectedLabel(null);
-          console.log(
-            "APP.JS: Label deselected. Current selectedLabel:",
-            data.getState().selectedLabel
-          ); // 로그 추가
+          // console.log(
+          //   "APP.JS: Label deselected. Current selectedLabel:",
+          //   data.getState().selectedLabel
+          // ); // 로그 추가
         } else {
           labelEl.classList.add("selected-for-drawing");
           data.setSelectedLabel(label); // 'label'은 forEach 루프의 현재 라벨 객체여야 합니다.
-          console.log("APP.JS: Label selected. Clicked label object:", label); // 로그 추가
-          console.log(
-            "APP.JS: Current selectedLabel in dataManager:",
-            data.getState().selectedLabel
-          ); // 로그 추가
+          // console.log("APP.JS: Label selected. Clicked label object:", label); // 로그 추가
+          // console.log(
+          //   "APP.JS: Current selectedLabel in dataManager:",
+          //   data.getState().selectedLabel
+          // ); // 로그 추가
         }
       });
 
@@ -201,7 +206,7 @@ document.addEventListener("DOMContentLoaded", () => {
         draggedLabelId = null;
       });
 
-      labelsContainer.insertBefore(labelEl, addLabelBtn); // Insert before the "+" button
+      labelsContainer.appendChild(labelEl); // Insert before the "+" button
     });
   }
 
@@ -217,8 +222,8 @@ document.addEventListener("DOMContentLoaded", () => {
         labelsContainer,
         e.clientX
       );
-      if (afterElement == null) {
-        labelsContainer.insertBefore(draggingEl, addLabelBtn);
+      if (afterElement == null) { // 컨테이너의 끝에 드롭하는 경우
+        labelsContainer.appendChild(draggingEl);
       } else {
         labelsContainer.insertBefore(draggingEl, afterElement);
       }
@@ -228,36 +233,32 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       if (!draggedLabelId) return;
 
-        // 현재 DOM 순서를 기반으로 새 라벨 ID 순서 배열 생성
-        // addLabelBtn은 label-item이 아니므로 querySelectorAll에서 제외하거나, filter로 걸러내야 합니다.
-        const newLabelOrderIds = Array.from(
-            labelsContainer.querySelectorAll(".label-item:not(#addLabelBtn)") 
-        ).map((el) => el.dataset.labelId);
-        
-        data.reorderLabels(newLabelOrderIds); // 데이터 매니저 함수 호출
-
-        renderLabels(); // 변경된 순서로 UI 다시 렌더링
-        draggedLabelId = null; 
+      // 현재 DOM 순서를 기반으로 새 라벨 ID 순서 배열 생성
+      // addLabelBtn은 label-item이 아니므로 querySelectorAll에서 제외하거나, filter로 걸러내야 합니다.
+      const newLabelOrderIds = Array.from(
+        labelsContainer.querySelectorAll(".label-item") // 이제 addLabelBtn이 없으므로 간단해짐
+      ).map((el) => el.dataset.labelId);
+      data.reorderLabels(newLabelOrderIds);
+      renderLabels(); 
+      draggedLabelId = null; 
     });
   }
 
   function getDragAfterElementForLabels(container, x) {
     const draggableElements = [
-      ...container.querySelectorAll(
-        ".label-item:not(.dragging):not(#addLabelBtn)"
-      ),
+      ...container.querySelectorAll(".label-item:not(.dragging)") // addLabelBtn 제외 불필요
     ];
     return draggableElements.reduce(
       (closest, child) => {
-        const box = child.getBoundingClientRect();
-        const offset = x - box.left - box.width / 2;
-        if (offset < 0 && offset > closest.offset) {
-          return { offset: offset, element: child };
-        } else {
-          return closest;
-        }
-      },
-      { offset: Number.NEGATIVE_INFINITY }
+          const box = child.getBoundingClientRect();
+          const offset = x - box.left - box.width / 2;
+          if (offset < 0 && offset > closest.offset) {
+              return { offset: offset, element: child };
+          } else {
+              return closest;
+          }
+        },
+        { offset: Number.NEGATIVE_INFINITY }
     ).element;
   }
 

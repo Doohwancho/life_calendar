@@ -50,13 +50,70 @@ input[type="color"] {
   border-bottom: 1px solid #ddd;
   flex-shrink: 0; /* Prevent toolbar from shrinking */
   flex-wrap: wrap; /* Allow wrapping on smaller screens */
-  gap: 10px;
+  gap: 15px;
 }
 
 .toolbar-section {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.toolbar-section.main-controls {
+  flex-grow: 1; /* 라벨들을 포함하므로 더 많은 공간을 차지하도록 설정 */
+  /* justify-content: flex-start; /* 기본값이므로 생략 가능 */
+  /* align-items: center; /* 이미 toolbar-section에 있음 */
+  flex-wrap: nowrap; /* main-controls 자체는 줄바꿈 안 함 (내부 labelsContainer가 줄바꿈) */
+}
+
+.main-controls { /* 연도, 주간점프, 라벨추가 버튼 그룹 */
+  flex-grow: 1; /* 가능한 많은 공간 차지 */
+  justify-content: flex-start; /* 왼쪽 정렬 */
+}
+.main-controls #currentYearDisplay {
+  font-weight: bold;
+  font-size: 1.1em;
+  padding: 0 10px;
+}
+.main-controls #weekJumpInput {
+  margin-left: 15px; /* 연도 표시와 간격 */
+}
+.main-controls #addLabelBtn {
+  margin-left: 8px; /* 날짜 입력과 간격 */
+  font-weight: bold;
+  background-color: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+.main-controls #addLabelBtn:hover {
+  background-color: #218838;
+}
+
+
+.label-display-area { /* 라벨 목록 표시 영역 */
+  justify-content: center; /* 중앙 정렬 또는 flex-start */
+  flex-grow: 2; /* 공간 더 할당 */
+}
+
+
+
+.file-operations { /* 파일 작업 버튼 그룹 */
+  justify-content: flex-end; /* 오른쪽 정렬 */
+}
+
+/* Save/Load Button Adjustments */
+.file-operations #saveDataBtn,
+.file-operations #loadDataBtn {
+    padding: 6px 10px; /* 버튼 내부 여백 조정으로 크기 조절 */
+    font-size: 1.2em;  /* 이모티콘 크기 (텍스트이므로 font-size로 조절) */
+    line-height: 1;    /* 이모티콘 수직 정렬 도움 */
+    min-width: 40px;   /* 최소 너비 (버튼이 너무 작아지는 것 방지) */
+    background-color: #e9ecef; /* 약간 다른 배경색 (선택 사항) */
+    border-color: #ced4da;
+}
+.file-operations #saveDataBtn:hover,
+.file-operations #loadDataBtn:hover {
+    background-color: #dee2e6;
 }
 
 .calendar-navigation .yearly-nav,
@@ -82,8 +139,10 @@ input[type="color"] {
 }
 #labelsContainer {
   display: flex;
-  gap: 5px;
   align-items: center;
+  gap: 5px;
+  flex-wrap: wrap; /* 라벨이 많으면 줄바꿈 */
+  margin-left: 8px; /* '+' 버튼과의 간격 */
 }
 
 /* Main Content Grid */
