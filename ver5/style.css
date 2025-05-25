@@ -303,31 +303,6 @@ input[type="color"] {
   box-sizing: border-box;
 }
 
-/* Today's Quick Note Styles */
-.todays-quick-note-area {
-  margin-top: 8px;
-  border-top: 2px dashed #ffeeba;
-  padding-top: 8px;
-}
-
-.quick-note-display {
-  display: block;
-  width: 100%;
-  min-height: 20px;
-  font-size: 0.9em;
-  cursor: text;
-  white-space: pre-wrap; /* Respect newlines in display */
-  word-wrap: break-word; /* Break long words */
-}
-
-.quick-note-input {
-  width: calc(100% - 10px); /* Account for padding */
-  font: inherit;
-  border: 1px solid #007bff;
-  outline: none;
-  border-radius: 3px;
-  padding: 4px;
-}
 
 .backlog-view {
   padding: 0; /* Remove default padding to have full control */

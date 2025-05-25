@@ -18,51 +18,51 @@ let draggedTodoOriginalDate = null; // 드래그 시작 시 할 일의 원래 �
  * @param {string} dateStr - The date string for today (YYYY-MM-DD).
  * @returns {HTMLElement}
  */
-function createTodaysQuickNoteElement(dateStr) {
-  const noteArea = document.createElement("div");
-  noteArea.className = "todays-quick-note-area";
+// function createTodaysQuickNoteElement(dateStr) {
+//   const noteArea = document.createElement("div");
+//   noteArea.className = "todays-quick-note-area";
 
-  const noteDisplay = document.createElement("span");
-  noteDisplay.className = "quick-note-display";
-  noteDisplay.textContent =
-    data.getTodaysQuickNote(dateStr) || "오늘의 퀵노트...";
+//   const noteDisplay = document.createElement("span");
+//   noteDisplay.className = "quick-note-display";
+//   noteDisplay.textContent =
+//     data.getTodaysQuickNote(dateStr) || "오늘의 퀵노트...";
 
-  const noteInput = document.createElement("input");
-  noteInput.type = "text";
-  noteInput.className = "quick-note-input";
-  noteInput.style.display = "none";
+//   const noteInput = document.createElement("input");
+//   noteInput.type = "text";
+//   noteInput.className = "quick-note-input";
+//   noteInput.style.display = "none";
 
-  noteArea.append(noteDisplay, noteInput);
+//   noteArea.append(noteDisplay, noteInput);
 
-  // Event Listeners for editing
-  noteDisplay.addEventListener("click", () => {
-    noteDisplay.style.display = "none";
-    noteInput.style.display = "block";
-    noteInput.value = data.getTodaysQuickNote(dateStr);
-    noteInput.focus();
-  });
+//   // Event Listeners for editing
+//   noteDisplay.addEventListener("click", () => {
+//     noteDisplay.style.display = "none";
+//     noteInput.style.display = "block";
+//     noteInput.value = data.getTodaysQuickNote(dateStr);
+//     noteInput.focus();
+//   });
 
-  const finishEditing = () => {
-    const newText = noteInput.value.trim();
-    data.updateTodaysQuickNote(dateStr, newText);
+//   const finishEditing = () => {
+//     const newText = noteInput.value.trim();
+//     data.updateTodaysQuickNote(dateStr, newText);
 
-    noteDisplay.textContent = newText || "오늘의 퀵노트...";
-    noteInput.style.display = "none";
-    noteDisplay.style.display = "block";
-  };
+//     noteDisplay.textContent = newText || "오늘의 퀵노트...";
+//     noteInput.style.display = "none";
+//     noteDisplay.style.display = "block";
+//   };
 
-  noteInput.addEventListener("blur", finishEditing);
-  noteInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      finishEditing();
-    } else if (e.key === "Escape") {
-      noteInput.value = data.getTodaysQuickNote(dateStr); // Revert
-      finishEditing();
-    }
-  });
+//   noteInput.addEventListener("blur", finishEditing);
+//   noteInput.addEventListener("keydown", (e) => {
+//     if (e.key === "Enter") {
+//       finishEditing();
+//     } else if (e.key === "Escape") {
+//       noteInput.value = data.getTodaysQuickNote(dateStr); // Revert
+//       finishEditing();
+//     }
+//   });
 
-  return noteArea;
-}
+//   return noteArea;
+// }
 
 /**
  * Renders the entire weekly calendar for a given week.
@@ -102,9 +102,9 @@ export function renderWeeklyCalendar(weekStartDate) {
     // --- Cell Header with Add Button ---
     const cellHeader = document.createElement("div");
     cellHeader.className = "weekly-cell-header";
-    const dayInfo = document.createElement("span");
-    dayInfo.className = "weekly-cell-day-info";
-    dayInfo.innerHTML = `${date.getDate()}<br>${getDayNameKO(date)}`;
+    // const dayInfo = document.createElement("span");
+    // dayInfo.className = "weekly-cell-day-info";
+    // dayInfo.innerHTML = `${date.getDate()}<br>${getDayNameKO(date)}`;
     const addTodoBtn = document.createElement("button");
     addTodoBtn.className = "add-todo-in-weekly";
     addTodoBtn.textContent = "+";
@@ -124,8 +124,8 @@ export function renderWeeklyCalendar(weekStartDate) {
     if (isSameDate(date, today)) {
       dayCell.classList.add("today");
       // Add Today's Quick Note element
-      const quickNoteEl = createTodaysQuickNoteElement(dateStr);
-      dayCell.appendChild(quickNoteEl);
+      // const quickNoteEl = createTodaysQuickNoteElement(dateStr);
+      // dayCell.appendChild(quickNoteEl);
     }
 
     // --- Drag & Drop Listeners for the Cell (Drop Zone for todos) ---

@@ -21,7 +21,7 @@ const state = {
     events: [], // Project highlights
     backlogTodos: [],
     calendarCellTodos: [], // Todos placed directly on calendar cells
-    todaysQuickNotes: {}, // Keyed by "YYYY-MM-DD"
+    // todaysQuickNotes: {}, // Keyed by "YYYY-MM-DD"
     
     // Application View State
     currentDisplayYear: INITIAL_YEAR,
@@ -118,15 +118,15 @@ export function updateEventDates(eventId, newStartDate, newEndDate) {
 // Add more functions here to manage (add, update, delete)
 // backlogTodos, calendarCellTodos, todaysQuickNotes as needed.
 // For example:
-export function getTodaysQuickNote(dateKey) { // dateKey is YYYY-MM-DD
-    return state.todaysQuickNotes[dateKey] || ""; 
-}
+// export function getTodaysQuickNote(dateKey) { // dateKey is YYYY-MM-DD
+//     return state.todaysQuickNotes[dateKey] || ""; 
+// }
 
-export function updateTodaysQuickNote(dateKey, text) {
-    state.todaysQuickNotes[dateKey] = text;
-    eventBus.dispatch('dataChanged', { source: 'updateTodaysQuickNote' });
-    // Potentially trigger re-render of the specific UI element
-}
+// export function updateTodaysQuickNote(dateKey, text) {
+//     state.todaysQuickNotes[dateKey] = text;
+//     eventBus.dispatch('dataChanged', { source: 'updateTodaysQuickNote' });
+//     // Potentially trigger re-render of the specific UI element
+// }
 
 
 /**
@@ -138,7 +138,7 @@ export function loadAllData(dataBundle = {}) {
     state.events = dataBundle.events || [];
     state.backlogTodos = dataBundle.backlogTodos || [];
     state.calendarCellTodos = dataBundle.calendarCellTodos || [];
-    state.todaysQuickNotes = dataBundle.todaysQuickNotes || {};
+    // state.todaysQuickNotes = dataBundle.todaysQuickNotes || {};
     
     // Optionally, restore view state if it was saved
     // state.currentDisplayYear = dataBundle.viewState?.year || INITIAL_YEAR;
@@ -153,7 +153,7 @@ export function getAllDataForSave() {
         events: state.events,
         backlogTodos: state.backlogTodos,
         calendarCellTodos: state.calendarCellTodos,
-        todaysQuickNotes: state.todaysQuickNotes,
+        // todaysQuickNotes: state.todaysQuickNotes,
     };
 }
 /**
