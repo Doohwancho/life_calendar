@@ -36,7 +36,14 @@ export function getState() {
 
 // --- Setters / Updaters ---
 export function updateCurrentDisplayYear(year) {
-    state.currentDisplayYear = year;
+    const numericYear = parseInt(year, 10); // 숫자로 변환
+    if (state.currentDisplayYear !== numericYear) { // 실제 연도 변경이 있을 때만
+        state.currentDisplayYear = numericYear;
+        console.log("DataManager: currentDisplayYear updated to", state.currentDisplayYear);
+        // --- 중요: 연도 변경을 알리는 이벤트 발행 ---
+        eventBus.dispatch('dataChanged', { source: 'updateCurrentDisplayYear' });
+        // -----------------------------------------
+    }
 }
 
 export function updateCurrentWeeklyViewStartDate(date) {

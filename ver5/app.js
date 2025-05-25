@@ -55,44 +55,62 @@ document.addEventListener("DOMContentLoaded", () => {
         `APP.JS: eventBus 'dataChanged' received. Source: ${payload?.source}. Timestamp: ${new Date().toLocaleTimeString()}`
     );
 
-    updateToolbarDisplays();
     const state = data.getState(); //최신 상태 가져오기
 
     // 1. 툴바의 라벨 목록 업데이트
+    updateToolbarDisplays(); // 툴바 표시 (연도, weekJumpInput 값 등) 업데이트
     renderLabels(); // <<< 이 줄을 추가합니다!
 
-    // 2. 연간 달력의 셀 내용(프로젝트 막대, 할 일 박스) 업데이트
-    if (typeof renderAllYearlyCellContent === "function") {
-      if (payload?.source === 'updateCurrentWeeklyViewStartDate' || payload?.source === 'updateCurrentDisplayYear') {
-          renderYearlyCalendar(state.currentDisplayYear); // 연도나 주가 바뀌면 연간 달력 다시 그림
-      } else {
-          renderAllYearlyCellContent(); // 그 외 데이터 변경은 셀 내용만
+    // 연간 달력 업데이트
+    if (payload?.source === 'updateCurrentWeeklyViewStartDate' || payload?.source === 'updateCurrentDisplayYear' || payload?.source === 'fileLoad' || payload?.source === 'addEvent' || payload?.source === 'deleteEvent' || payload?.source === 'updateEventDates' || payload?.source === 'deleteLabelAndEvents' || payload?.source === 'updateLabelName' || payload?.source === 'addLabel') {
+      // 위 source들은 연간 달력의 전체 구조 또는 주요 내용 변경을 유발할 수 있음
+        if (typeof renderYearlyCalendar === "function") {
+          console.log("APP.JS: Re-rendering full Yearly Calendar for year:", state.currentDisplayYear, "due to source:", payload?.source);
+          renderYearlyCalendar(state.currentDisplayYear);
       }
-    } else {
-      console.error(
-        "renderAllYearlyCellContent is not a function or not imported in app.js"
-      );
+    } else if (typeof renderAllYearlyCellContent === "function") {
+        if (payload?.source === 'updateCurrentWeeklyViewStartDate' || payload?.source === 'updateCurrentDisplayYear') {
+            renderYearlyCalendar(state.currentDisplayYear); // 연도나 주가 바뀌면 연간 달력 다시 그림
+        } else {
+            renderAllYearlyCellContent(); // 그 외 데이터 변경은 셀 내용만
+        }
     }
 
-    // 3. 주간 달력 업데이트
     if (typeof renderWeeklyCalendar === "function") {
-      // weeklyCalendar.js가 로드되었는지 확인
       renderWeeklyCalendar(state.currentWeeklyViewStartDate);
     }
-
-    // 4. 백로그 목록 업데이트
     if (typeof renderBacklog === "function") {
-      // backlog.js가 로드되었는지 확인
-      renderBacklog();
+        renderBacklog();
     }
   });
 
+  // --- weekJumpInput 리스너 수정 ---
   if (weekJumpInput) {
     weekJumpInput.addEventListener("change", (event) => {
-        const selectedDate = new Date(event.target.value || todayForInit); // 유효하지 않은 값일 경우 todayForInit 사용
-        data.updateCurrentWeeklyViewStartDate(getMondayOfWeek(selectedDate));
-        // updateToolbarDisplays(); // weekJumpInput의 값은 사용자가 직접 변경했으므로 여기서 다시 설정할 필요 없음
-        renderWeeklyCalendar(data.getState().currentWeeklyViewStartDate);
+        const selectedDateValue = event.target.value;
+        if (!selectedDateValue) return; // 빈 값 처리
+
+        // Date.UTC를 사용하여 타임존 오프셋 문제 최소화
+        const [yearStr, monthStr, dayStr] = selectedDateValue.split('-');
+        const selectedDate = new Date(Date.UTC(parseInt(yearStr), parseInt(monthStr) - 1, parseInt(dayStr)));
+
+        const newSelectedYear = selectedDate.getUTCFullYear();
+        const currentDisplayYearState = data.getState().currentDisplayYear;
+
+        console.log(`APP.JS: weekJumpInput changed. Selected Date: ${selectedDateValue}, New Year: ${newSelectedYear}, Current Display Year: ${currentDisplayYearState}`);
+
+        // 1. 연도가 변경되었는지 확인하고, 변경되었다면 currentDisplayYear 업데이트
+        if (newSelectedYear !== currentDisplayYearState) {
+            data.updateCurrentDisplayYear(newSelectedYear); 
+            // 이 호출은 dataChanged 이벤트를 발생시키고, app.js의 리스너가 renderYearlyCalendar를 호출합니다.
+        }
+        
+        // 2. currentWeeklyViewStartDate 업데이트 (항상 선택된 날짜가 포함된 주의 월요일로)
+        // 이 호출도 dataChanged 이벤트를 발생시킵니다.
+        data.updateCurrentWeeklyViewStartDate(selectedDate); 
+
+        // 직접 renderWeeklyCalendar 호출 제거 -> eventBus가 처리하도록 함
+        // renderWeeklyCalendar(data.getState().currentWeeklyViewStartDate); 
     });
   }
 
