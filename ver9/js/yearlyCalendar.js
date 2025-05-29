@@ -386,7 +386,7 @@ export function renderAllYearlyCellContent() {
               itemEl.addEventListener("contextmenu", (e) => handleProjectBarContextMenu(e, item));
 
               if (item.id === selectedEventId) {
-                  itemEl.classList.add("selected");
+                  itemEl.classList.add("mv-selected");
                   const deleteBtn = document.createElement("button");
                   deleteBtn.className = "delete-event-btn";
                   deleteBtn.innerHTML = "&times;";
