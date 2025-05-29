@@ -1,0 +1,19 @@
+{
+  "year": 2025,
+  "labels": [
+    {
+      "id": "id_ka0m1wv8g_1748496616270",
+      "name": "a",
+      "color": "#ff0000"
+    }
+  ],
+  "events": [
+    {
+      "id": "id_1rdfntv2f_1748496618903",
+      "labelId": "id_ka0m1wv8g_1748496616270",
+      "startDate": "2025-05-25",
+      "endDate": "2025-05-29"
+    }
+  ],
+  "backlogTodos": []
+}
