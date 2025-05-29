@@ -299,139 +299,130 @@ function renderProjectBarInCell(event, dateStr) {
 }
 
 /**
- * Main function to render all events as stacked bars in their respective cells.
+ * 연간 캘린더의 모든 셀 내용을 렌더링합니다. (프로젝트 및 To-do 포함)
  */
 export function renderAllYearlyCellContent() {
-  clearAllCellItems(); // New function to clear both bars and boxes
+  clearAllCellItems(); // 셀 내용 초기화
 
-  const state = data.getState(); // Get current state once
-  const { events, calendarCellTodos, labels } = state;
-  const dailyItems = {};
+  const state = data.getState();
+  // [수정] calendarCellTodos를 직접 사용하지 않고, events와 labels만 가져옵니다.
+  // To-do는 각 날짜별로 data.getTodosForDate()를 통해 가져옵니다.
+  const { events, labels, currentDisplayYear } = state;
+  const dailyItems = {}; // 날짜별로 아이템(프로젝트, To-do)을 그룹화할 객체
 
-  // 1. 모든 이벤트를 dailyItems에 'itemType: "project"'로 추가
-  events.forEach((event) => {
-    const dateRange = getDateRange(event.startDate, event.endDate);
-    dateRange.forEach((date) => {
-      const dateStr = formatDate(date);
-      if (!dailyItems[dateStr]) dailyItems[dateStr] = [];
-      dailyItems[dateStr].push({ ...event, itemType: "project" });
-    });
-  });
+  // 1. 모든 프로젝트 이벤트를 dailyItems에 추가
+  if (events && Array.isArray(events)) {
+      events.forEach((event) => {
+          const dateRange = getDateRange(event.startDate, event.endDate);
+          dateRange.forEach((date) => {
+              const dateStr = formatDate(date);
+              if (!dailyItems[dateStr]) dailyItems[dateStr] = [];
+              dailyItems[dateStr].push({ ...event, itemType: "project" });
+          });
+      });
+  }
 
-  // 2. 모든 달력 내 할 일을 dailyItems에 'itemType: "todo"'로 추가
-  calendarCellTodos.forEach((todo) => {
-    const dateStr = todo.date;
-    if (!dailyItems[dateStr]) dailyItems[dateStr] = [];
-    // dailyItems[dateStr].push(todo);
-    dailyItems[dateStr].push({ ...todo, itemType: "todo" });
-  });
+  // 2. [수정] 현재 표시 연도의 모든 날짜에 대해 To-do를 가져와 dailyItems에 추가
+  if (currentDisplayYear) { // currentDisplayYear가 유효한지 확인
+      for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
+          const daysInCurrentMonth = getDaysInMonth(currentDisplayYear, monthIndex);
+          for (let day = 1; day <= daysInCurrentMonth; day++) {
+              const currentDateObj = new Date(currentDisplayYear, monthIndex, day);
+              const dateStr = formatDate(currentDateObj);
+              
+              const todosForDay = data.getTodosForDate(dateStr); // 새 함수로 To-do 가져오기
+              if (todosForDay && todosForDay.length > 0) {
+                  if (!dailyItems[dateStr]) dailyItems[dateStr] = [];
+                  todosForDay.forEach(todo => {
+                      dailyItems[dateStr].push({ 
+                          ...todo, 
+                          date: dateStr, // 렌더링 시점에 날짜 정보가 필요할 수 있으므로 명시적 추가
+                          itemType: "todo" 
+                      });
+                  });
+              }
+          }
+      }
+  }
+  
+  // console.log("Yearly rendering with dailyItems (after fetching todos):", dailyItems);
 
-  console.log("Yearly rendering with dailyItems:", dailyItems); // dailyItems에 todo가 포함되는지 확인
-
-  // Render items with stacking logic
+  // 3. dailyItems 객체를 기반으로 DOM 요소 생성 및 렌더링 (기존 로직과 유사)
   for (const dateStr in dailyItems) {
-    // const cell = calendarGridYearlyEl.querySelector(`[data-date="${dateStr}"]`);
-    const cell = calendarGridYearlyEl.querySelector(
-      `.day-cell-yearly[data-date="${dateStr}"]`
-    );
-    if (!cell) continue;
+      const cell = calendarGridYearlyEl.querySelector(
+          `.day-cell-yearly[data-date="${dateStr}"]`
+      );
+      if (!cell) continue;
 
-    const contentWrapper = cell.querySelector(
-      ".day-cell-content-wrapper-yearly"
-    );
-    if (!contentWrapper) continue;
+      const contentWrapper = cell.querySelector(".day-cell-content-wrapper-yearly");
+      if (!contentWrapper) continue;
 
-    contentWrapper.innerHTML = ""; // 해당 셀의 내용만 다시 그림 (이전 아이템들 제거)
+      contentWrapper.innerHTML = ""; // 이전 아이템들 제거
 
-    // 프로젝트를 우선으로 정렬
-    dailyItems[dateStr].sort((a, b) =>
-      a.itemType === "project" ? -1 : b.itemType === "project" ? 1 : 0
-    );
+      // 프로젝트를 우선으로 정렬 (선택 사항)
+      dailyItems[dateStr].sort((a, b) =>
+          a.itemType === "project" ? -1 : b.itemType === "project" ? 1 : 0
+      );
 
-    let yOffset = 0;
+      let yOffset = 0;
+      dailyItems[dateStr].forEach((item) => {
+          const itemEl = document.createElement("div");
+          // 프로젝트와 To-do에 따라 적절한 텍스트와 title 설정
+          itemEl.title = item.itemType === "project" ? item.name : item.text;
+          itemEl.textContent = item.itemType === "project" ? item.name : item.text;
 
-    dailyItems[dateStr].forEach((item) => {
-      const itemEl = document.createElement("div");
-      itemEl.title = item.name || item.text;
-      itemEl.textContent = item.name || item.text;
+          let itemHeight = 0;
+          
+          if (item.itemType === "project") {
+              const sourceLabel = item.labelId ? labels.find((l) => l.id === item.labelId) : null;
+              if (!sourceLabel) return; 
 
-      let itemHeight = 0;
-      const sourceLabel = item.labelId
-        ? labels.find((l) => l.id === item.labelId)
-        : null;
+              itemEl.className = "project-bar";
+              itemEl.dataset.eventId = item.id;
+              itemEl.style.backgroundColor = sourceLabel.color;
+              itemEl.textContent = sourceLabel.name; // 프로젝트 이름은 라벨 이름으로
+              itemEl.title = sourceLabel.name;      // title도 라벨 이름으로
+              itemHeight = 8;
+              itemEl.style.height = `${itemHeight}px`;
+              
+              itemEl.addEventListener("click", (e) => handleEventBarClick(e, item));
+              itemEl.addEventListener("contextmenu", (e) => handleProjectBarContextMenu(e, item));
 
-      if (item.itemType === "project") {
-        if (!sourceLabel) return; // 라벨 없으면 렌더링 안함 (또는 기본 스타일)
+              if (item.id === selectedEventId) {
+                  itemEl.classList.add("selected");
+                  const deleteBtn = document.createElement("button");
+                  deleteBtn.className = "delete-event-btn";
+                  deleteBtn.innerHTML = "&times;";
+                  deleteBtn.title = "Delete Event";
+                  deleteBtn.addEventListener("click", (e) => handleEventDelete(e, item.id));
+                  const leftHandle = document.createElement("div");
+                  leftHandle.className = "resize-handle left";
+                  leftHandle.addEventListener("mousedown", (e) => handleResizeMouseDown(e, item.id, "left"));
+                  const rightHandle = document.createElement("div");
+                  rightHandle.className = "resize-handle right";
+                  rightHandle.addEventListener("mousedown", (e) => handleResizeMouseDown(e, item.id, "right"));
+                  itemEl.append(deleteBtn, leftHandle, rightHandle);
+              }
+          } else if (item.itemType === "todo") {
+              itemEl.className = "todo-box-in-calendar";
+              itemEl.dataset.todoId = item.id;
+              itemEl.style.backgroundColor = item.color || "#6c757d";
+              itemEl.style.color = "#ffffff"; 
+              itemEl.textContent = item.text; // To-do 텍스트
+              itemEl.title = item.text;       // To-do title
+              itemHeight = 14; 
+              itemEl.style.height = `${itemHeight}px`;
+          }
 
-        itemEl.className = "project-bar";
-        itemEl.dataset.eventId = item.id;
-        itemEl.style.backgroundColor = sourceLabel.color; // 동적으로 라벨 색상 참조
-        itemEl.textContent = sourceLabel.name; // 동적으로 라벨 이름 참조
-        itemEl.title = sourceLabel.name;
-        itemHeight = 8;
-        itemEl.style.height = `${itemHeight}px`;
-        itemEl.style.top = `${yOffset}px`;
-        // yOffset += 6;
-
-        itemEl.addEventListener("click", (e) => handleEventBarClick(e, item)); // 좌클릭: 이벤트 선택
-        itemEl.addEventListener("contextmenu", (e) =>
-          handleProjectBarContextMenu(e, item)
-        ); // 우클릭: 라벨 관리
-
-        // Add selection class and controls if this event is selected
-        if (item.id === selectedEventId) {
-          itemEl.classList.add("selected");
-
-          // Add Delete Button
-          const deleteBtn = document.createElement("button");
-          deleteBtn.className = "delete-event-btn";
-          deleteBtn.innerHTML = "&times;";
-          deleteBtn.title = "Delete Event";
-          deleteBtn.addEventListener("click", (e) =>
-            handleEventDelete(e, item.id)
-          );
-
-          // Add Resize Handles
-          const leftHandle = document.createElement("div");
-          leftHandle.className = "resize-handle left";
-          leftHandle.addEventListener("mousedown", (e) =>
-            handleResizeMouseDown(e, item.id, "left")
-          );
-
-          const rightHandle = document.createElement("div");
-          rightHandle.className = "resize-handle right";
-          rightHandle.addEventListener("mousedown", (e) =>
-            handleResizeMouseDown(e, item.id, "right")
-          );
-
-          itemEl.append(deleteBtn, leftHandle, rightHandle);
-        }
-      } else if (item.itemType === "todo") {
-        itemEl.className = "todo-box-in-calendar";
-        itemEl.dataset.todoId = item.id;
-        itemEl.style.backgroundColor = item.color;
-        itemEl.style.color = "#ffffff"; // 또는 item.textColor
-        itemEl.textContent = item.text; // 텍스트 내용 설정 확인
-        itemEl.title = item.text;
-        itemHeight = 14;
-        itemEl.style.height = `${itemHeight}px`;
-        // itemEl.className = 'todo-box-in-calendar';
-        // itemEl.dataset.todoId = item.id;
-        // itemEl.style.backgroundColor = item.color;
-        // itemEl.style.color = '#fff'; // Assuming dark colors for todos
-        // itemEl.style.height = '14px';
-        // itemEl.style.top = `${yOffset}px`;
-        // yOffset += 15; // 14px height + 1px margin
-      }
-
-      if (itemHeight > 0) {
-        itemEl.style.top = `${yOffset}px`;
-        contentWrapper.appendChild(itemEl);
-        yOffset += itemHeight;
-      }
-    });
+          if (itemHeight > 0) {
+              itemEl.style.top = `${yOffset}px`;
+              contentWrapper.appendChild(itemEl);
+              yOffset += itemHeight + 1; // 아이템 간 간격 1px 추가
+          }
+      });
   }
 }
+
 
 function clearAllCellItems() {
   // calendarGridYearlyEl.querySelectorAll('.project-bar, .todo-box-in-calendar').forEach(el => el.remove());

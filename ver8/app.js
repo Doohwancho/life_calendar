@@ -445,8 +445,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
   /**
-     * '연간 데이터 저장'을 처리합니다. (저장 아이콘 클릭 시)
-     */
+   * '연간 데이터 저장'을 처리합니다. (저장 아이콘 클릭 시)
+   */
   async function handleSaveCurrentYear() {
     if (typeof JSZip === 'undefined') {
         alert("JSZip library is not loaded.");
@@ -462,10 +462,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const zip = new JSZip();
-    const yearFolder = zip.folder(String(currentYear)); // 연도 폴더 생성
+    const yearFolder = zip.folder(String(currentYear));
 
     filesToSave.forEach(fileInfo => {
-        // "2025/2025.json" -> "2025.json"
         const filename = fileInfo.filenameInZip.split('/')[1];
         yearFolder.file(filename, JSON.stringify(fileInfo.data, null, 2));
     });
@@ -483,6 +482,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         URL.revokeObjectURL(link.href);
 
         alert(`${currentYear}년의 데이터가 ${zipFilename}으로 저장되었습니다.`);
+        
+        // [수정] 성공적으로 전체 저장 후 해당 연도의 dirty 상태 클리어
+        data.clearAllDirtyFilesForYear(currentYear);
+
     } catch (e) {
         console.error("Error generating yearly backup ZIP:", e);
         alert("연간 백업 파일 생성 중 오류가 발생했습니다.");
@@ -555,7 +558,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.addEventListener("keydown", (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "s") {
       e.preventDefault();
-      dirtyFileService.triggerPartialSave();
+      // dirtyFileService.triggerPartialSave();
+      handleSaveCurrentYear(); 
     }
   });
 

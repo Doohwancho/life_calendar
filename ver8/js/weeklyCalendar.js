@@ -21,11 +21,10 @@ let draggedTodoOriginalDate = null; // 드래그 시작 시 할 일의 원래 �
  */
 export function renderWeeklyCalendar(weekStartDate) {
     if (!weeklyCalendarArea) return;
-    weeklyCalendarArea.innerHTML = ""; // 기존 내용 비우기
+    weeklyCalendarArea.innerHTML = "";
 
     const header = document.createElement("header");
     header.className = "weekly-header";
-
     const grid = document.createElement("div");
     grid.className = "weekly-grid";
 
@@ -34,7 +33,6 @@ export function renderWeeklyCalendar(weekStartDate) {
         const date = new Date(weekStartDate);
         date.setDate(weekStartDate.getDate() + i);
         datesOfWeek.push(date);
-
         const dayHeaderEl = document.createElement("div");
         dayHeaderEl.className = "weekly-day-header";
         dayHeaderEl.innerHTML = `${date.getDate()}<br>${getDayNameKO(date)}`;
@@ -42,16 +40,12 @@ export function renderWeeklyCalendar(weekStartDate) {
         header.appendChild(dayHeaderEl);
     }
 
-    // 날짜 셀 렌더링
     datesOfWeek.forEach((date) => {
         const dateStr = formatDate(date);
         const dayCell = document.createElement("div");
         dayCell.className = "weekly-day-cell";
         dayCell.dataset.date = dateStr;
-
-        if (isSameDate(date, today)) {
-            dayCell.classList.add("today");
-        }
+        if (isSameDate(date, today)) dayCell.classList.add("today");
 
         const cellHeader = document.createElement("div");
         cellHeader.className = "weekly-cell-header";
@@ -67,24 +61,17 @@ export function renderWeeklyCalendar(weekStartDate) {
         renderWeeklyDayCellContent(dateStr, cellContentContainer);
         
         dayCell.append(cellHeader, cellContentContainer);
-
-        // --- Drag & Drop 리스너 연결 (분리된 함수 사용) ---
         dayCell.addEventListener("dragover", handleCellDragOver);
         dayCell.addEventListener("dragleave", handleCellDragLeave);
         dayCell.addEventListener("drop", handleCellDrop);
-        
         grid.appendChild(dayCell);
     });
-
     weeklyCalendarArea.append(header, grid);
 }
 
 export function initWeeklyCalendar() {
-  if (!weeklyCalendarArea) {
-    console.error("Weekly calendar area not found!");
-    return;
-  }
-  console.log("Weekly Calendar Initialized.");
+    if (!weeklyCalendarArea) console.error("Weekly calendar area not found!");
+    else console.log("Weekly Calendar Initialized.");
 }
 
 /**
@@ -92,56 +79,50 @@ export function initWeeklyCalendar() {
  */
 function renderWeeklyDayCellContent(dateStr, cellContentContainer) {
     cellContentContainer.innerHTML = "";
-    const { events, calendarCellTodos, labels } = data.getState();
+    const { events, labels } = data.getState(); // calendarCellTodos 대신 getTodosForDate 사용
+    const todosForDay = data.getTodosForDate(dateStr) || []; // [수정]
     const itemsToRender = [];
 
-    // 1. 이 날짜에 해당하는 프로젝트 이벤트 추가
     events.forEach((event) => {
         const eventStartDate = new Date(event.startDate);
         const eventEndDate = new Date(event.endDate);
         const currentDate = new Date(dateStr);
-        eventStartDate.setHours(0, 0, 0, 0);
-        eventEndDate.setHours(0, 0, 0, 0);
-        currentDate.setHours(0, 0, 0, 0);
-
+        eventStartDate.setHours(0,0,0,0); eventEndDate.setHours(0,0,0,0); currentDate.setHours(0,0,0,0);
         if (currentDate >= eventStartDate && currentDate <= eventEndDate) {
             const label = labels.find((l) => l.id === event.labelId);
             itemsToRender.push({
-                ...event,
-                itemType: "project",
+                ...event, itemType: "project",
                 displayName: label ? label.name : "Project",
                 displayColor: label ? label.color : "#ccc",
             });
         }
     });
 
-    // 2. 이 날짜에 해당하는 할 일 추가
-    calendarCellTodos.forEach((todo) => {
-        if (todo.date === dateStr) {
-            itemsToRender.push({
-                ...todo,
-                itemType: "todo",
-                displayName: todo.text,
-                displayColor: todo.color,
-            });
-        }
+    // [수정] dataManager.getTodosForDate를 통해 가져온 To-do 사용
+    todosForDay.forEach((todo) => {
+        itemsToRender.push({
+            ...todo,
+            date: dateStr, // To-do 객체에 날짜 정보 추가 (수정/삭제 시 필요)
+            itemType: "todo",
+            displayName: todo.text,
+            displayColor: todo.color,
+        });
     });
 
-    // 프로젝트를 할 일보다 위에 표시
     itemsToRender.sort((a, b) => {
         if (a.itemType === "project" && b.itemType !== "project") return -1;
         if (a.itemType !== "project" && b.itemType === "project") return 1;
         return 0;
     });
 
-    // 4. DOM 요소 생성 및 추가
     itemsToRender.forEach((item) => {
         const itemEl = (item.itemType === 'project')
             ? createWeeklyProjectElement(item)
-            : createWeeklyTodoElement(item);
+            : createWeeklyTodoElement(item); // To-do 객체에 date 정보가 포함되어 전달됨
         cellContentContainer.appendChild(itemEl);
     });
 }
+
 
 /**
  * 주간 달력에 표시될 프로젝트 바 요소를 생성합니다.
@@ -160,7 +141,7 @@ function createWeeklyProjectElement(item) {
  * 주간 달력 셀 내의 할 일 DOM 요소를 생성합니다.
  * @param {object} todo - 할 일 객체
  */
-function createWeeklyTodoElement(todo) {
+function createWeeklyTodoElement(todo) { // 이제 todo 객체는 todo.date 속성을 가짐
     const item = document.createElement("div");
     item.className = "weekly-todo-item";
     item.style.backgroundColor = todo.color || "#6c757d";
@@ -174,108 +155,77 @@ function createWeeklyTodoElement(todo) {
     const actionsDiv = document.createElement("div");
     actionsDiv.className = "todo-actions";
     const editBtn = document.createElement("button");
-    editBtn.innerHTML = "✏️";
-    editBtn.title = "Edit Todo";
+    editBtn.innerHTML = "✏️"; editBtn.title = "Edit Todo";
     const deleteBtn = document.createElement("button");
-    deleteBtn.innerHTML = "🗑️";
-    deleteBtn.title = "Delete Todo";
+    deleteBtn.innerHTML = "🗑️"; deleteBtn.title = "Delete Todo";
 
-    // --- [수정된 부분 시작] ---
-    // 수정 버튼 클릭 이벤트
     editBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        if (item.querySelector(".todo-edit-input")) return; // 이미 편집 중이면 중복 실행 방지
-
-        textSpan.style.display = "none"; // 기존 텍스트 숨기기
-        actionsDiv.style.display = "none"; // 기존 버튼들 임시 숨기기 (선택 사항)
-
+        if (item.querySelector(".todo-edit-input")) return;
+        textSpan.style.display = "none";
+        actionsDiv.style.display = "none";
         const editInput = document.createElement("input");
-        editInput.type = "text";
-        editInput.value = todo.text;
-        editInput.className = "todo-edit-input"; // 스타일링을 위한 클래스
-
-        // 입력 필드를 textSpan 자리에 삽입 (또는 item의 적절한 위치)
-        item.insertBefore(editInput, textSpan.nextSibling); // textSpan 다음에 삽입하거나, item.firstChild로 맨 앞에
-        editInput.focus();
-        editInput.select();
-
+        editInput.type = "text"; editInput.value = todo.text;
+        editInput.className = "todo-edit-input";
+        item.insertBefore(editInput, textSpan.nextSibling);
+        editInput.focus(); editInput.select();
         const finishTodoEditing = () => {
-            // 입력 필드가 DOM에서 제거되었는지 확인 (blur와 Enter 동시 처리 방지)
             if (!editInput.parentElement) return;
-
             const newText = editInput.value.trim();
-            editInput.remove(); // 입력 필드 제거
-            textSpan.style.display = ""; // 원래 텍스트 스팬 다시 표시
-            actionsDiv.style.display = ""; // 버튼들 다시 표시
-
+            editInput.remove();
+            textSpan.style.display = ""; actionsDiv.style.display = "";
             if (newText && newText !== todo.text) {
-                data.updateCalendarTodoText(todo.id, newText); // dataManager 호출 -> dataChanged 이벤트 발생
+                // [수정] dataManager의 새 함수 호출
+                data.updateTodoPropertyForDate(todo.date, todo.id, 'text', newText);
             }
-            // 변경이 없거나 빈 텍스트면 UI는 원래대로 복구되고, dataChanged는 발생하지 않음
         };
-
-        editInput.addEventListener("blur", () => {
-            // 약간의 딜레이를 주어 'Enter'와의 충돌 방지
-            setTimeout(finishTodoEditing, 100);
-        });
-
+        editInput.addEventListener("blur", () => { setTimeout(finishTodoEditing, 100); });
         editInput.addEventListener("keydown", (ev) => {
-            if (ev.key === "Enter") {
-                ev.preventDefault();
-                finishTodoEditing();
-            } else if (ev.key === "Escape") {
-                editInput.remove();
-                textSpan.style.display = "";
-                actionsDiv.style.display = "";
+            if (ev.key === "Enter") { ev.preventDefault(); finishTodoEditing(); }
+            else if (ev.key === "Escape") {
+                editInput.remove(); textSpan.style.display = ""; actionsDiv.style.display = "";
             }
         });
     });
-    // --- [수정된 부분 끝] ---
 
-    // 삭제 버튼 클릭 이벤트
     deleteBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         if (confirm(`"${todo.text}" 할 일을 삭제하시겠습니까?`)) {
-            data.deleteCalendarTodo(todo.id);
+            // [수정] dataManager의 새 함수 호출
+            data.deleteTodoForDate(todo.date, todo.id);
         }
     });
     
-    // 드래그 시작 이벤트
     item.addEventListener("dragstart", (e) => {
         e.stopPropagation();
         draggedTodoId = todo.id;
-        draggedTodoOriginalDate = todo.date;
+        draggedTodoOriginalDate = todo.date; // todo.date 사용
         e.dataTransfer.setData("text/plain", todo.id);
-        e.dataTransfer.setData("application/x-weekly-todo-source", "true"); // Weekly todo 출처 표시
+        e.dataTransfer.setData("application/x-weekly-todo-source", "true");
         e.dataTransfer.effectAllowed = "move";
         item.classList.add("dragging");
     });
     
-    // 드래그 종료 이벤트
     item.addEventListener("dragend", () => {
         item.classList.remove("dragging");
-        // dragend에서 모듈 스코프 변수를 초기화하는 것이 더 안전합니다.
         draggedTodoId = null;
         draggedTodoOriginalDate = null;
     });
 
     actionsDiv.append(editBtn, deleteBtn);
     item.append(textSpan, actionsDiv);
-
     return item;
 }
 
 
 
 function handleAddTodoInWeekly(e, dateStr) {
-  e.stopPropagation();
-  console.log(
-    `WEEKLY_CALENDAR: handleAddTodoInWeekly called for date ${dateStr}. Event type: ${e.type}`
-  ); // <<< 로그 추가
-  const text = prompt(`"${dateStr}"에 추가할 할 일 내용을 입력하세요:`);
-  if (text && text.trim()) {
-    data.addCalendarTodo({ date: dateStr, text: text.trim() });
-  }
+    e.stopPropagation();
+    const text = prompt(`"${dateStr}"에 추가할 할 일 내용을 입력하세요:`);
+    if (text && text.trim()) {
+        // [수정] dataManager의 새 함수 호출
+        data.addTodoForDate(dateStr, text.trim());
+    }
 }
 
 // --- 이벤트 핸들러 함수들 ---
@@ -311,28 +261,32 @@ function handleCellDrop(e) {
     e.preventDefault();
     dayCell.classList.remove("drag-over");
 
-    const droppedTodoId = e.dataTransfer.getData("text/plain"); // ID는 공통으로 text/plain 사용
+    const droppedTodoId = e.dataTransfer.getData("text/plain");
     const targetDate = dayCell.dataset.date;
 
     if (!droppedTodoId || !targetDate) return;
 
-    // [수정] 커스텀 데이터 타입으로 출처 확인
     if (e.dataTransfer.types.includes("application/x-backlog-source")) {
-        // 시나리오 1: Backlog에서 온 할 일 처리
-        console.log(`[WeeklyCalendar Drop] Moving backlog item ${droppedTodoId} to ${targetDate}`);
-        data.moveBacklogTodoToCalendar(droppedTodoId, targetDate);
+        data.moveBacklogTodoToCalendar(droppedTodoId, targetDate); // 이 함수는 dataManager에서 이미 수정됨
     } else if (e.dataTransfer.types.includes("application/x-weekly-todo-source")) {
-        // 시나리오 2 & 3: Weekly calendar 내부에서 이동/순서 변경
         if (draggedTodoOriginalDate === targetDate) {
-            // 같은 날짜 내에서 순서 변경
             reorderTodoInCell(e, dayCell, droppedTodoId);
         } else {
-            // 다른 날짜로 할 일 이동
-            data.moveCalendarTodoToDate(droppedTodoId, targetDate);
+            // [수정] dataManager의 새 함수 호출 (또는 기존 moveCalendarTodoToDate의 내부 로직 변경)
+            // 이 경우, 기존 todo를 삭제하고 새 위치에 추가하는 로직이 필요할 수 있음
+            // 또는 dataManager에 moveDailyTodo(oldDate, newDate, todoId) 와 같은 함수 구현
+            // 여기서는 우선 기존 todo를 삭제하고 새로 추가하는 방식으로 가정 (dataManager에 구현 필요)
+            
+            // 간단한 방법: dataManager에 deleteTodoForDate와 addTodoForDate를 순차적으로 호출
+            const todoToMove = data.getTodosForDate(draggedTodoOriginalDate).find(t => t.id === droppedTodoId);
+            if (todoToMove) {
+                data.deleteTodoForDate(draggedTodoOriginalDate, droppedTodoId);
+                data.addTodoForDate(targetDate, todoToMove.text, todoToMove); // todoToMove에 color, importance 등 포함
+            }
         }
     }
-    // 모듈 스코프 변수 초기화는 각 아이템의 dragend에서 처리
 }
+
 
 /**
  * 같은 날짜 셀 내에서 할 일의 순서를 변경합니다.
@@ -363,7 +317,6 @@ function reorderTodoInCell(e, dayCell, droppedTodoId) {
     } else {
         newOrderedIds.push(droppedTodoId);
     }
-    data.reorderCalendarCellTodos(dayCell.dataset.date, newOrderedIds);
+    // [수정] dataManager의 새 함수 호출
+    data.reorderTodosForDate(dayCell.dataset.date, newOrderedIds);
 }
-
-
