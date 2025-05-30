@@ -6,6 +6,7 @@ import {
     getDayNameKO,
     isSameDate,
 } from "./uiUtils.js";
+import { navigate } from './spaRouter.js';
 
 let weeklyCalendarArea = null;
 const today = new Date();
@@ -22,9 +23,9 @@ export function renderWeeklyCalendar(weekStartDate) {
     weeklyCalendarArea.innerHTML = "";
 
     const header = document.createElement("header");
-    header.className = "mv-weekly-header"; // 접두사 적용
+    header.className = "mv-weekly-header";
     const grid = document.createElement("div");
-    grid.className = "mv-weekly-grid";   // 접두사 적용
+    grid.className = "mv-weekly-grid";
 
     const datesOfWeek = [];
     for (let i = 0; i < 7; i++) {
@@ -32,53 +33,52 @@ export function renderWeeklyCalendar(weekStartDate) {
         date.setDate(weekStartDate.getDate() + i);
         datesOfWeek.push(date);
         const dayHeaderEl = document.createElement("div");
-        dayHeaderEl.className = "mv-weekly-day-header"; // 접두사 적용
+        dayHeaderEl.className = "mv-weekly-day-header";
         dayHeaderEl.innerHTML = `${date.getDate()}<br>${getDayNameKO(date)}`;
-        if (isSameDate(date, today)) dayHeaderEl.style.color = "#007bff"; // 특정 스타일은 유지
+        if (isSameDate(date, today)) dayHeaderEl.style.color = "#007bff";
         header.appendChild(dayHeaderEl);
     }
 
     datesOfWeek.forEach((date) => {
         const dateStr = formatDate(date);
         const dayCell = document.createElement("div");
-        dayCell.className = "mv-weekly-day-cell"; // 접두사 적용
+        dayCell.className = "mv-weekly-day-cell";
         dayCell.dataset.date = dateStr;
-        if (isSameDate(date, today)) dayCell.classList.add("mv-today"); // 접두사 적용
+        if (isSameDate(date, today)) dayCell.classList.add("mv-today");
 
         const cellHeader = document.createElement("div");
-        cellHeader.className = "mv-weekly-cell-header"; // 접두사 적용
+        cellHeader.className = "mv-weekly-cell-header";
         const addTodoBtn = document.createElement("button");
-        addTodoBtn.className = "mv-add-todo-in-weekly"; // 접두사 적용
+        addTodoBtn.className = "mv-add-todo-in-weekly";
         addTodoBtn.textContent = "+";
         addTodoBtn.title = "Add Todo";
-        // addTodoBtn에 대한 이벤트 리스너는 mainViewHandler.js에서 DOM 생성 후 추가하는 것이 좋습니다.
-        // 여기서는 구조만 생성하고, 이벤트 리스너는 initMainCalendarView 내에서 위임하거나 직접 추가.
-        // 일단 기존 로직 유지하되, mainViewHandler에서 관리하는 activeEventListeners에 추가해야 함.
         addTodoBtn.addEventListener("click", (e) => handleAddTodoInWeekly(e, dateStr));
+        // mainViewHandler.js의 activeEventListeners에 이 리스너를 등록하는 것을 고려할 수 있습니다.
+        // 예를 들어, 이벤트를 버블링 시키거나, 콜백을 통해 mainViewHandler에서 등록합니다.
+        // 현재는 직접 부착합니다. cleanup 시 weeklyCalendarArea.innerHTML = "" 에 의해 제거됩니다.
         cellHeader.append(addTodoBtn);
 
         const cellContentContainer = document.createElement("div");
-        cellContentContainer.className = "mv-weekly-cell-content"; // 접두사 적용
+        cellContentContainer.className = "mv-weekly-cell-content";
         renderWeeklyDayCellContent(dateStr, cellContentContainer);
         
         dayCell.append(cellHeader, cellContentContainer);
-        // drag & drop 리스너들도 mainViewHandler에서 관리하거나, 여기서 추가 시 activeEventListeners에 등록
+        
         dayCell.addEventListener("dragover", handleCellDragOver);
         dayCell.addEventListener("dragleave", handleCellDragLeave);
         dayCell.addEventListener("drop", handleCellDrop);
+        dayCell.addEventListener("dblclick", handleWeeklyCellDoubleClick);
         grid.appendChild(dayCell);
     });
     weeklyCalendarArea.append(header, grid);
 }
 
 export function initWeeklyCalendar() {
-    weeklyCalendarArea = document.getElementById("weekly-calendar-area"); // 템플릿의 ID
+    weeklyCalendarArea = document.getElementById("weekly-calendar-area");
     if (!weeklyCalendarArea) {
         console.error("Weekly calendar area (id: weekly-calendar-area) not found!");
         return;
     }
-    // HTML 템플릿에서 <section id="weekly-calendar-area" class="mv-grid-area mv-weekly-view"> 로
-    // mv-weekly-view 클래스가 이미 적용되어 있다고 가정합니다.
     console.log("Weekly Calendar Initialized with area:", weeklyCalendarArea);
 }
 
@@ -286,3 +286,13 @@ function reorderTodoInCell(e, dayCell, droppedTodoId) {
     }
     data.reorderTodosForDate(dayCell.dataset.date, newOrderedIds);
 }
+
+function handleWeeklyCellDoubleClick(e) {
+    const cell = e.currentTarget; // 이벤트가 부착된 .mv-weekly-day-cell
+    const dateStr = cell.dataset.date;
+    if (dateStr) {
+        console.log(`[WeeklyCalendar] Cell double-clicked: ${dateStr}. Navigating to daily view...`);
+        navigate(`/daily/${dateStr}`); // Daily View로 이동
+    }
+}
+
