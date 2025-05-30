@@ -175,9 +175,9 @@ function handleDrop(e) {
   // [수정] 커스텀 데이터 타입을 확인
   if (e.dataTransfer.types.includes("application/x-backlog-source")) {
       e.preventDefault(); // 기본 동작 방지 및 이벤트 전파 중단 효과
-      const targetCell = e.target.closest(".day-cell-yearly");
+      const targetCell = e.target.closest(".mv-day-cell-yearly");
       if (targetCell) {
-          targetCell.classList.remove("drag-over");
+          targetCell.classList.remove("mv-drag-over");
 
           const todoId = e.dataTransfer.getData("text/plain"); // ID는 text/plain으로 가져옴
           const targetDate = targetCell.dataset.date;

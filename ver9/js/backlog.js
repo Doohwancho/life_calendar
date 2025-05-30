@@ -130,7 +130,7 @@ export function handleAddNewTodo() {
         addTodoFormContainer.style.display = "none"; // 폼 숨기기
         // renderBacklog(); // 데이터 변경 이벤트에 의해 renderBacklog가 호출될 것으로 예상
     } else {
-        alert("할 일 내용을 입력해주세요.");
+        // alert("할 일 내용을 입력해주세요.");
         newTodoTextInput.focus();
     }
 }
