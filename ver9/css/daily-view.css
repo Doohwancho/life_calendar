@@ -589,6 +589,27 @@ button.dv-routine-action-btn {
 .dv-color-option:hover::after{ content:attr(data-label);position:absolute;bottom:calc(100% + 5px);left:50%; transform:translateX(-50%);padding:5px 8px;background:rgba(0,0,0,.85);color:#fff; border-radius:4px;font-size:11px;white-space:nowrap;z-index:1001 }
 .dv-color-picker-popup .dv-save-btn { width:100%; padding:10px; font-size:0.9em; background-color: #28a745; border-color: #28a745; color: white; }
 .dv-color-picker-popup .dv-save-btn:hover { background-color: #218838; border-color: #1e7e34; }
+.dv-color-option-context-menu {
+    position: absolute; /* JS에서 pageX, pageY 기준으로 위치 설정 */
+    background-color: #ffffff;
+    border: 1px solid #cccccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding: 5px 0;
+    min-width: 80px; /* 최소 너비 */
+    z-index: 1002; /* 색상 추가 팝업(z-index:1000)보다 위에 오도록 */
+    font-size: 13px; /* 내부 폰트 크기 */
+}
+
+.dv-color-option-delete-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: #e74c3c; /* 삭제 텍스트는 빨간색 계열 */
+}
+
+.dv-color-option-delete-item:hover {
+    background-color: #f5f5f5;
+}
 .dv-modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background-color:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:2000;backdrop-filter:blur(3px);animation:dv-fadeIn .2s ease-out}
 .dv-modal-content{background-color:#fff;padding:20px 24px;border-radius:10px;width:90%;max-width:420px;min-height:200px;position:relative;box-shadow:0 5px 20px rgba(0,0,0,.2);animation:dv-slideIn .25s ease-out;color:#000;display:flex;flex-direction:column}
 .dv-editing-textarea{width:100%;flex-grow:1;border:1px solid #ccc;padding:10px;resize:vertical;font-family:inherit;font-size:1em;box-sizing:border-box;background-color:transparent;z-index:10;border-radius:4px;margin-bottom:15px}
