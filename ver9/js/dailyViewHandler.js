@@ -28,7 +28,6 @@ let localEventBus;
 let currentLoadedDate; // YYYY-MM-DD
 let selectedColor = 'rgb(255, 255, 255)';
 let savedColors = []; // 현재 월의 색상 팔레트
-let elapsedTimeIntervalId = null;
 
 const activeEventListeners = [];
 let activeColorOptionContextMenu = null; // 색상 옵션 삭제 컨텍스트 메뉴 DOM 요소
@@ -279,13 +278,13 @@ function setAllModuleData(daySpecificData = {}, monthSharedData = {}) {
 // function updateElapsedTimeBlocksInternal() { /* ... */ }
 
 // --- Daily View 초기화 함수 ---
-export async function initDailyDetailView(data, bus, params, query) {
+export async function initDailyDetailView(dataModule, busModule, params, query) {
     console.log(`[DailyViewHandler] Daily View 초기화 시작 for date: ${params.date}`);
-    localDataManager = data;
-    localEventBus = bus;
+    localDataManager = dataModule;
+    localEventBus = busModule;
     currentLoadedDate = params.date;
-    activeEventListeners.length = 0; 
-    removeColorOptionContextMenu(); 
+    activeEventListeners.length = 0;
+    removeColorOptionContextMenu();
 
     if (liveTimelineUpdateIntervalId) {
         clearInterval(liveTimelineUpdateIntervalId);
@@ -296,30 +295,27 @@ export async function initDailyDetailView(data, bus, params, query) {
 
     const yearMonth = currentLoadedDate.substring(0, 7);
     const settings = localDataManager.getSettings();
-    // dataManager로부터 해당 월의 전체 데이터 객체를 가져옴
-    const monthDataObject = localDataManager.getRawDailyDataForMonth(yearMonth) || 
-                          { 
-                              yearMonth, 
-                              routines: [], // 기본 빈 루틴 배열
-                              colorPalette: settings?.colorPalette || [], // 설정 우선, 없으면 빈 배열
-                              dailyData: {} 
+    const monthDataObject = localDataManager.getRawDailyDataForMonth(yearMonth) ||
+                          {
+                              yearMonth,
+                              routines: [],
+                              colorPalette: settings?.colorPalette || [],
+                              dailyData: {}
                           };
 
-    // 색상 팔레트 설정 (현재 월 데이터 우선, 없으면 전역 설정, 그것도 없으면 빈 배열)
-    savedColors = monthDataObject.colorPalette && monthDataObject.colorPalette.length > 0 
-                  ? [...monthDataObject.colorPalette] 
-                  : (settings?.colorPalette && settings.colorPalette.length > 0 ? [...settings.colorPalette] : []);
+    savedColors = monthDataObject.colorPalette && monthDataObject.colorPalette.length > 0
+                ? [...monthDataObject.colorPalette]
+                : (settings?.colorPalette && settings.colorPalette.length > 0 ? [...settings.colorPalette] : []);
     initializeColorPicker();
 
     const dataForThisDate = monthDataObject.dailyData?.[currentLoadedDate] || {};
-    setAllModuleData(dataForThisDate, monthDataObject); // 날짜별 데이터와 월별 공유 데이터(루틴, 팔레트 포함) 전달
+    setAllModuleData(dataForThisDate, monthDataObject);
 
-    // 각 하위 모듈 초기화
     if (typeof initProjectTodoApp === 'function') initProjectTodoApp('#project-todo-app-container', dataForThisDate.projectTodos || [], handleDataChange);
     if (typeof initTodoApp === 'function') initTodoApp('#todo-app-container', dataForThisDate.todos || [], handleDataChange);
-    if (typeof initRoutinesApp === 'function') initRoutinesApp('#routines-app-container', monthDataObject.routines || [], handleDataChange); // 월별 루틴 전달
+    if (typeof initRoutinesApp === 'function') initRoutinesApp('#routines-app-container', monthDataObject.routines || [], handleDataChange);
     if (typeof initDiaryApp === 'function') initDiaryApp('#diary-app-container', dataForThisDate.diary || {}, handleDataChange);
-    
+
     if (typeof initTimelines === 'function') {
         const timelineCallbacks = {
             getSelectedColor: () => selectedColor,
@@ -354,19 +350,16 @@ export async function initDailyDetailView(data, bus, params, query) {
 
         initTimelines(timeGridDomId, goalGridDomId, timelineCallbacks);
 
-        // ▼▼▼ THIS IS THE CRITICAL CHANGE ▼▼▼
-        if (typeof updatePassedTimeVisuals === 'function') { // Check for the NEW function
+        if (typeof updatePassedTimeVisuals === 'function') {
             const today = new Date();
             const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             const isCurrentViewToday = (currentLoadedDate === todayStr);
 
             const runLiveUpdates = () => {
-                updatePassedTimeVisuals(timeGridDomId, isCurrentViewToday); // Call the NEW function
-                updatePassedTimeVisuals(goalGridDomId, isCurrentViewToday); // Call the NEW function
+                updatePassedTimeVisuals(timeGridDomId, isCurrentViewToday);
+                updatePassedTimeVisuals(goalGridDomId, isCurrentViewToday);
             };
-
-            runLiveUpdates(); // Initial call
-
+            runLiveUpdates();
             if (isCurrentViewToday) {
                 if (liveTimelineUpdateIntervalId) clearInterval(liveTimelineUpdateIntervalId);
                 liveTimelineUpdateIntervalId = setInterval(runLiveUpdates, 60000);
@@ -378,20 +371,100 @@ export async function initDailyDetailView(data, bus, params, query) {
             }
         }
     }
-    
-    
+
     if (typeof initYearProgress === 'function') initYearProgress('#year-progress-header-container');
     if (typeof initDayProgress === 'function') initDayProgress('#day-progress-bar-host');
 
-    // 이벤트 리스너 (색상 선택기 팝업 외부 클릭)
-    // 이 리스너는 한번만 등록되어야 하며, cleanup 시 제거되어야 함.
     const existingDocClickListener = activeEventListeners.find(l => l.target === document && l.type === 'click' && l.handler === outsideColorPopupClickHandler);
     if (!existingDocClickListener) {
         document.addEventListener('click', outsideColorPopupClickHandler);
         activeEventListeners.push({ target: document, type: 'click', handler: outsideColorPopupClickHandler });
     }
-    
-    // elapsedTimeIntervalId = setInterval(updateElapsedTimeBlocksInternal, 60000);
+
+    // ▼▼▼ Cmd+S 핸들러 및 관련 함수 정의 (수정된 부분) ▼▼▼
+    async function handleSaveDataForCurrentDailyViewYear() {
+        if (typeof JSZip === 'undefined') {
+            alert("JSZip library is not loaded."); return;
+        }
+        if (!localDataManager || !currentLoadedDate) {
+            console.warn("[DailyViewHandler] Cannot save, localDataManager or currentLoadedDate missing.");
+            return;
+        }
+
+        const yearOfDailyView = parseInt(currentLoadedDate.substring(0, 4), 10);
+
+        console.log(`[DailyViewHandler] Attempting to save all data for year: ${yearOfDailyView} (like main view's Cmd+S)`);
+
+        let filesToSave;
+        // dataManager.js에 getSpecificYearDataForSave(year) 함수가 있다고 가정하고 호출
+        // 이 함수가 없다면, localDataManager.getCurrentYearDataForSave()를 호출하되,
+        // 이 함수가 yearOfDailyView 기준으로 데이터를 반환하도록 dataManager 내부 로직이 보장해야 함.
+        if (typeof localDataManager.getSpecificYearDataForSave === 'function') {
+            filesToSave = localDataManager.getSpecificYearDataForSave(yearOfDailyView);
+        } else if (typeof localDataManager.getCurrentYearDataForSave === 'function') {
+            // getSpecificYearDataForSave가 없다면, getCurrentYearDataForSave를 사용.
+            // 이 경우, getCurrentYearDataForSave가 Daily View의 현재 연도를 올바르게 인지하고
+            // 데이터를 반환한다고 가정해야 함. (예: dataManager 내부의 currentDisplayYear 상태가
+            // Daily View의 연도로 이미 설정되어 있는 경우)
+            // 이상적으로는 이전에 설명드린 것처럼 dataManager의 currentDisplayYear를 임시 변경/복원하거나,
+            // getCurrentYearDataForSave가 yearOfDailyView를 인지하도록 수정하는 것이 좋음.
+            console.warn("[DailyViewHandler] getSpecificYearDataForSave not found. Falling back to getCurrentYearDataForSave. Ensure it uses the correct year context for Daily View.");
+            filesToSave = localDataManager.getCurrentYearDataForSave();
+        } else {
+            console.error("Data saving function (getSpecificYearDataForSave or getCurrentYearDataForSave) is not available on localDataManager.");
+            alert("연도별 전체 저장 기능을 사용할 수 없습니다.");
+            return;
+        }
+
+        if (!filesToSave || filesToSave.length === 0) {
+             alert(`${yearOfDailyView}년에 저장할 데이터가 없습니다.`); return;
+        }
+
+        const zip = new JSZip();
+        // ZIP 파일 내에 최상위 폴더로 연도를 사용합니다. (mainViewHandler.js의 handleSaveCurrentYear와 동일한 구조)
+        const yearFolder = zip.folder(String(yearOfDailyView)); 
+
+        filesToSave.forEach(fileInfo => {
+            // fileInfo.filenameInZip은 "YYYY/YYYY.json" 또는 "YYYY/YYYY-MM.json" 형태일 것으로 예상.
+            // 여기서 연도 폴더는 이미 만들었으므로, 실제 파일명(YYYY.json 또는 YYYY-MM.json)만 필요.
+            const filenameParts = fileInfo.filenameInZip.split('/');
+            const filename = filenameParts.length > 1 ? filenameParts[1] : filenameParts[0];
+            yearFolder.file(filename, JSON.stringify(fileInfo.data, null, 2));
+        });
+
+        try {
+            const zipBlob = await zip.generateAsync({ type: "blob" });
+            const zipFilename = `backup_${yearOfDailyView}.zip`;
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(zipBlob);
+            link.download = zipFilename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+            
+            if (typeof localDataManager.clearAllDirtyFilesForYear === 'function') {
+                localDataManager.clearAllDirtyFilesForYear(yearOfDailyView);
+                console.log(`[DailyViewHandler] Data for year ${yearOfDailyView} saved and dirty flags for this year cleared.`);
+            } else {
+                console.warn(`[DailyViewHandler] clearAllDirtyFilesForYear method not found. Dirty flags for year ${yearOfDailyView} may not be cleared.`);
+            }
+        } catch (e) {
+            console.error(`Error generating ZIP for year ${yearOfDailyView}:`, e);
+            alert(`${yearOfDailyView}년 데이터 백업 파일 생성 중 오류가 발생했습니다.`);
+        }
+    }
+
+    const dailyViewKeydownHandler = (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            console.log('[DailyViewHandler] Ctrl+S pressed, initiating save for current daily view year.');
+            handleSaveDataForCurrentDailyViewYear(); // 수정된 저장 함수 호출
+        }
+    };
+    document.addEventListener('keydown', dailyViewKeydownHandler);
+    activeEventListeners.push({ target: document, type: 'keydown', handler: dailyViewKeydownHandler });
+    // ▲▲▲ Cmd+S 핸들러 및 관련 함수 정의 끝 ▲▲▲
 
     console.log('[DailyViewHandler] Daily View 초기화 완료');
 }
@@ -399,11 +472,6 @@ export async function initDailyDetailView(data, bus, params, query) {
 // --- Daily View 정리 함수 ---
 export function cleanupDailyDetailView() {
     console.log('[DailyViewHandler] Daily View 정리 시작');
-
-    if (elapsedTimeIntervalId) {
-        clearInterval(elapsedTimeIntervalId);
-        elapsedTimeIntervalId = null;
-    }
 
     if (liveTimelineUpdateIntervalId) {
         clearInterval(liveTimelineUpdateIntervalId);

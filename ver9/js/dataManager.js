@@ -552,19 +552,72 @@ export function moveBacklogTodoToCalendar(todoId, targetDate) {
   updateDailyData(yearMonth, monthData); // 수정된 monthData 객체 전체를 저장
 }
 
-// --- (기타 Label, Event, CalendarCellTodos(이제 사용 안함) 관련 함수들은 위에서 이미 수정되었거나,
-//      yearlyData를 직접 다루므로 대부분 변경 불필요) ---
+// dataManager.js 에 추가할 함수 (예시)
+export function getSpecificYearDataForSave(yearToSave) {
+    const year = parseInt(yearToSave, 10);
+    const files = [];
 
-// loadAllData 함수는 이제 거의 사용되지 않을 수 있음 (연간 ZIP 백업/복원으로 대체)
-// 만약 여전히 단일 파일 전체 로드 기능을 유지한다면, 해당 파일이 yearlyData만 포함하는지,
-// 아니면 모든 월별 데이터도 포함하는지에 따라 로직 수정 필요.
-// 현재는 yearlyData만 처리하도록 되어 있음.
+    // 1. 해당 연도의 Yearly Data 저장
+    // state.yearlyData가 현재 로드된 연도와 다를 수 있으므로,
+    // 이 연도 데이터를 직접 로드하거나 접근하는 방식이 필요.
+    // 여기서는 일단 state.yearlyData가 target year의 데이터라고 가정하지 않고,
+    // dirtyFileService나 fetch를 통해 해당 연도의 데이터를 가져오는 로직이 필요할 수 있음.
+    // 하지만 현재 getCurrentYearDataForSave는 state.yearlyData를 직접 사용하므로,
+    // state.yearlyData가 yearToSave의 데이터여야 함.
 
-// moveCalendarTodoToDate, addCalendarTodo, deleteCalendarTodo, updateCalendarTodoText,
-// reorderCalendarCellTodos 함수들은 이전 state.yearlyData.calendarCellTodos를 사용하던 방식입니다.
-// 이 방식 대신 Day-specific todos (addTodoForDate 등)를 사용하는 것이 현재 구조에 더 맞습니다.
-// 만약 calendarCellTodos를 계속 사용해야 한다면, 해당 데이터 구조를 yearlyData 내에 유지하고,
-// dirty marking 및 저장 로직을 확인해야 합니다.
-// 여기서는 Daily View todos로 통합되었다고 가정하고, 위의 calendarCellTodos 관련 함수들은
-// 실제 사용되지 않거나, Day-specific todos를 다루도록 수정되어야 합니다.
-// (제공된 코드에서는 여전히 calendarCellTodos 관련 함수들이 존재하여 혼란을 줄 수 있습니다.)
+    // 더 간단하게는, getCurrentYearDataForSave의 로직을 복제하되,
+    // state.view.currentDisplayYear 대신 yearToSave를 사용하는 것.
+
+    const yearlyIdentifier = `${year}/${year}.json`;
+    const currentYearlyData = state.yearlyData && state.yearlyData.year === year ? state.yearlyData : dirtyFileService.getDirtyFileData(yearlyIdentifier);
+    // 만약 dirty에도 없고 state.yearlyData도 해당 연도가 아니면, fetch로 가져와야 할 수도 있음.
+    // 여기서는 dirty에 있거나, 현재 로드된 state.yearlyData가 마침 해당 연도인 경우를 가정.
+    // 가장 확실한 방법은 loadDataForYear(year)를 호출하여 state를 해당 연도로 맞추고 시작하는 것이지만,
+    // Cmd+S가 UI 변경 없이 백그라운드 저장하는 느낌이라면 부적절.
+
+    if (currentYearlyData) { // 또는 fetch로 가져온 데이터
+        files.push({
+            filenameInZip: `${year}/${year}.json`,
+            data: {
+                year: currentYearlyData.year || year,
+                labels: currentYearlyData.labels || [],
+                events: currentYearlyData.events || [],
+                backlogTodos: currentYearlyData.backlogTodos || []
+            }
+        });
+    } else {
+        // 해당 연도 파일이 아예 존재하지 않을 수도 있음 (새로운 연도 작업 시작 전)
+        // 이 경우 빈 구조라도 저장할지, 아니면 yearly는 건너뛸지 정책 필요.
+        // 여기서는 getCurrentYearDataForSave()와 유사하게, 데이터가 있으면 저장.
+    }
+
+
+    // 2. 해당 연도의 모든 Monthly Data 저장
+    for (let i = 1; i <= 12; i++) {
+        const month = String(i).padStart(2, '0');
+        const yearMonthKey = `${year}-${month}`;
+        const dailyFileIdentifier = `${year}/${yearMonthKey}.json`;
+        
+        // dirtyFileService에서 먼저 확인, 없으면 state.dailyData에서 확인
+        let monthDataObject = dirtyFileService.getDirtyFileData(dailyFileIdentifier);
+        if (!monthDataObject && state.dailyData.has(yearMonthKey)) {
+            // state.dailyData.get(yearMonthKey)는 이미 로드된 데이터.
+            // dirty가 아니라도 전체 저장 시에는 포함해야 함.
+            monthDataObject = state.dailyData.get(yearMonthKey);
+        }
+
+        if (monthDataObject) {
+            const dataToSave = {
+                yearMonth: monthDataObject.yearMonth || yearMonthKey,
+                routines: monthDataObject.routines || [],
+                colorPalette: monthDataObject.colorPalette || [],
+                dailyData: monthDataObject.dailyData || {}
+            };
+            files.push({
+                filenameInZip: `${year}/${yearMonthKey}.json`,
+                data: dataToSave
+            });
+        }
+    }
+    return files;
+}
