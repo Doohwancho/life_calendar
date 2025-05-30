@@ -27,6 +27,13 @@ function createRoutineRowElement(routineItem) {
         tr.draggable = true;
     }
 
+    const handleKeydownForSave = (e) => {
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault(); // 기본 동작 (예: textarea 줄바꿈) 방지
+            confirmAndSaveRoutineEdit(routineItem.id, tr);
+        }
+    };
+
     // Drag and Drop event listeners for the row (tr)
     tr.addEventListener('dragstart', (e) => {
         if (isEditingThisRow) { e.preventDefault(); return; }
@@ -98,9 +105,11 @@ function createRoutineRowElement(routineItem) {
         draggedRoutine = null;
     });
 
+    const tdTimeOfDay = document.createElement('td');
+    const tdActivity = document.createElement('td');
+    const tdMemo = document.createElement('td');
 
     // Column 1-1: Time of Day
-    const tdTimeOfDay = document.createElement('td');
     if (isEditingThisRow) {
         const select = document.createElement('select');
         select.className = 'dv-routine-edit-timeofday'; // << 수정됨
@@ -111,33 +120,27 @@ function createRoutineRowElement(routineItem) {
             select.appendChild(opt);
         });
         tdTimeOfDay.appendChild(select);
-    } else {
-        tdTimeOfDay.textContent = routineItem.timeOfDay;
-    }
+        select.addEventListener('keydown', handleKeydownForSave); // 리스너 추가
 
-    // Column 1-2: Activity
-    const tdActivity = document.createElement('td');
-    if (isEditingThisRow) {
         const input = document.createElement('input');
         input.type = 'text'; input.className = 'dv-routine-edit-activity'; // << 수정됨
         input.value = originalEditingRoutineData?.activity || routineItem.activity;
         input.placeholder = '활동 내용';
         tdActivity.appendChild(input);
-    } else {
-        tdActivity.textContent = routineItem.activity;
-    }
+        input.addEventListener('keydown', handleKeydownForSave);
 
-    // Column 2: Memo
-    const tdMemo = document.createElement('td');
-    if (isEditingThisRow) {
         const textarea = document.createElement('textarea');
         textarea.className = 'dv-routine-edit-memo'; // << 수정됨
         textarea.value = originalEditingRoutineData?.memo || routineItem.memo;
         textarea.placeholder = '메모'; textarea.rows = 2;
         tdMemo.appendChild(textarea);
+        textarea.addEventListener('keydown', handleKeydownForSave);
     } else {
+        tdTimeOfDay.textContent = routineItem.timeOfDay;
+        tdActivity.textContent = routineItem.activity;
         tdMemo.textContent = routineItem.memo;
     }
+
 
     tr.appendChild(tdTimeOfDay);
     tr.appendChild(tdActivity);
@@ -317,3 +320,53 @@ export function setRoutinesDataAndRender(newData) {
 export function getRoutinesData() {
     return JSON.parse(JSON.stringify(routines));
 }
+
+function confirmAndSaveRoutineEdit(routineIdToConfirm, rowElement) {
+    const activityInput = rowElement.querySelector('.dv-routine-edit-activity');
+    const timeOfDaySelect = rowElement.querySelector('.dv-routine-edit-timeofday');
+    const memoTextarea = rowElement.querySelector('.dv-routine-edit-memo');
+
+    if (!activityInput || !timeOfDaySelect || !memoTextarea) {
+        console.error("Editing elements not found in row for routine:", routineIdToConfirm);
+        return; // 필요한 입력 요소가 없으면 중단
+    }
+
+    const activity = activityInput.value.trim();
+    const timeOfDay = timeOfDaySelect.value;
+    const memo = memoTextarea.value.trim();
+
+    if (!activity) {
+        alert("활동 내용은 비워둘 수 없습니다.");
+        activityInput.focus();
+        return;
+    }
+
+    const existingRoutine = routines.find(r => r.id === routineIdToConfirm);
+
+    if (existingRoutine) { // 기존 루틴 수정
+        existingRoutine.timeOfDay = timeOfDay;
+        existingRoutine.activity = activity;
+        existingRoutine.memo = memo;
+    } else if (originalEditingRoutineData && originalEditingRoutineData.id === routineIdToConfirm) { // 새 루틴 추가
+        const newRoutine = {
+            id: originalEditingRoutineData.id, // init 시 생성된 ID 사용
+            timeOfDay: timeOfDay,
+            activity: activity,
+            memo: memo
+        };
+        routines.push(newRoutine);
+    } else {
+        console.error("Failed to find routine to save or original data for new routine:", routineIdToConfirm);
+        // 상태 초기화 및 UI 재렌더링으로 오류 상황 복구 시도
+        editingRoutineId = null;
+        originalEditingRoutineData = null;
+        renderRoutinesTableInternal();
+        return;
+    }
+
+    editingRoutineId = null;
+    originalEditingRoutineData = null;
+    saveRoutinesToLocalBackup();
+    renderRoutinesTableInternal();
+}
+
