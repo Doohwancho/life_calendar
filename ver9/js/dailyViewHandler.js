@@ -59,17 +59,15 @@ function displayCurrentDate(dateStr) {
 
 function initializeColorPicker() {
     const colorPicker = document.getElementById('colorPicker');
-    const addColorBtn = document.getElementById('addColorBtn');
-    if (!colorPicker || !addColorBtn) return;
+    const addColorBtnOriginal = document.getElementById('addColorBtn'); // 원본 버튼 참조
+    if (!colorPicker || !addColorBtnOriginal) return;
 
-    // 기존 옵션 제거 (이벤트 리스너도 함께 제거되도록 주의)
-    const existingOptions = colorPicker.querySelectorAll('.dv-color-option'); // CSS 접두사 사용 가정
+    const existingOptions = colorPicker.querySelectorAll('.dv-color-option');
     existingOptions.forEach(opt => opt.remove());
 
-    // 새로운 옵션 추가 (savedColors 기반)
     savedColors.forEach(({ color, label }) => {
         const colorOption = document.createElement('div');
-        colorOption.className = 'dv-color-option'; // CSS 접두사 사용 가정
+        colorOption.className = 'dv-color-option';
         colorOption.style.backgroundColor = color;
         colorOption.dataset.label = label;
         
@@ -77,54 +75,114 @@ function initializeColorPicker() {
             e.stopPropagation();
             selectedColor = color;
             if (typeof applySelectedColorToCurrentlyEditingCell === 'function') {
-                applySelectedColorToCurrentlyEditingCell(); // timelines.js의 함수
+                applySelectedColorToCurrentlyEditingCell();
             }
         };
         colorOption.addEventListener('click', colorOptionClickHandler);
         activeEventListeners.push({ element: colorOption, type: 'click', handler: colorOptionClickHandler });
-        colorPicker.insertBefore(colorOption, addColorBtn);
+        // addColorBtnOriginal 대신, 동적으로 생성된 버튼이 있다면 그 버튼을 기준으로 insertBefore 해야 함
+        // 또는, addColorBtn은 항상 마지막에 있도록 colorPicker.appendChild(colorOption) 사용 후, 
+        // addColorBtn을 마지막으로 다시 append 하거나, CSS로 order 조정
+        const addColorBtnCurrent = document.getElementById('addColorBtn'); // 매번 최신 addColorBtn 참조
+        colorPicker.insertBefore(colorOption, addColorBtnCurrent);
     });
 
-    // Add 버튼 이벤트 리스너 (중복 방지 위해 기존 것 제거 후 새로 추가)
-    const newAddColorBtn = addColorBtn.cloneNode(true);
-    addColorBtn.parentNode.replaceChild(newAddColorBtn, addColorBtn);
-    const toggleColorPopupHandler = (e) => { // 익명 함수 대신 이름 있는 함수로
+    // 'Add Color' 버튼 (+ 모양) 이벤트 리스너 (중복 방지 위해 기존 것 제거 후 새로 추가)
+    // cloneNode를 사용하여 기존 리스너를 확실히 제거하고 새 리스너를 할당
+    const newAddColorBtn = addColorBtnOriginal.cloneNode(true);
+    addColorBtnOriginal.parentNode.replaceChild(newAddColorBtn, addColorBtnOriginal);
+    
+    const toggleColorPopupHandler = (e) => {
         e.stopPropagation();
-        document.getElementById('colorPickerPopup')?.classList.toggle('dv-show'); // CSS 접두사 사용 가정
-        const colorLabelInput = document.getElementById('colorLabel');
-        if (colorLabelInput) colorLabelInput.value = '';
+        const popup = document.getElementById('colorPickerPopup');
+        if (popup) {
+            popup.classList.toggle('dv-show');
+            const colorLabelInput = document.getElementById('colorLabel');
+            if (colorLabelInput) {
+                colorLabelInput.value = ''; // 팝업 열 때 라벨 입력 필드 초기화
+                if (popup.classList.contains('dv-show')) {
+                    colorLabelInput.focus(); // 팝업 보일 때 라벨 입력에 포커스
+                }
+            }
+            // 컬러 피커 기본값 설정 (선택 사항)
+            const colorInput = document.getElementById('colorInput');
+            if(colorInput && !popup.classList.contains('dv-show')) { // 팝업 닫힐때는 유지, 열릴때만
+                 // colorInput.value = '#RRGGBB'; // 기본 색상 설정
+            }
+        }
     };
     newAddColorBtn.addEventListener('click', toggleColorPopupHandler);
     activeEventListeners.push({ element: newAddColorBtn, type: 'click', handler: toggleColorPopupHandler });
 
+    // 'Save Color' 버튼 (팝업 내부 저장 버튼) 이벤트 리스너
+    const saveColorBtnOriginal = document.getElementById('saveColorBtn');
+    const colorLabelInput = document.getElementById('colorLabel'); // 라벨 입력 필드
+    const colorInput = document.getElementById('colorInput');         // 색상 선택 input
 
-    const saveColorBtn = document.getElementById('saveColorBtn');
-    if (saveColorBtn) {
-        const newSaveColorBtn = saveColorBtn.cloneNode(true);
-        saveColorBtn.parentNode.replaceChild(newSaveColorBtn, saveColorBtn);
-        const handleSaveNewColorOptionHandler = () => { // 익명 함수 대신 이름 있는 함수로
+    if (saveColorBtnOriginal && colorLabelInput && colorInput) {
+        const newSaveColorBtn = saveColorBtnOriginal.cloneNode(true);
+        saveColorBtnOriginal.parentNode.replaceChild(newSaveColorBtn, saveColorBtnOriginal);
+        
+        const handleSaveNewColorAction = () => { // 실제 저장 로직 함수화
             if (!localDataManager) return;
-            const colorInput = document.getElementById('colorInput');
-            const colorLabelInput = document.getElementById('colorLabel'); // 변수명 변경
-            const newColor = colorInput.value;
-            const newLabel = colorLabelInput.value.trim() || newColor;
+            
+            const newSelectedColor = colorInput.value;
+            const newLabel = colorLabelInput.value.trim() || newSelectedColor; // 라벨 없으면 색상 코드로
 
-            if (!savedColors.some(c => c.color.toLowerCase() === newColor.toLowerCase())) {
-                savedColors.push({ color: newColor, label: newLabel });
-                initializeColorPicker(); // 재귀 호출이 아닌, 팔레트 UI만 업데이트
+            if (!savedColors.some(c => c.color.toLowerCase() === newSelectedColor.toLowerCase())) {
+                savedColors.push({ color: newSelectedColor, label: newLabel });
                 
-                // 월별 데이터에 팔레트 저장
+                // initializeColorPicker()를 직접 다시 호출하면 리스너가 중첩될 수 있으므로,
+                // UI의 color option 부분만 업데이트하거나, 전체 UI를 다시 그리는 더 큰 함수를 호출.
+                // 여기서는 colorPicker 내부만 다시 그리는 것으로 단순화 (addBtn은 이미 newAddColorBtn으로 교체됨)
+                const tempAddBtn = colorPicker.querySelector('#addColorBtn'); // 현재 addColorBtn 위치 기억
+                const optsToRemove = colorPicker.querySelectorAll('.dv-color-option');
+                optsToRemove.forEach(opt => opt.remove());
+                savedColors.forEach(({ color, label }) => {
+                    const colorOption = document.createElement('div');
+                    colorOption.className = 'dv-color-option';
+                    colorOption.style.backgroundColor = color;
+                    colorOption.dataset.label = label;
+                    const optClickHandler = (e) => { e.stopPropagation(); selectedColor = color; if (typeof applySelectedColorToCurrentlyEditingCell === 'function') applySelectedColorToCurrentlyEditingCell(); };
+                    colorOption.addEventListener('click', optClickHandler);
+                    activeEventListeners.push({ element: colorOption, type: 'click', handler: optClickHandler }); // 새로 생성된 옵션도 추적
+                    if (tempAddBtn) colorPicker.insertBefore(colorOption, tempAddBtn);
+                    else colorPicker.appendChild(colorOption); // fallback
+                });
+
                 const yearMonth = currentLoadedDate.substring(0, 7);
-                // 직접 dataManager의 state를 수정하지 않고, get/update 메서드 사용
-                const monthData = JSON.parse(JSON.stringify(localDataManager.getRawDailyDataForMonth(yearMonth) || { yearMonth, dailyData: {} }));
-                monthData.colorPalette = [...savedColors]; // 복사본 저장
+                const monthData = JSON.parse(JSON.stringify(localDataManager.getRawDailyDataForMonth(yearMonth) || { yearMonth, dailyData: {} , colorPalette: []}));
+                monthData.colorPalette = [...savedColors];
                 localDataManager.updateDailyData(yearMonth, monthData);
             }
             document.getElementById('colorPickerPopup')?.classList.remove('dv-show');
-            // handleDataChange(); // updateDailyData가 dataChanged 이벤트를 발생시키므로 중복 호출 방지
         };
-        newSaveColorBtn.addEventListener('click', handleSaveNewColorOptionHandler);
-        activeEventListeners.push({ element: newSaveColorBtn, type: 'click', handler: handleSaveNewColorOptionHandler });
+
+        newSaveColorBtn.addEventListener('click', handleSaveNewColorAction);
+        activeEventListeners.push({ element: newSaveColorBtn, type: 'click', handler: handleSaveNewColorAction });
+
+        const colorLabelKeydownHandler = (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault(); // 기본 엔터 동작 방지
+                handleSaveNewColorAction(); // 저장 로직 실행
+            }
+        };
+        // 라벨 입력 필드는 cloneNode 하지 않았으므로 직접 리스너 추가
+        // (만약 다른 곳에서 colorLabelInput도 cloneNode 한다면, 클론된 노드에 리스너를 달아야 함)
+        colorLabelInput.removeEventListener('keydown', colorLabelKeydownHandler); // 기존 리스너 제거 (중복 방지)
+        colorLabelInput.addEventListener('keydown', colorLabelKeydownHandler);
+        activeEventListeners.push({ element: colorLabelInput, type: 'keydown', handler: colorLabelKeydownHandler });
+
+        // (선택 사항) 색상 선택 input에서도 Enter 키 입력 시 저장 (라벨이 비어있으면 색상 코드가 라벨이 됨)
+        const colorInputKeydownHandler = (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                handleSaveNewColorAction();
+            }
+        };
+        colorInput.removeEventListener('keydown', colorInputKeydownHandler); // 기존 리스너 제거 (중복 방지)
+        colorInput.addEventListener('keydown', colorInputKeydownHandler);
+        activeEventListeners.push({ element: colorInput, type: 'keydown', handler: colorInputKeydownHandler });
     }
 }
 
