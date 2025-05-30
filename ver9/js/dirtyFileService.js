@@ -173,7 +173,7 @@ export async function triggerPartialSave() {
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
 
-        alert(`변경사항이 ${zipFilename}으로 저장(다운로드)되었습니다.`);
+        // alert(`변경사항이 ${zipFilename}으로 저장(다운로드)되었습니다.`);
         clearAllDirtyFiles();
     } catch (e) {
         console.error("Error generating ZIP file:", e);

@@ -193,7 +193,7 @@ async function handleSaveCurrentYear() {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
-        alert(`${currentYear}년의 데이터가 ${zipFilename}으로 저장(다운로드)되었습니다.`);
+        // alert(`${currentYear}년의 데이터가 ${zipFilename}으로 저장(다운로드)되었습니다.`);
         data.clearAllDirtyFilesForYear(currentYear);
     } catch (e) {
         console.error("Error generating yearly backup ZIP:", e);
@@ -211,9 +211,9 @@ function handleLoadYearlyData(event) {
         alert("올바른 형식의 연간 백업 파일이 아닙니다. (예: backup_YYYY.zip)"); return;
     }
     const year = parseInt(yearMatch[1], 10);
-    if (!confirm(`${year}년 데이터를 불러오면 현재 ${year}년의 모든 내용이 덮어써집니다. 계속하시겠습니까?`)) {
-        event.target.value = ""; return;
-    }
+    // if (!confirm(`${year}년 데이터를 불러오면 현재 ${year}년의 모든 내용이 덮어써집니다. 계속하시겠습니까?`)) {
+    //     event.target.value = ""; return;
+    // }
     const reader = new FileReader();
     reader.onload = async (e_reader) => {
         try {
