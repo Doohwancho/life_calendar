@@ -197,27 +197,43 @@ export function getCurrentYearDataForSave() {
  * 불러온 연간 백업 데이터로 특정 연도 데이터를 덮어쓰기
  */
 export function loadYearFromBackup(year, filesData) {
+  // 현재 표시 연도와 백업 연도가 다르면, 기존 메모리 내 데이터 초기화
   if (state.view.currentDisplayYear !== year) {
       state.yearlyData = null;
       state.dailyData.clear();
       state.view.currentDisplayYear = year;
+  } else {
+      // 같은 연도 데이터를 덮어쓰는 경우에도, 기존 dailyData는 비워주는 것이 안전
+      state.dailyData.clear();
   }
+
   filesData.forEach(fileInfo => {
       const { filenameInZip, data } = fileInfo;
+
       if (filenameInZip === `${year}/${year}.json`) {
           state.yearlyData = data;
-          // 백업 파일에 backlogTodos가 없을 경우 대비
           if (state.yearlyData && !state.yearlyData.backlogTodos) {
               state.yearlyData.backlogTodos = [];
           }
+          dirtyFileService.markFileAsDirty(filenameInZip, state.yearlyData);
       } else if (filenameInZip.startsWith(`${year}/${year}-`)) {
-          const key = filenameInZip.replace(`${year}/`, '').replace('.json', '');
+          const key = filenameInZip.replace(`${year}/`, '').replace('.json', ''); // 예: "2025-05"
           state.dailyData.set(key, data);
+          dirtyFileService.markFileAsDirty(filenameInZip, data);
       }
   });
-  eventBus.dispatch('dataChanged', { source: 'fileLoad' });
-  clearAllDirtyFilesForYear(year);
+
+  // Settings는 ZIP에 포함되지 않았으므로, settings.json을 dirty로 만들 필요는 없습니다.
+  // 만약 settings도 ZIP에 포함하고 로드한다면, 여기서 settings.json도 dirty로 마킹해야 합니다.
+
+  eventBus.dispatch('dataChanged', { source: 'fileLoad', yearLoaded: year }); // 어떤 연도가 로드되었는지 정보 추가
+  
+  // ZIP 로드 후에는 해당 연도의 dirty 파일 상태는 LocalStorage의 내용으로 "깨끗해진" 것이므로,
+  // clearAllDirtyFilesForYear를 호출할 필요가 없습니다.
+  // 오히려 호출하면 방금 dirty로 마킹한 것을 지우게 됩니다.
+  // clearAllDirtyFilesForYear(year); // <--- 이 줄은 주석 처리하거나 삭제해야 합니다.
 }
+
 
 
 export function clearAllDirtyFilesForYear(year) {

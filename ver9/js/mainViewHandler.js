@@ -414,13 +414,21 @@ export async function initMainCalendarView(dataModule, eventBusModule, params, q
     
     // 5. 초기 데이터 로드 및 UI 업데이트
     const yearToLoad = parseInt(params?.year, 10) || data.getState().currentDisplayYear || new Date().getFullYear();
-        
+    const currentState = data.getState(); // 현재 상태 가져오기
+
     // ▼▼▼ [수정된 조건문] ▼▼▼
-    const state = data.getState(); // 최신 상태를 가져옵니다.
-    if (state.currentDisplayYear !== yearToLoad || !state.yearlyData || !state.yearlyData[yearToLoad]) {
+    // 1. 현재 dataManager에 설정된 연도(currentState.currentDisplayYear)가 불러오려는 연도(yearToLoad)와 다른 경우
+    // 2. 또는, yearlyData 객체 자체가 없는 경우 (앱 최초 실행 등)
+    // 3. 또는, yearlyData 객체는 있지만 그 안의 year 속성이 불러오려는 연도(yearToLoad)와 다른 경우 (예: 다른 연도 데이터가 로드된 상태)
+    if (currentState.currentDisplayYear !== yearToLoad || 
+        !currentState.yearlyData || 
+        (currentState.yearlyData && currentState.yearlyData.year !== yearToLoad)
+    ) {
+        console.log(`[MainViewHandler] 데이터 로드 필요: yearToLoad=${yearToLoad}, currentDisplayYear=${currentState.currentDisplayYear}, yearlyData.year=${currentState.yearlyData?.year}`);
         await data.loadDataForYear(yearToLoad); // dataChanged 이벤트를 발생시켜 UI 렌더링
     } else {
-        // 현재 표시 연도와 불러올 연도가 같고, 해당 연도의 데이터가 이미 yearlyData에 존재하는 경우
+        // 이미 해당 연도의 데이터가 로드되어 있는 경우
+        console.log(`[MainViewHandler] ${yearToLoad}년 데이터 이미 로드됨. 기존 데이터로 UI 렌더링.`);
         dataChangedHandler({ source: 'initMainViewWithExistingData' }); // 이미 데이터 있으면 UI만 다시 그림
     }
 
