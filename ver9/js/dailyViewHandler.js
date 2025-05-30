@@ -17,7 +17,8 @@ import {
     setTimelineGoalDataAndRender,
     applySelectedColorToCurrentlyEditingCell,
     getScheduledTasksData,
-    setScheduledTasksDataAndRender
+    setScheduledTasksDataAndRender,
+    updatePassedTimeVisuals
 } from '../daily_view/timelines.js';
 import { initDiaryApp, getDiaryData, setDiaryDataAndRender as setAndRenderDiary } from '../daily_view/diary.js';
 
@@ -31,6 +32,8 @@ let elapsedTimeIntervalId = null;
 
 const activeEventListeners = [];
 let activeColorOptionContextMenu = null; // 색상 옵션 삭제 컨텍스트 메뉴 DOM 요소
+
+let liveTimelineUpdateIntervalId = null;
 
 // --- Helper Functions ---
 
@@ -284,6 +287,11 @@ export async function initDailyDetailView(data, bus, params, query) {
     activeEventListeners.length = 0; 
     removeColorOptionContextMenu(); 
 
+    if (liveTimelineUpdateIntervalId) {
+        clearInterval(liveTimelineUpdateIntervalId);
+        liveTimelineUpdateIntervalId = null;
+    }
+
     displayCurrentDate(currentLoadedDate);
 
     const yearMonth = currentLoadedDate.substring(0, 7);
@@ -312,13 +320,65 @@ export async function initDailyDetailView(data, bus, params, query) {
     if (typeof initRoutinesApp === 'function') initRoutinesApp('#routines-app-container', monthDataObject.routines || [], handleDataChange); // 월별 루틴 전달
     if (typeof initDiaryApp === 'function') initDiaryApp('#diary-app-container', dataForThisDate.diary || {}, handleDataChange);
     
-    const timelineCallbacks = {
-        getSelectedColor: () => selectedColor,
-        onTimeGridDataChange: () => {
-            handleDataChange();
+    if (typeof initTimelines === 'function') {
+        const timelineCallbacks = {
+            getSelectedColor: () => selectedColor,
+            isDarkColor: (color) => {
+                if (!color) return false;
+                const rgbMatch = String(color).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                if (!rgbMatch) {
+                    if (color.startsWith('#')) {
+                        let hex = color.slice(1);
+                        if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+                        if (hex.length === 6) {
+                            const r = parseInt(hex.substring(0, 2), 16);
+                            const g = parseInt(hex.substring(2, 4), 16);
+                            const b = parseInt(hex.substring(4, 6), 16);
+                            return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+                        }
+                    }
+                    return false;
+                }
+                const [r, g, b] = [parseInt(rgbMatch[1]), parseInt(rgbMatch[2]), parseInt(rgbMatch[3])];
+                return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+            },
+            normalizeColor: (color) => {
+                return color;
+            },
+            onTimeGridDataChange: () => {
+                handleDataChange();
+            }
+        };
+        const timeGridDomId = 'timeGridDOM';
+        const goalGridDomId = 'goalTimeGridDOM';
+
+        initTimelines(timeGridDomId, goalGridDomId, timelineCallbacks);
+
+        // ▼▼▼ THIS IS THE CRITICAL CHANGE ▼▼▼
+        if (typeof updatePassedTimeVisuals === 'function') { // Check for the NEW function
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const isCurrentViewToday = (currentLoadedDate === todayStr);
+
+            const runLiveUpdates = () => {
+                updatePassedTimeVisuals(timeGridDomId, isCurrentViewToday); // Call the NEW function
+                updatePassedTimeVisuals(goalGridDomId, isCurrentViewToday); // Call the NEW function
+            };
+
+            runLiveUpdates(); // Initial call
+
+            if (isCurrentViewToday) {
+                if (liveTimelineUpdateIntervalId) clearInterval(liveTimelineUpdateIntervalId);
+                liveTimelineUpdateIntervalId = setInterval(runLiveUpdates, 60000);
+            } else {
+                if (liveTimelineUpdateIntervalId) {
+                    clearInterval(liveTimelineUpdateIntervalId);
+                    liveTimelineUpdateIntervalId = null;
+                }
+            }
         }
-    };
-    if (typeof initTimelines === 'function') initTimelines('timeGridDOM', 'goalTimeGridDOM', timelineCallbacks);
+    }
+    
     
     if (typeof initYearProgress === 'function') initYearProgress('#year-progress-header-container');
     if (typeof initDayProgress === 'function') initDayProgress('#day-progress-bar-host');
@@ -343,6 +403,11 @@ export function cleanupDailyDetailView() {
     if (elapsedTimeIntervalId) {
         clearInterval(elapsedTimeIntervalId);
         elapsedTimeIntervalId = null;
+    }
+
+    if (liveTimelineUpdateIntervalId) {
+        clearInterval(liveTimelineUpdateIntervalId);
+        liveTimelineUpdateIntervalId = null;
     }
 
     removeColorOptionContextMenu(); // 컨텍스트 메뉴 및 관련 window 리스너 제거

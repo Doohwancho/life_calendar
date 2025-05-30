@@ -530,6 +530,7 @@ button.dv-routine-action-btn {
     gap: 1px; background-color: #dde1e6;
     width: 100%; border: 1px solid #c5cdd3;
     border-radius: 4px; overflow: hidden;
+    position: relative; /* 자식 absolute 요소들의 기준점 */
 }
 .dv-grid-container .dv-header-cell,
 .dv-grid-container .dv-time-cell {
@@ -550,13 +551,13 @@ button.dv-routine-action-btn {
 }
 .dv-task-overlay-container {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-    pointer-events: none;
+    pointer-events: none; z-index: 5;
 }
 .dv-scheduled-task-segment-overlay {
     position: absolute; padding: 2px 0px 2px 4px; box-sizing: border-box;
     border: 3px solid #f7a6a6; background-color: rgba(247, 166, 166, 0.3);
     display: flex; align-items: center; overflow: hidden; font-size: 0.75em;
-    border-radius: 3px; pointer-events: auto; cursor: default; z-index: 5;
+    border-radius: 3px; pointer-events: auto; cursor: default; z-index: 6;
 }
 .dv-scheduled-task-text {
     flex-grow: 1; white-space: nowrap; overflow: hidden;
@@ -626,3 +627,29 @@ button.dv-routine-action-btn {
 .dv-diary-section textarea { width: 100%; flex-grow: 1; border: 1px solid #d2d6dc; border-radius: 4px; padding: 10px 12px; font-size: 15px; line-height: 1.7; resize: none; box-sizing: border-box; background-color: #fdfdfd; color: #333; }
 .dv-diary-section textarea::placeholder { color: #a0aec0; font-style: italic; }
 .dv-diary-section textarea:focus { border-color: #66afe9; box-shadow: 0 0 0 0.2rem rgba(102, 175, 233, 0.25); outline: none; }
+.dv-current-time-indicator {
+    position: absolute;
+    /* top: 0;  */
+    /* left: 0;  */
+    width: 2px;
+    /* height: 100%;  */
+    background-color: red;
+    z-index: 10; 
+    pointer-events: none;
+    display: none; /* JS로 표시/숨김 제어 */
+}
+.dv-grid-cell.dv-passed-time-block {
+    background-image: repeating-linear-gradient(
+        -45deg,
+        rgba(0, 0, 0, 0.05),
+        rgba(0, 0, 0, 0.05) 4px,
+        transparent 4px,
+        transparent 8px
+    );
+    /* 기존 배경색과 섞이도록 background-blend-mode 사용 가능 (선택적) */
+    /* background-blend-mode: multiply; */
+}
+.dv-grid-cell.dv-current-time-block {
+    /* 특별한 스타일이 필요하면 여기에 추가 */
+    /* 예: background-color: rgba(255, 255, 0, 0.1); */
+}
