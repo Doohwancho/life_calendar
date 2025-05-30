@@ -324,6 +324,24 @@ export async function initMainCalendarView(dataModule, eventBusModule, params, q
         activeEventListeners.push({ element: cancelNewTodoBtn, type: 'click', handler: cancelNewTodoClickHandler });
     }
 
+    const handleInputKeydown = (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault(); // 폼 제출 등 기본 동작 방지
+            handleAddNewTodo(); // backlog.js의 함수 호출
+        }
+    };
+
+    if (newTodoTextInput) {
+        newTodoTextInput.addEventListener("keydown", handleInputKeydown);
+        activeEventListeners.push({ element: newTodoTextInput, type: 'keydown', handler: handleInputKeydown });
+    }
+
+    if (newTodoPriorityInput) {
+        // 우선순위 입력칸에서도 엔터 시 추가 (선택 사항)
+        newTodoPriorityInput.addEventListener("keydown", handleInputKeydown);
+        activeEventListeners.push({ element: newTodoPriorityInput, type: 'keydown', handler: handleInputKeydown });
+    }
+
     if (backlogListContainer) {
         // backlog.js에서 export된 핸들러 사용
         backlogListContainer.addEventListener('dragover', handleBacklogDragOver);
