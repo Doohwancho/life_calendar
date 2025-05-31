@@ -445,10 +445,11 @@ export async function initDailyDetailView(dataModule, busModule, params, query) 
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(link.href);
-            if (typeof localDataManager.clearAllDirtyFilesForYear === 'function') {
-                localDataManager.clearAllDirtyFilesForYear(yearOfDailyView);
-                console.log(`[DailyViewHandler] Data for year ${yearOfDailyView} saved and dirty flags for this year cleared.`);
-            }
+            // if (typeof localDataManager.clearAllDirtyFilesForYear === 'function') {
+            //     localDataManager.clearAllDirtyFilesForYear(yearOfDailyView);
+            //     console.log(`[DailyViewHandler] Data for year ${yearOfDailyView} saved and dirty flags for this year cleared.`);
+            // }
+            console.log(`[DailyViewHandler] Data for year ${yearOfDailyView} saved to ZIP. LocalStorage dirty data for this year is intentionally kept.`);
         } catch (e) {
             console.error(`Error generating ZIP for year ${yearOfDailyView}:`, e);
             alert(`${yearOfDailyView}년 데이터 백업 파일 생성 중 오류가 발생했습니다.`);

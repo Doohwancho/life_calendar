@@ -75,18 +75,25 @@ export function getSettings() {
 ///////////////////////////////////////////
 
 export async function loadDataForYear(year) {
-    console.log(`DataManager: Unloading old year data and loading data for ${year}...`);
-    state.yearlyData = null;
-    state.dailyData.clear(); // 이전 연도의 모든 월별 데이터 제거
+    const numericYear = parseInt(year, 10); // 명확한 숫자 타입으로 변환
+    console.log(`DataManager: loadDataForYear called for ${numericYear}. Currently loaded year in state: ${state.view.currentDisplayYear}`);
 
-    // 1. Settings 로드
+    if (!state.yearlyData || state.yearlyData.year !== numericYear) {
+        console.log(`DataManager: Loading a completely new year (${numericYear}) or yearlyData is for a different year. Clearing all previous yearly and monthly data from memory.`);
+        state.yearlyData = null;
+        state.dailyData.clear(); 
+    } else {
+        console.log(`DataManager: Re-evaluating data for already current year ${numericYear}. Monthly data will be individually refreshed.`);
+    }
+
+    // 1. Settings 로드 (기존과 동일)
     const settingsIdentifier = 'settings.json';
     let settingsData = dirtyFileService.getDirtyFileData(settingsIdentifier);
     if (settingsData) {
         state.settings = settingsData;
     } else {
         try {
-            const response = await fetch(`./data/${settingsIdentifier}`); // 기본 경로에서 로드
+            const response = await fetch(`./data/${settingsIdentifier}`);
             if (response.ok) {
                 state.settings = await response.json();
             } else {
@@ -98,75 +105,86 @@ export async function loadDataForYear(year) {
             state.settings = { colorPalette: [], lastOpenedYear: INITIAL_YEAR };
         }
     }
-    // settings.colorPalette가 없거나 비어있으면 기본값 [] 보장
     if (!state.settings.colorPalette) state.settings.colorPalette = [];
 
-
-    // 2. Yearly data 로드
-    const yearlyIdentifier = `${year}/${year}.json`;
+    // 2. Yearly data 로드 (기존과 유사하나, numericYear 기준)
+    const yearlyIdentifier = `${numericYear}/${numericYear}.json`;
     let yearlyPageData = dirtyFileService.getDirtyFileData(yearlyIdentifier);
-    if (yearlyPageData) {
+    if (yearlyPageData && yearlyPageData.year === numericYear) { // 연도 일치 여부도 확인
         state.yearlyData = yearlyPageData;
     } else {
         try {
             const response = await fetch(`./data/${yearlyIdentifier}`);
-            state.yearlyData = response.ok ? await response.json() : { year, labels: [], events: [], backlogTodos: [] };
+            if (response.ok) {
+                state.yearlyData = await response.json();
+                if(state.yearlyData.year !== numericYear) { // 파일 내용의 연도와 요청 연도가 다르면 초기화
+                    console.warn(`Fetched yearly data for ${state.yearlyData.year} but expected ${numericYear}. Initializing.`);
+                    state.yearlyData = { year: numericYear, labels: [], events: [], backlogTodos: [] };
+                }
+            } else {
+                state.yearlyData = { year: numericYear, labels: [], events: [], backlogTodos: [] };
+            }
         } catch (e) {
-            state.yearlyData = { year, labels: [], events: [], backlogTodos: [] };
-            console.warn(`Could not load ${yearlyIdentifier}. Initializing empty yearly data.`);
+            state.yearlyData = { year: numericYear, labels: [], events: [], backlogTodos: [] };
+            console.warn(`Could not load ${yearlyIdentifier}. Initializing empty yearly data for ${numericYear}.`);
         }
     }
-    if (state.yearlyData && !state.yearlyData.labels) state.yearlyData.labels = [];
-    if (state.yearlyData && !state.yearlyData.events) state.yearlyData.events = [];
-    if (state.yearlyData && !state.yearlyData.backlogTodos) state.yearlyData.backlogTodos = [];
+    if (!state.yearlyData) state.yearlyData = { year: numericYear, labels: [], events: [], backlogTodos: [] };
+    state.yearlyData.year = numericYear; // 연도 강제 설정
+    if (!state.yearlyData.labels) state.yearlyData.labels = [];
+    if (!state.yearlyData.events) state.yearlyData.events = [];
+    if (!state.yearlyData.backlogTodos) state.yearlyData.backlogTodos = [];
 
 
-    // 3. 각 월별 데이터 로드
+    // 3. 각 월별 데이터 로드 (numericYear 기준)
+    //    위에서 state.dailyData.clear()가 조건부로 실행되므로,
+    //    같은 연도를 리로드할 때는 기존 월 데이터 위에 덮어쓰게 됩니다.
     for (let i = 1; i <= 12; i++) {
         const month = String(i).padStart(2, '0');
-        const yearMonthKey = `${year}-${month}`;
-        const dailyFileIdentifier = `${year}/${yearMonthKey}.json`;
+        const yearMonthKey = `${numericYear}-${month}`;
+        const dailyFileIdentifier = `${numericYear}/${yearMonthKey}.json`;
         let monthDataObject = dirtyFileService.getDirtyFileData(dailyFileIdentifier);
 
-        if (monthDataObject) {
-            // dirty 서비스에서 가져온 데이터 구조 보장
+        if (monthDataObject) { // Dirty 데이터가 있으면 사용
             monthDataObject.yearMonth = monthDataObject.yearMonth || yearMonthKey;
             monthDataObject.routines = monthDataObject.routines || [];
-            monthDataObject.colorPalette = monthDataObject.colorPalette || []; // 로컬스토리지 데이터에도 기본값 적용
+            monthDataObject.colorPalette = monthDataObject.colorPalette || [];
             monthDataObject.dailyData = monthDataObject.dailyData || {};
             state.dailyData.set(yearMonthKey, monthDataObject);
-        } else {
+        } else { // Dirty 데이터가 없으면 fetch 시도
             try {
                 const response = await fetch(`./data/${dailyFileIdentifier}`);
                 if (response.ok) {
                     const loadedMonthData = await response.json();
+                    // 파일에서 로드한 데이터도 yearMonth가 올바른지 확인 (선택적)
+                    if (loadedMonthData.yearMonth && loadedMonthData.yearMonth !== yearMonthKey) {
+                        console.warn(`Month data mismatch: file ${dailyFileIdentifier} contains data for ${loadedMonthData.yearMonth}`);
+                    }
                     state.dailyData.set(yearMonthKey, {
                         yearMonth: loadedMonthData.yearMonth || yearMonthKey,
                         routines: loadedMonthData.routines || [],
-                        colorPalette: loadedMonthData.colorPalette || [], // 파일 데이터에도 기본값 적용
+                        colorPalette: loadedMonthData.colorPalette || [],
                         dailyData: loadedMonthData.dailyData || {},
                     });
-                } else {
-                    // 파일이 없는 경우, 기본 빈 월별 데이터 구조 생성
+                } else { // Fetch 실패 시 (파일 없음 등)
                     state.dailyData.set(yearMonthKey, { yearMonth: yearMonthKey, routines: [], colorPalette: [], dailyData: {} });
                 }
-            } catch (e) {
-                console.warn(`Could not load ${dailyFileIdentifier}. Initializing empty month data.`);
+            } catch (e) { // Fetch 중 예외 발생 시
+                console.warn(`Could not load ${dailyFileIdentifier}. Initializing empty month data for ${yearMonthKey}.`, e);
                 state.dailyData.set(yearMonthKey, { yearMonth: yearMonthKey, routines: [], colorPalette: [], dailyData: {} });
             }
         }
     }
 
-    state.view.currentDisplayYear = year;
+    state.view.currentDisplayYear = numericYear; // 현재 로드 완료된 연도로 뷰 상태 업데이트
     const today = new Date(); today.setHours(0,0,0,0);
-    if (year === today.getFullYear()) {
+    if (numericYear === today.getFullYear()) {
         state.view.currentWeeklyViewStartDate = getMondayOfWeek(today);
     } else {
-        state.view.currentWeeklyViewStartDate = getMondayOfWeek(new Date(year, 0, 1));
+        state.view.currentWeeklyViewStartDate = getMondayOfWeek(new Date(numericYear, 0, 1));
     }
-    eventBus.dispatch('dataChanged', { source: 'yearChange', yearLoaded: year });
+    eventBus.dispatch('dataChanged', { source: 'yearChange', yearLoaded: numericYear });
 }
-
 
 export function getCurrentYearDataForSave() {
     const year = state.view.currentDisplayYear;
@@ -620,4 +638,10 @@ export function getSpecificYearDataForSave(yearToSave) {
         }
     }
     return files;
+}
+
+export function updateSettings(newSettings) {
+    state.settings = { ...state.settings, ...newSettings };
+    dirtyFileService.markFileAsDirty('settings.json', state.settings);
+    eventBus.dispatch('dataChanged', { source: 'settingsUpdated' }); // 필요하다면 이벤트 발생
 }

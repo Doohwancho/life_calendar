@@ -194,7 +194,8 @@ async function handleSaveCurrentYear() {
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
         // alert(`${currentYear}년의 데이터가 ${zipFilename}으로 저장(다운로드)되었습니다.`);
-        data.clearAllDirtyFilesForYear(currentYear);
+        // data.clearAllDirtyFilesForYear(currentYear);
+        console.log(`[MainViewHandler] Data for year ${currentYear} saved to ZIP. LocalStorage dirty data for this year is intentionally kept.`);
     } catch (e) {
         console.error("Error generating yearly backup ZIP:", e);
         alert("연간 백업 파일 생성 중 오류가 발생했습니다.");
@@ -431,23 +432,32 @@ export async function initMainCalendarView(dataModule, eventBusModule, params, q
     activeEventListeners.push({ target: document, type: 'keydown', handler: keydownHandler });
     
     // 5. 초기 데이터 로드 및 UI 업데이트
-    const yearToLoad = parseInt(params?.year, 10) || data.getState().currentDisplayYear || new Date().getFullYear();
-    const currentState = data.getState(); // 현재 상태 가져오기
+    let yearToLoad;
+    if (params?.year) { // URL에 연도 파라미터가 명시적으로 있으면 그것 사용
+        yearToLoad = parseInt(params.year, 10);
+    } else if (data.getState().settings?.lastOpenedYear) { // 마지막으로 열었던 연도 사용
+        yearToLoad = data.getState().settings.lastOpenedYear;
+    } else { // 그것도 없으면 dataManager의 현재 표시 연도 또는 실제 현재 연도 사용
+        yearToLoad = data.getState().currentDisplayYear || new Date().getFullYear();
+    }
+    yearToLoad = parseInt(yearToLoad, 10); // 확실히 숫자로
 
-    // ▼▼▼ [수정된 조건문] ▼▼▼
-    // 1. 현재 dataManager에 설정된 연도(currentState.currentDisplayYear)가 불러오려는 연도(yearToLoad)와 다른 경우
-    // 2. 또는, yearlyData 객체 자체가 없는 경우 (앱 최초 실행 등)
-    // 3. 또는, yearlyData 객체는 있지만 그 안의 year 속성이 불러오려는 연도(yearToLoad)와 다른 경우 (예: 다른 연도 데이터가 로드된 상태)
-    if (currentState.currentDisplayYear !== yearToLoad || 
-        !currentState.yearlyData || 
+    const currentState = data.getState();
+
+    // 조건: 현재 dataManager에 로드된 연도(currentState.currentDisplayYear)가 yearToLoad와 다르거나,
+    //       yearlyData가 아예 없거나, yearlyData의 연도가 yearToLoad와 다를 때만 새로 로드.
+    if (currentState.currentDisplayYear !== yearToLoad ||
+        !currentState.yearlyData ||
         (currentState.yearlyData && currentState.yearlyData.year !== yearToLoad)
     ) {
-        console.log(`[MainViewHandler] 데이터 로드 필요: yearToLoad=${yearToLoad}, currentDisplayYear=${currentState.currentDisplayYear}, yearlyData.year=${currentState.yearlyData?.year}`);
-        await data.loadDataForYear(yearToLoad); // dataChanged 이벤트를 발생시켜 UI 렌더링
+        console.log(`[MainViewHandler] Main view needs to load data for year: ${yearToLoad}. Current display year in DM: ${currentState.currentDisplayYear}`);
+        await data.loadDataForYear(yearToLoad); 
+        // loadDataForYear 내부에서 state.view.currentDisplayYear가 yearToLoad로 설정될 것임.
+        // 그리고 settings.lastOpenedYear도 이 시점에 업데이트 해주는 것이 좋음.
+        data.updateSettings({ lastOpenedYear: yearToLoad }); // dataManager에 이런 함수가 필요함
     } else {
-        // 이미 해당 연도의 데이터가 로드되어 있는 경우
-        console.log(`[MainViewHandler] ${yearToLoad}년 데이터 이미 로드됨. 기존 데이터로 UI 렌더링.`);
-        dataChangedHandler({ source: 'initMainViewWithExistingData' }); // 이미 데이터 있으면 UI만 다시 그림
+        console.log(`[MainViewHandler] Data for year ${yearToLoad} is already current in dataManager. Rendering main view.`);
+        dataChangedHandler({ source: 'initMainViewWithExistingData' });
     }
 
     console.log('[MainViewHandler] 메인 캘린더 뷰 초기화 완료');
