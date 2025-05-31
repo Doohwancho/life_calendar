@@ -363,6 +363,57 @@ export function reorderLabels(orderedLabelIds) {
     dirtyFileService.markFileAsDirty(`${state.view.currentDisplayYear}/${state.view.currentDisplayYear}.json`, state.yearlyData);
 }
 
+export function updateLabelName(labelId, newName) {
+    if (!state.yearlyData || !state.yearlyData.labels) return;
+    const label = state.yearlyData.labels.find(l => l.id === labelId);
+    if (label && label.name !== newName) {
+        label.name = newName;
+        // 라벨 이름이 변경되면 관련된 이벤트들의 이름도 업데이트해야 할 수 있지만,
+        // 현재 yearlyCalendar.js 에서는 이벤트 바에 라벨 이름을 직접 표시하므로,
+        // 라벨 이름만 변경해도 UI는 dataChanged 이벤트를 통해 자동으로 업데이트됩니다.
+        eventBus.dispatch('dataChanged', { source: 'updateLabelName', payload: { labelId, newName } });
+        dirtyFileService.markFileAsDirty(`${state.view.currentDisplayYear}/${state.view.currentDisplayYear}.json`, state.yearlyData);
+        console.log(`[DataManager] Label name updated: ${labelId} to ${newName}`);
+    }
+}
+
+export function deleteLabelAndAssociatedEvents(labelId) {
+    if (!state.yearlyData) return;
+
+    let changed = false;
+
+    // 1. 라벨 목록에서 해당 라벨 삭제
+    if (state.yearlyData.labels) {
+        const initialLabelsLength = state.yearlyData.labels.length;
+        state.yearlyData.labels = state.yearlyData.labels.filter(label => label.id !== labelId);
+        if (state.yearlyData.labels.length !== initialLabelsLength) {
+            changed = true;
+        }
+    }
+
+    // 2. 해당 라벨을 사용하는 모든 이벤트(projects) 삭제
+    if (state.yearlyData.events) {
+        const initialEventsLength = state.yearlyData.events.length;
+        state.yearlyData.events = state.yearlyData.events.filter(event => event.labelId !== labelId);
+        if (state.yearlyData.events.length !== initialEventsLength) {
+            changed = true;
+        }
+    }
+    
+    // 3. 만약 현재 선택된 라벨이 삭제된 라벨이라면, 선택 해제
+    if (state.view.selectedLabel && state.view.selectedLabel.id === labelId) {
+        state.view.selectedLabel = null;
+        changed = true; // 이 변경도 dataChanged를 유발해야 함
+    }
+
+    if (changed) {
+        eventBus.dispatch('dataChanged', { source: 'deleteLabelAndEvents', payload: { labelId } });
+        dirtyFileService.markFileAsDirty(`${state.view.currentDisplayYear}/${state.view.currentDisplayYear}.json`, state.yearlyData);
+        console.log(`[DataManager] Label and associated events deleted for labelId: ${labelId}`);
+    }
+}
+
+
 export function addEvent(event) {
     if (!state.yearlyData) state.yearlyData = { year: state.view.currentDisplayYear, labels: [], events: [], backlogTodos: [] };
     if (!state.yearlyData.events) state.yearlyData.events = [];
@@ -645,3 +696,5 @@ export function updateSettings(newSettings) {
     dirtyFileService.markFileAsDirty('settings.json', state.settings);
     eventBus.dispatch('dataChanged', { source: 'settingsUpdated' }); // 필요하다면 이벤트 발생
 }
+
+

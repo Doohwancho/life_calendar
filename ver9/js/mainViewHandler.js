@@ -395,17 +395,44 @@ export async function initMainCalendarView(dataModule, eventBusModule, params, q
         activeEventListeners.push({ element: cancelLabelBtn, type: 'click', handler: cancelLabelBtnClickHandler });
     }
 
+    const performSaveLabel = () => {
+        if (!labelNameInput || !labelColorInput || !addLabelModal) return; // 요소 없으면 중단
+
+        const name = labelNameInput.value.trim();
+        const color = labelColorInput.value;
+        if (name) {
+            data.addLabel({ id: generateId('lbl_'), name, color });
+            addLabelModal.style.display = "none";
+        } else {
+            alert("Label name cannot be empty.");
+            labelNameInput.focus(); // 이름 입력 필드에 다시 포커스
+        }
+    };
+
     if (saveLabelBtn && addLabelModal && labelNameInput && labelColorInput) {
-        const saveLabelBtnClickHandler = () => {
-            const name = labelNameInput.value.trim();
-            const color = labelColorInput.value;
-            if (name) {
-                data.addLabel({ id: generateId('lbl_'), name, color }); // ID 생성에 prefix 추가
-                addLabelModal.style.display = "none";
-            } else { alert("Label name cannot be empty."); }
+        // saveLabelBtn 클릭 시 performSaveLabel 호출
+        saveLabelBtn.addEventListener("click", performSaveLabel);
+        activeEventListeners.push({ element: saveLabelBtn, type: 'click', handler: performSaveLabel });
+
+        // ▼▼▼ 라벨 이름 입력 필드(labelNameInput)에서 Enter 키 처리 ▼▼▼
+        const labelNameInputKeydownHandler = (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault(); // 기본 동작 (폼 제출 등) 방지
+                performSaveLabel(); // 저장 로직 실행
+            }
         };
-        saveLabelBtn.addEventListener("click", saveLabelBtnClickHandler);
-        activeEventListeners.push({ element: saveLabelBtn, type: 'click', handler: saveLabelBtnClickHandler });
+        labelNameInput.addEventListener("keydown", labelNameInputKeydownHandler);
+        activeEventListeners.push({ element: labelNameInput, type: 'keydown', handler: labelNameInputKeydownHandler });
+
+        // 사용자가 색상 변경 후 바로 엔터치고 싶어할 수 있음
+        const labelColorInputKeydownHandler = (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                performSaveLabel();
+            }
+        };
+        labelColorInput.addEventListener("keydown", labelColorInputKeydownHandler);
+        activeEventListeners.push({ element: labelColorInput, type: 'keydown', handler: labelColorInputKeydownHandler });
     }
 
     if (saveDataBtn) {
