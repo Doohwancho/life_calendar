@@ -673,12 +673,21 @@ function applyPreviousColorStyle() {
     const styleId = 'timelinePreviousColorStyle';
     if (document.getElementById(styleId)) return;
     const previousColorStyle = `
-        .dv-grid-cell.color-changed { padding-left: 16px; position: relative; }
-        .dv-grid-cell.color-changed::before {
-            content: ''; position: absolute; top: -1px; left: -1px;
-            border-style: solid; border-width: 10px 10px 0 0;
-            border-right-color: transparent; border-bottom-color: transparent;
-            border-top-color: var(--previous-color); z-index: 0;
+        .dv-grid-cell.color-changed { 
+            padding-left: 16px; /* This padding makes space for the triangle */
+            position: relative; 
+        }
+        .dv-grid-cell.color-changed::before { /* This is the prevColor triangle */
+            content: ''; 
+            position: absolute; 
+            top: -1px; 
+            left: -1px;
+            border-style: solid; 
+            border-width: 10px 10px 0 0;
+            border-right-color: transparent; 
+            border-bottom-color: transparent;
+            border-top-color: var(--previous-color); 
+            z-index: 0; /* Lower z-index */
         }`;
     const styleSheet = document.createElement("style");
     styleSheet.id = styleId;
@@ -693,7 +702,6 @@ export function updatePassedTimeVisuals(gridDomIdToUpdate, isToday) {
 
     const allDataCells = gridElement.querySelectorAll('.dv-grid-cell');
 
-    // Clear all visual effects first
     allDataCells.forEach(cell => {
         cell.classList.remove('dv-elapsed-time', 'dv-light-bg', 'dv-dark-bg', 'dv-current-time-block');
         const dynamicStyleId = `dynamic-redline-style-${gridDomIdToUpdate}-${cell.dataset.hour}-${cell.dataset.block}`;
@@ -701,39 +709,28 @@ export function updatePassedTimeVisuals(gridDomIdToUpdate, isToday) {
     });
 
     if (!isToday) {
-        // If not today, all effects are cleared, so just return
         return;
     }
 
     const now = new Date();
-    const currentActualHour = now.getHours();       // Real current hour (0-23)
-    const currentActualMinute = now.getMinutes(); // Real current minute (0-59)
-
-    // Convert current real hour to the grid's data-hour value
-    // data-hour="0" is 06:00, data-hour="1" is 07:00, ..., data-hour="23" is 05:00 (next day)
+    const currentActualHour = now.getHours();
+    const currentActualMinute = now.getMinutes();
     const gridCurrentHour = (currentActualHour - ACTUAL_DAY_STARTS_AT_HOUR + 24) % 24;
     const currentBlockInGridHour = Math.floor(currentActualMinute / MINUTES_PER_BLOCK);
-
-    // Total number of blocks passed since the grid's start (06:00 represented by data-hour="0")
     const totalPassedBlocksInGrid = (gridCurrentHour * BLOCKS_PER_HOUR) + currentBlockInGridHour;
 
     allDataCells.forEach(cell => {
-        const cellDataHour = parseInt(cell.dataset.hour, 10);    // Cell's grid hour (0-23)
-        const cellDataBlock = parseInt(cell.dataset.block, 10);  // Cell's block index (0-5 for 10min blocks)
-
-        // Overall block index of this cell from the start of the grid's display
+        const cellDataHour = parseInt(cell.dataset.hour, 10);
+        const cellDataBlock = parseInt(cell.dataset.block, 10);
         const cellOverallBlockIndex = (cellDataHour * BLOCKS_PER_HOUR) + cellDataBlock;
 
         if (cellOverallBlockIndex < totalPassedBlocksInGrid) {
-            // This block has entirely passed
             cell.classList.add('dv-elapsed-time');
-            // Use the callback provided by dailyViewHandler for isDarkColor
             if (typeof isDarkColorCallback === 'function') {
-                 cell.classList.toggle('dv-dark-bg', isDarkColorCallback(cell.style.backgroundColor));
-                 cell.classList.toggle('dv-light-bg', !isDarkColorCallback(cell.style.backgroundColor));
+                 cell.classList.toggle('dv-dark-bg', isDarkColorCallback(cell.style.backgroundColor || window.getComputedStyle(cell).backgroundColor));
+                 cell.classList.toggle('dv-light-bg', !isDarkColorCallback(cell.style.backgroundColor || window.getComputedStyle(cell).backgroundColor));
             }
         } else if (cellDataHour === gridCurrentHour && cellDataBlock === currentBlockInGridHour) {
-            // This is the current 10-minute block
             cell.classList.add('dv-current-time-block');
             const percentageThroughBlock = (currentActualMinute % MINUTES_PER_BLOCK) / MINUTES_PER_BLOCK * 100;
             
@@ -744,17 +741,20 @@ export function updatePassedTimeVisuals(gridDomIdToUpdate, isToday) {
                 dynamicStyleElement.id = dynamicStyleId;
                 document.head.appendChild(dynamicStyleElement);
             }
+            // The ::before for the red line
             dynamicStyleElement.innerHTML = `
                 #${gridDomIdToUpdate} .dv-grid-cell[data-hour="${cellDataHour}"][data-block="${cellDataBlock}"].dv-current-time-block::before {
                     content: '';
                     position: absolute;
-                    top: -1px; /* Adjust for border or preference */
-                    bottom: -1px; /* Adjust for border or preference */
+                    top: 0; /* Adjusted to align with content box top */
+                    bottom: 0; /* Adjusted to align with content box bottom */
                     left: ${percentageThroughBlock}%;
-                    width: 3px; /* Red line width */
+                    width: 2px; /* Standard width for the red line, adjust if needed */
                     background-color: red;
-                    z-index: 3; /* Above stripes */
+                    z-index: 3; /* Higher than prevColor triangle and stripes */
                     pointer-events: none;
+                    border: none !important; /* Ensure no borders from other ::before rules */
+                    box-sizing: border-box !important; /* Ensure width is interpreted consistently */
                 }
             `;
         }
