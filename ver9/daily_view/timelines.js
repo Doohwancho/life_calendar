@@ -695,45 +695,78 @@ function applyPreviousColorStyle() {
     document.head.appendChild(styleSheet);
 }
 
+
 // --- NEW: Function to update passed time visuals (stripes and red line) ---
-export function updatePassedTimeVisuals(gridDomIdToUpdate, isToday) {
+export function updatePassedTimeVisuals(gridDomIdToUpdate, isTimelineEffectivelyToday, dateOfTimelineString) {
     const gridElement = document.getElementById(gridDomIdToUpdate);
     if (!gridElement) return;
 
     const allDataCells = gridElement.querySelectorAll('.dv-grid-cell');
 
+    // 먼저 이전 시각 효과들 제거
     allDataCells.forEach(cell => {
         cell.classList.remove('dv-elapsed-time', 'dv-light-bg', 'dv-dark-bg', 'dv-current-time-block');
         const dynamicStyleId = `dynamic-redline-style-${gridDomIdToUpdate}-${cell.dataset.hour}-${cell.dataset.block}`;
-        document.getElementById(dynamicStyleId)?.remove();
+        const styleElement = document.getElementById(dynamicStyleId);
+        if (styleElement) {
+            styleElement.remove();
+        }
     });
 
-    if (!isToday) {
+    // 이 타임라인이 현재 시점에서 유효한 '오늘' 타임라인이 아니면 아무것도 그리지 않음
+    if (!isTimelineEffectivelyToday) {
         return;
     }
 
     const now = new Date();
-    const currentActualHour = now.getHours();
-    const currentActualMinute = now.getMinutes();
-    const gridCurrentHour = (currentActualHour - ACTUAL_DAY_STARTS_AT_HOUR + 24) % 24;
-    const currentBlockInGridHour = Math.floor(currentActualMinute / MINUTES_PER_BLOCK);
-    const totalPassedBlocksInGrid = (gridCurrentHour * BLOCKS_PER_HOUR) + currentBlockInGridHour;
+    let currentHourForGridLogic = now.getHours(); // 실제 현재 시간 (0-23)
+    const currentMinute = now.getMinutes();
+
+    // dateOfTimelineString (예: "2025-05-31")과 현재 날짜 비교
+    const [tlYear, tlMonth, tlDay] = dateOfTimelineString.split('-').map(Number);
+    const timelineDateObject = new Date(tlYear, tlMonth - 1, tlDay); // JS 월은 0부터 시작
+    const todayObject = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // 핵심 로직:
+    // 만약 현재 시간이 새벽(00:00-05:59)이고, 우리가 업데이트하려는 타임라인이 *어제* 날짜라면,
+    // currentHourForGridLogic을 24시간 더해서 어제 타임라인의 연속으로 취급한다.
+    if (currentHourForGridLogic < ACTUAL_DAY_STARTS_AT_HOUR && timelineDateObject.getTime() < todayObject.getTime()) {
+        // 예: 현재 6월 1일 새벽 1시 (currentHourForGridLogic = 1)
+        // dateOfTimelineString은 "2025-05-31" (timelineDateObject < todayObject 만족)
+        // -> 5월 31일 타임라인에 새벽 1시는 25시로 계산되어야 함
+        currentHourForGridLogic += 24; // 1 + 24 = 25
+    }
+
+    // 그리드 시간 계산 (06시를 0으로 하는 인덱스, 0~23 범위)
+    // 예1: currentHourForGridLogic = 6 (오전 6시) => gridHourIndex = (6 - 6 + 24) % 24 = 0
+    // 예2: currentHourForGridLogic = 25 (위에서 조정된 새벽 1시) => gridHourIndex = (25 - 6 + 24) % 24 = 19
+    //      (06시가 0, 07시가 1 ... 00시가 18, 01시가 19 ... 05시가 23)
+    const gridHourIndex = (currentHourForGridLogic - ACTUAL_DAY_STARTS_AT_HOUR + 24) % 24;
+    const gridBlockIndexInHour = Math.floor(currentMinute / MINUTES_PER_BLOCK);
+
+    // 타임라인의 시작(06:00)부터 현재 시간까지 총 몇 개의 10분 블록이 지났는지 계산
+    // gridHourIndex 자체가 06시부터 경과된 시간(hour) 수를 의미
+    const totalPassedBlocksInGridTimeline = (gridHourIndex * BLOCKS_PER_HOUR) + gridBlockIndexInHour;
 
     allDataCells.forEach(cell => {
-        const cellDataHour = parseInt(cell.dataset.hour, 10);
+        const cellDataHour = parseInt(cell.dataset.hour, 10); // 셀의 그리드 시간 인덱스 (0은 06시)
         const cellDataBlock = parseInt(cell.dataset.block, 10);
-        const cellOverallBlockIndex = (cellDataHour * BLOCKS_PER_HOUR) + cellDataBlock;
+        const cellOverallBlockIndexInGrid = (cellDataHour * BLOCKS_PER_HOUR) + cellDataBlock;
 
-        if (cellOverallBlockIndex < totalPassedBlocksInGrid) {
+        // 지나간 시간 블록 빗금 처리
+        if (cellOverallBlockIndexInGrid < totalPassedBlocksInGridTimeline) {
             cell.classList.add('dv-elapsed-time');
-            if (typeof isDarkColorCallback === 'function') {
-                 cell.classList.toggle('dv-dark-bg', isDarkColorCallback(cell.style.backgroundColor || window.getComputedStyle(cell).backgroundColor));
-                 cell.classList.toggle('dv-light-bg', !isDarkColorCallback(cell.style.backgroundColor || window.getComputedStyle(cell).backgroundColor));
+            if (typeof isDarkColorCallback === 'function') { // isDarkColorCallback은 timelines.js 스코프에 있어야 함
+                const cellBgColor = cell.style.backgroundColor || window.getComputedStyle(cell).backgroundColor;
+                cell.classList.toggle('dv-dark-bg', isDarkColorCallback(cellBgColor));
+                cell.classList.toggle('dv-light-bg', !isDarkColorCallback(cellBgColor));
             }
-        } else if (cellDataHour === gridCurrentHour && cellDataBlock === currentBlockInGridHour) {
+        }
+        // 현재 시간 블록에 빨간 줄 표시
+        else if (cellDataHour === gridHourIndex && cellDataBlock === gridBlockIndexInHour) {
             cell.classList.add('dv-current-time-block');
-            const percentageThroughBlock = (currentActualMinute % MINUTES_PER_BLOCK) / MINUTES_PER_BLOCK * 100;
-            
+            const percentageThroughBlock = (currentMinute % MINUTES_PER_BLOCK) / MINUTES_PER_BLOCK * 100;
+
             const dynamicStyleId = `dynamic-redline-style-${gridDomIdToUpdate}-${cellDataHour}-${cellDataBlock}`;
             let dynamicStyleElement = document.getElementById(dynamicStyleId);
             if (!dynamicStyleElement) {
@@ -741,20 +774,12 @@ export function updatePassedTimeVisuals(gridDomIdToUpdate, isToday) {
                 dynamicStyleElement.id = dynamicStyleId;
                 document.head.appendChild(dynamicStyleElement);
             }
-            // The ::before for the red line
             dynamicStyleElement.innerHTML = `
                 #${gridDomIdToUpdate} .dv-grid-cell[data-hour="${cellDataHour}"][data-block="${cellDataBlock}"].dv-current-time-block::before {
-                    content: '';
-                    position: absolute;
-                    top: 0; /* Adjusted to align with content box top */
-                    bottom: 0; /* Adjusted to align with content box bottom */
-                    left: ${percentageThroughBlock}%;
-                    width: 2px; /* Standard width for the red line, adjust if needed */
-                    background-color: red;
-                    z-index: 3; /* Higher than prevColor triangle and stripes */
-                    pointer-events: none;
-                    border: none !important; /* Ensure no borders from other ::before rules */
-                    box-sizing: border-box !important; /* Ensure width is interpreted consistently */
+                    content: ''; position: absolute; top: 0; bottom: 0;
+                    left: ${percentageThroughBlock}%; width: 2px;
+                    background-color: red; z-index: 3; pointer-events: none;
+                    border: none !important; box-sizing: border-box !important;
                 }
             `;
         }

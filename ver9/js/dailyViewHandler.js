@@ -366,17 +366,68 @@ export async function initDailyDetailView(dataModule, busModule, params, query) 
         initTimelines(timeGridDomId, goalGridDomId, timelineCallbacks);
 
         if (typeof updatePassedTimeVisuals === 'function') {
-            const today = new Date();
-            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-            const isCurrentViewToday = (currentLoadedDate === todayStr);
             const runLiveUpdates = () => {
-                updatePassedTimeVisuals(timeGridDomId, isCurrentViewToday);
-                updatePassedTimeVisuals(goalGridDomId, isCurrentViewToday);
+                const timelineDateString = currentLoadedDate; // "YYYY-MM-DD" 문자열 (예: "2025-05-31")
+                let isTimelineEffectivelyToday;
+    
+                const now = new Date();
+                const currentActualHour = now.getHours(); // 현재 실제 시간 (0-23)
+    
+                // timelineDateString을 Date 객체로 변환 (시간 부분은 00:00으로)
+                const [tlYear, tlMonth, tlDay] = timelineDateString.split('-').map(Number);
+                const timelineDateForComparison = new Date(tlYear, tlMonth - 1, tlDay); // JS 월은 0부터 시작
+    
+                const todayDateForComparison = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+                const ACTUAL_DAY_STARTS_AT_HOUR_CONST = 6; // timeline.js 와 동일 값 사용
+    
+                if (timelineDateForComparison.getTime() === todayDateForComparison.getTime()) {
+                    // 케이스 1: 현재 보고 있는 뷰가 오늘 달력 날짜 (예: 6월 1일 뷰, 현재도 6월 1일)
+                    // 이 타임라인이 '오늘'의 유효한 타임라인인가? => 지금이 오전 6시 이후인가?
+                    isTimelineEffectivelyToday = currentActualHour >= ACTUAL_DAY_STARTS_AT_HOUR_CONST;
+                } else if (timelineDateForComparison.getTime() < todayDateForComparison.getTime()) {
+                    // 케이스 2: 현재 보고 있는 뷰가 어제 또는 그 이전 날짜 (예: 5월 31일 뷰, 현재는 6월 1일)
+                    const oneDayMilliseconds = 24 * 60 * 60 * 1000;
+                    const isImmediatelyPreviousDay = (todayDateForComparison.getTime() - timelineDateForComparison.getTime()) === oneDayMilliseconds;
+    
+                    // 이 타임라인이 '오늘'의 유효한 타임라인인가? => (어제 날짜 뷰) 이고 (현재가 오전 6시 이전 새벽) 인가?
+                    isTimelineEffectivelyToday = isImmediatelyPreviousDay && (currentActualHour < ACTUAL_DAY_STARTS_AT_HOUR_CONST);
+                } else {
+                    // 케이스 3: 미래 날짜 뷰
+                    isTimelineEffectivelyToday = false;
+                }
+    
+                // 수정된 파라미터로 timeline.js 함수 호출
+                updatePassedTimeVisuals('timeGridDOM', isTimelineEffectivelyToday, timelineDateString);
+                updatePassedTimeVisuals('goalTimeGridDOM', isTimelineEffectivelyToday, timelineDateString); // Goal 타임라인도 동일하게 처리
+    
             };
-            runLiveUpdates();
-            if (isCurrentViewToday) {
+    
+            runLiveUpdates(); // 최초 실행
+    
+            // 인터벌 실행 조건 수정:
+            // 1. 현재 보고 있는 뷰가 달력상 오늘 날짜이거나
+            // 2. 현재 보고 있는 뷰가 달력상 어제 날짜이고, 지금이 다음날 새벽 (ACTUAL_DAY_STARTS_AT_HOUR 이전)인 경우
+            const nowForIntervalCheck = new Date();
+            const [loadedYear, loadedMonth, loadedDay] = currentLoadedDate.split('-').map(Number);
+            const currentLoadedDateObj = new Date(loadedYear, loadedMonth -1, loadedDay);
+            const todayObjForIntervalCheck = new Date(nowForIntervalCheck.getFullYear(), nowForIntervalCheck.getMonth(), nowForIntervalCheck.getDate());
+            const ACTUAL_DAY_STARTS_AT_HOUR_FOR_INTERVAL = 6;
+    
+            let shouldRunIntervalUpdates = false;
+            if (currentLoadedDateObj.getTime() === todayObjForIntervalCheck.getTime()) { // 오늘 뷰
+                 shouldRunIntervalUpdates = true; // 오늘 뷰는 항상 인터벌 대상 (내부에서 6시 이전/이후 체크)
+            } else { // 어제 또는 다른 날 뷰
+                const oneDayMs = 24 * 60 * 60 * 1000;
+                if ((todayObjForIntervalCheck.getTime() - currentLoadedDateObj.getTime()) === oneDayMs && nowForIntervalCheck.getHours() < ACTUAL_DAY_STARTS_AT_HOUR_FOR_INTERVAL) {
+                    // 어제 뷰 + 지금 새벽
+                    shouldRunIntervalUpdates = true;
+                }
+            }
+    
+            if (shouldRunIntervalUpdates) {
                 if (liveTimelineUpdateIntervalId) clearInterval(liveTimelineUpdateIntervalId);
-                liveTimelineUpdateIntervalId = setInterval(runLiveUpdates, 60000);
+                liveTimelineUpdateIntervalId = setInterval(runLiveUpdates, 60000); // 1분마다 업데이트
             } else {
                 if (liveTimelineUpdateIntervalId) {
                     clearInterval(liveTimelineUpdateIntervalId);
@@ -449,7 +500,6 @@ export async function initDailyDetailView(dataModule, busModule, params, query) 
             //     localDataManager.clearAllDirtyFilesForYear(yearOfDailyView);
             //     console.log(`[DailyViewHandler] Data for year ${yearOfDailyView} saved and dirty flags for this year cleared.`);
             // }
-            console.log(`[DailyViewHandler] Data for year ${yearOfDailyView} saved to ZIP. LocalStorage dirty data for this year is intentionally kept.`);
         } catch (e) {
             console.error(`Error generating ZIP for year ${yearOfDailyView}:`, e);
             alert(`${yearOfDailyView}년 데이터 백업 파일 생성 중 오류가 발생했습니다.`);
