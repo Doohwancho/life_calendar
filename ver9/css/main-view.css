@@ -482,3 +482,80 @@
 }
 .mv-label-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mv-label-item.mv-dragging { opacity: 0.5; border-style: dashed; }
+
+/* --- Yearly Calendar Day Cell Marks & Context Menu --- */
+.mv-day-cell-yearly .cell-mark-on-date { /* 날짜 셀에 실제로 표시될 마크 */
+    position: absolute;
+    top: 3px; /* 셀 상단에서의 위치 */
+    right: 4px; /* 셀 우측에서의 위치 */
+    font-size: 11px; /* 셀에 표시될 때의 아이콘 크기 (조정 가능) */
+    line-height: 1;
+    z-index: 4; /* 다른 셀 내용물 위에 오도록 */
+    pointer-events: none; /* 마크 자체는 클릭 이벤트를 가로채지 않도록 */
+}
+
+/* 우클릭 컨텍스트 메뉴 */
+.mv-day-cell-context-menu {
+    display: none; /* JS가 display: block; 으로 바꿔서 보여줌 */
+    position: absolute; /* JS가 top, left 설정 */
+    background-color: white;
+    border: 1px solid #ccc;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.15);
+    padding: 5px 0;
+    z-index: 1050; /* 다른 UI 요소들보다 위에 오도록 */
+    min-width: 160px; /* 메뉴 최소 너비 */
+    border-radius: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* 시스템 폰트 사용 */
+}
+
+.mv-day-cell-context-menu .context-menu-title {
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #555;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 5px;
+    user-select: none; /* 텍스트 선택 방지 */
+}
+
+.mv-day-cell-context-menu .context-menu-item {
+    padding: 7px 12px; /* 패딩 약간 조정 */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px; /* 메뉴 아이템 폰트 크기 */
+    user-select: none; /* 텍스트 선택 방지 */
+}
+
+.mv-day-cell-context-menu .context-menu-item:hover {
+    background-color: #f0f0f0;
+}
+
+.mv-day-cell-context-menu .context-menu-item .mark-icon {
+    font-size: 15px; /* 메뉴 내 아이콘 크기 */
+    width: 20px;
+    text-align: center;
+    line-height: 1; /* 아이콘 수직 정렬 */
+}
+
+/* 각 마크 아이콘 색상 (이모지 자체 색상 활용 시 불필요할 수 있음) */
+.mark-icon.mark-heart { color: red; }
+.mark-icon.mark-star { color: #FFC107; /* 좀 더 부드러운 노란색 */ }
+.mark-icon.mark-check { color: green; }
+.mark-icon.mark-pin { color: dodgerblue; }
+.mark-icon.mark-warning { color: orange; }
+.mark-icon.mark-question { color: rebeccapurple; }
+.mark-icon.mark-exclamation { color: #dc3545; /* Bootstrap danger color */ }
+.mark-icon.mark-cross { color: #343a40; /* Bootstrap dark color */ }
+.mark-icon.mark-none { color: #6c757d; /* Bootstrap secondary color */ }
+
+/* 셀에 적용될 마크 색상 (아이콘 색상과 동일하게 하거나 다르게 할 수 있음) */
+.cell-mark-on-date.heart-mark-color { color: red; }
+.cell-mark-on-date.star-mark-color { color: #FFC107; }
+.cell-mark-on-date.check-mark-color { color: green; }
+.cell-mark-on-date.pin-mark-color { color: dodgerblue; }
+.cell-mark-on-date.warning-mark-color { color: orange; }
+.cell-mark-on-date.question-mark-color { color: rebeccapurple; }
+.cell-mark-on-date.exclamation-mark-color { color: #dc3545; }
+.cell-mark-on-date.cross-mark-color { color: #343a40; }

@@ -137,46 +137,50 @@ export async function loadDataForYear(year) {
 
 
     // 3. 각 월별 데이터 로드 (numericYear 기준)
-    //    위에서 state.dailyData.clear()가 조건부로 실행되므로,
-    //    같은 연도를 리로드할 때는 기존 월 데이터 위에 덮어쓰게 됩니다.
     for (let i = 1; i <= 12; i++) {
         const month = String(i).padStart(2, '0');
         const yearMonthKey = `${numericYear}-${month}`;
         const dailyFileIdentifier = `${numericYear}/${yearMonthKey}.json`;
-        let monthDataObject = dirtyFileService.getDirtyFileData(dailyFileIdentifier);
+        let monthDataObjectFromSource = dirtyFileService.getDirtyFileData(dailyFileIdentifier);
 
-        if (monthDataObject) { // Dirty 데이터가 있으면 사용
-            monthDataObject.yearMonth = monthDataObject.yearMonth || yearMonthKey;
-            monthDataObject.routines = monthDataObject.routines || [];
-            monthDataObject.colorPalette = monthDataObject.colorPalette || [];
-            monthDataObject.dailyData = monthDataObject.dailyData || {};
-            state.dailyData.set(yearMonthKey, monthDataObject);
-        } else { // Dirty 데이터가 없으면 fetch 시도
+        if (!monthDataObjectFromSource) {
             try {
                 const response = await fetch(`./data/${dailyFileIdentifier}`);
                 if (response.ok) {
-                    const loadedMonthData = await response.json();
-                    // 파일에서 로드한 데이터도 yearMonth가 올바른지 확인 (선택적)
-                    if (loadedMonthData.yearMonth && loadedMonthData.yearMonth !== yearMonthKey) {
-                        console.warn(`Month data mismatch: file ${dailyFileIdentifier} contains data for ${loadedMonthData.yearMonth}`);
-                    }
-                    state.dailyData.set(yearMonthKey, {
-                        yearMonth: loadedMonthData.yearMonth || yearMonthKey,
-                        routines: loadedMonthData.routines || [],
-                        colorPalette: loadedMonthData.colorPalette || [],
-                        dailyData: loadedMonthData.dailyData || {},
-                    });
-                } else { // Fetch 실패 시 (파일 없음 등)
-                    state.dailyData.set(yearMonthKey, { yearMonth: yearMonthKey, routines: [], colorPalette: [], dailyData: {} });
+                    monthDataObjectFromSource = await response.json();
+                } else {
+                    monthDataObjectFromSource = { yearMonth: yearMonthKey, routines: [], colorPalette: [], dailyData: {} };
                 }
-            } catch (e) { // Fetch 중 예외 발생 시
-                console.warn(`Could not load ${dailyFileIdentifier}. Initializing empty month data for ${yearMonthKey}.`, e);
-                state.dailyData.set(yearMonthKey, { yearMonth: yearMonthKey, routines: [], colorPalette: [], dailyData: {} });
+            } catch (e) {
+                console.warn(`Could not load/fetch ${dailyFileIdentifier}. Initializing empty month data for ${yearMonthKey}.`);
+                monthDataObjectFromSource = { yearMonth: yearMonthKey, routines: [], colorPalette: [], dailyData: {} };
             }
         }
+        
+        const finalMonthDataObject = {
+            yearMonth: monthDataObjectFromSource.yearMonth || yearMonthKey,
+            routines: monthDataObjectFromSource.routines || [],
+            colorPalette: monthDataObjectFromSource.colorPalette || [],
+            dailyData: monthDataObjectFromSource.dailyData || {},
+        };
+
+        // ▼▼▼ 로드된 dailyData 내부의 각 날짜 객체에 cellMark 기본값 보장 ▼▼▼
+        if (finalMonthDataObject.dailyData) {
+            for (const dateKey in finalMonthDataObject.dailyData) {
+                // getOrInitializeDayDataStructure를 여기서 직접 호출하기보다는,
+                // dayData 객체 내에 cellMark가 없으면 null로 설정하는 로직을 추가하거나,
+                // dailyViewHandler에서 데이터를 사용할 때 getCellMark를 통해 안전하게 접근하도록 함.
+                // 여기서는 로드 시점에 daySpecificData 구조를 강제하지 않고,
+                // getOrInitializeDayDataStructure가 소비 시점에 처리하도록 신뢰.
+                // 다만, 로드된 데이터에 cellMark가 있다면 그대로 사용됨.
+                // 만약 파일에 cellMark가 아예 없는 옛날 데이터라면, getCellMark가 null을 반환할 것임.
+            }
+        }
+        // ▲▲▲ (주석 처리된 로직은 아래 getOrInitializeDayDataStructure에서 처리) ▲▲▲
+        state.dailyData.set(yearMonthKey, finalMonthDataObject);
     }
 
-    state.view.currentDisplayYear = numericYear; // 현재 로드 완료된 연도로 뷰 상태 업데이트
+    state.view.currentDisplayYear = numericYear;
     const today = new Date(); today.setHours(0,0,0,0);
     if (numericYear === today.getFullYear()) {
         state.view.currentWeeklyViewStartDate = getMondayOfWeek(today);
@@ -205,70 +209,73 @@ export function getCurrentYearDataForSave() {
 
     // 2. Monthly Data 저장
     state.dailyData.forEach((monthDataObject, yearMonthKey) => {
-        const dataToSave = {
-            yearMonth: monthDataObject.yearMonth || yearMonthKey,
-            routines: monthDataObject.routines || [],
-            colorPalette: monthDataObject.colorPalette || [], // 저장 시에도 기본값 보장
-            dailyData: monthDataObject.dailyData || {}
-        };
-        // 월별 팔레트가 비어있고, 전역 팔레트가 있다면 전역 팔레트를 사용 (선택적 로직)
-        // if (dataToSave.colorPalette.length === 0 && state.settings.colorPalette.length > 0) {
-        //     dataToSave.colorPalette = [...state.settings.colorPalette];
-        // }
-        files.push({
-            filenameInZip: `${year}/${yearMonthKey}.json`,
-            data: dataToSave
-        });
+        // yearMonthKey가 현재 저장하려는 year에 해당하는지 확인
+        if (yearMonthKey.startsWith(String(year))) {
+            const dataToSave = {
+                yearMonth: monthDataObject.yearMonth || yearMonthKey,
+                routines: monthDataObject.routines || [],
+                colorPalette: monthDataObject.colorPalette || [], 
+                dailyData: monthDataObject.dailyData || {} // daySpecificData 안에 cellMark가 포함되어 저장됨
+            };
+            files.push({
+                filenameInZip: `${year}/${yearMonthKey}.json`,
+                data: dataToSave
+            });
+        }
     });
     return files;
 }
 
-
 export function loadYearFromBackup(year, filesData) {
-    if (state.view.currentDisplayYear !== year) {
-        state.yearlyData = null; // 이전 연도 데이터 초기화
-        state.dailyData.clear();  // 이전 연도 월별 데이터 초기화
-        state.view.currentDisplayYear = year;
-    } else {
-        // 같은 연도라도 백업으로 덮어쓰므로, 기존 월별 데이터는 비움
-        state.dailyData.clear();
-    }
+    const numericYear = parseInt(year, 10);
+    // 백업 로드 시에는 현재 메모리 상태를 완전히 새로 가져온 데이터로 대체
+    state.yearlyData = null; 
+    state.dailyData.clear(); 
+    state.view.currentDisplayYear = numericYear;
 
     filesData.forEach(fileInfo => {
         const { filenameInZip, data: loadedFileData } = fileInfo;
 
-        if (filenameInZip === `${year}/${year}.json`) {
-            state.yearlyData = { // 필요한 필드만 받아들이고 기본값 설정
-                year: loadedFileData.year || year,
+        if (filenameInZip === `${numericYear}/${numericYear}.json`) {
+            state.yearlyData = { 
+                year: loadedFileData.year || numericYear,
                 labels: loadedFileData.labels || [],
                 events: loadedFileData.events || [],
                 backlogTodos: loadedFileData.backlogTodos || []
             };
             dirtyFileService.markFileAsDirty(filenameInZip, state.yearlyData);
-        } else if (filenameInZip.startsWith(`${year}/${year}-`)) {
-            const yearMonthKey = filenameInZip.replace(`${year}/`, '').replace('.json', '');
+        } else if (filenameInZip.startsWith(`${numericYear}/${numericYear}-`)) {
+            const yearMonthKey = filenameInZip.replace(`${numericYear}/`, '').replace('.json', '');
             const monthDataObject = {
                 yearMonth: loadedFileData.yearMonth || yearMonthKey,
                 routines: loadedFileData.routines || [],
-                colorPalette: loadedFileData.colorPalette || [], // 백업파일에 없으면 빈 배열
-                dailyData: loadedFileData.dailyData || {}
+                colorPalette: loadedFileData.colorPalette || [], 
+                dailyData: loadedFileData.dailyData || {} // 여기에 cellMark가 포함되어 로드됨
             };
+            // 로드된 dailyData 내부의 각 날짜 객체에 cellMark 기본값 보장
+            if (monthDataObject.dailyData) {
+                for (const dateKey in monthDataObject.dailyData) {
+                    if (monthDataObject.dailyData[dateKey].cellMark === undefined) {
+                        monthDataObject.dailyData[dateKey].cellMark = null;
+                    }
+                    // 다른 필수 필드들도 여기서 초기화 가능 (getOrInitializeDayDataStructure 로직 참고)
+                }
+            }
             state.dailyData.set(yearMonthKey, monthDataObject);
             dirtyFileService.markFileAsDirty(filenameInZip, monthDataObject);
         }
     });
-    eventBus.dispatch('dataChanged', { source: 'fileLoad', yearLoaded: year });
+    eventBus.dispatch('dataChanged', { source: 'fileLoad', yearLoaded: numericYear });
 }
 
 
 export function clearAllDirtyFilesForYear(year) {
-    dirtyFileService.clearDirtyFile(`${year}/${year}.json`);
+    const numericYear = parseInt(year, 10);
+    dirtyFileService.clearDirtyFile(`${numericYear}/${numericYear}.json`);
     for (let i = 1; i <= 12; i++) {
         const month = String(i).padStart(2, '0');
-        dirtyFileService.clearDirtyFile(`${year}/${year}-${month}.json`);
+        dirtyFileService.clearDirtyFile(`${numericYear}/${numericYear}-${month}.json`);
     }
-    // settings.json은 연도별이 아니므로 여기서 지우지 않음.
-    // dirtyFileService.clearDirtyFile('settings.json'); // 필요시 별도 호출
 }
 
 
@@ -287,28 +294,31 @@ export function updateDailyData(yearMonth, newMonthDataObject) {
 
 
 function getOrInitializeDayDataStructure(monthDataObject, dateStr) {
-    // monthDataObject는 { yearMonth, routines, colorPalette, dailyData } 구조라고 가정
     if (!monthDataObject.dailyData) {
         monthDataObject.dailyData = {};
     }
     if (!monthDataObject.dailyData[dateStr]) {
         monthDataObject.dailyData[dateStr] = {
-            timeBlock: {},
-            goalBlock: {},
+            timeBlocks: {}, // 이전 답변에서 수정한 부분 (Todos, ProjectTodos 등과 일관성)
+            goalBlocks: {}, // 이전 답변에서 수정한 부분
             scheduledTimelineTasks: [],
             todos: [],
             projectTodos: [],
-            // routines: [], // 여기에 routines가 있으면 안됨! 월별로 이동했음.
-            diary: { keep: "", problem: "", try: "" } // diary 기본 구조 추가
+            diary: { keep: "", problem: "", try: "" },
+            cellMark: null // ▼▼▼ 셀 마크 기본값 추가 ▼▼▼
         };
     } else {
-        // 기존 dailyData[dateStr] 객체가 존재할 때, 하위 필수 배열/객체들이 있는지 확인하고 없으면 초기화
-        if (!monthDataObject.dailyData[dateStr].todos) monthDataObject.dailyData[dateStr].todos = [];
-        if (!monthDataObject.dailyData[dateStr].projectTodos) monthDataObject.dailyData[dateStr].projectTodos = [];
-        if (!monthDataObject.dailyData[dateStr].timeBlock) monthDataObject.dailyData[dateStr].timeBlock = {};
-        if (!monthDataObject.dailyData[dateStr].goalBlock) monthDataObject.dailyData[dateStr].goalBlock = {};
-        if (!monthDataObject.dailyData[dateStr].scheduledTimelineTasks) monthDataObject.dailyData[dateStr].scheduledTimelineTasks = [];
-        if (!monthDataObject.dailyData[dateStr].diary) monthDataObject.dailyData[dateStr].diary = { keep: "", problem: "", try: "" };
+        // 기존 dailyData[dateStr] 객체가 존재할 때, 하위 필수 속성들 및 cellMark 기본값 보장
+        if (monthDataObject.dailyData[dateStr].todos === undefined) monthDataObject.dailyData[dateStr].todos = [];
+        if (monthDataObject.dailyData[dateStr].projectTodos === undefined) monthDataObject.dailyData[dateStr].projectTodos = [];
+        if (monthDataObject.dailyData[dateStr].timeBlocks === undefined) monthDataObject.dailyData[dateStr].timeBlocks = {}; // 오타 수정
+        if (monthDataObject.dailyData[dateStr].goalBlocks === undefined) monthDataObject.dailyData[dateStr].goalBlocks = {}; // 오타 수정
+        if (monthDataObject.dailyData[dateStr].scheduledTimelineTasks === undefined) monthDataObject.dailyData[dateStr].scheduledTimelineTasks = [];
+        if (monthDataObject.dailyData[dateStr].diary === undefined) monthDataObject.dailyData[dateStr].diary = { keep: "", problem: "", try: "" };
+        
+        if (monthDataObject.dailyData[dateStr].cellMark === undefined) {
+            monthDataObject.dailyData[dateStr].cellMark = null;
+        }
     }
     return monthDataObject.dailyData[dateStr];
 }
@@ -319,6 +329,58 @@ export function getTodosForDate(dateStr) { // Day-specific todos
     const monthData = state.dailyData.get(yearMonth);
     // dailyData 필드 내부의 dateStr 키를 찾음
     return monthData?.dailyData?.[dateStr]?.todos || [];
+}
+
+/**
+ * 특정 날짜의 셀 마크 정보를 가져옵니다.
+ * @param {string} dateStr - "YYYY-MM-DD" 형식의 날짜 문자열
+ * @returns {string | null} 마크 타입 또는 null
+ */
+export function getCellMark(dateStr) {
+    const yearMonth = dateStr.substring(0, 7);
+    const monthData = state.dailyData.get(yearMonth);
+    // daySpecificData 객체 내의 cellMark 속성을 반환하도록 확실히 함
+    return monthData?.dailyData?.[dateStr]?.cellMark || null;
+}
+
+
+/**
+ * 특정 날짜에 셀 마크를 설정하거나 제거합니다.
+ * @param {string} dateStr - "YYYY-MM-DD" 형식의 날짜 문자열
+ * @param {string | null} markType - 설정할 마크 타입 (제거 시 null 또는 "none")
+ */
+export function setCellMark(dateStr, markType) {
+    const yearMonth = dateStr.substring(0, 7);
+    let monthDataObject = getRawDailyDataForMonth(yearMonth);
+
+    if (!monthDataObject) {
+        monthDataObject = { 
+            yearMonth: yearMonth, 
+            routines: [], 
+            // settings에서 기본 팔레트를 가져오거나, 없으면 빈 배열
+            colorPalette: (state.settings && state.settings.colorPalette) ? [...state.settings.colorPalette] : [], 
+            dailyData: {} 
+        };
+        // 여기서 state.dailyData.set(yearMonth, monthDataObject); 를 직접 하지 않고,
+        // 아래 updateDailyData를 통해 일관되게 처리합니다.
+    } else {
+        // updateDailyData에서 어차피 deep copy를 할 것이므로, 여기서는 직접 수정 준비
+        // 또는, monthDataObject가 state.dailyData.get()의 직접 참조이므로,
+        // getOrInitializeDayDataStructure 내부에서 수정하면 원본이 바뀜.
+    }
+
+    const dayData = getOrInitializeDayDataStructure(monthDataObject, dateStr);
+    
+    const currentMark = dayData.cellMark;
+    const newMark = (markType === "none" || markType === "" || markType === undefined) ? null : markType;
+
+    if (currentMark !== newMark) {
+        dayData.cellMark = newMark;
+        console.log(`[DataManager setCellMark] Mark for ${dateStr} set to: ${newMark}`);
+        updateDailyData(yearMonth, monthDataObject); // 변경된 monthDataObject로 업데이트 요청
+    } else {
+        // console.log(`[DataManager setCellMark] Mark for ${dateStr} is already ${currentMark}. No change.`);
+    }
 }
 
 
@@ -622,56 +684,46 @@ export function moveBacklogTodoToCalendar(todoId, targetDate) {
 }
 
 // dataManager.js 에 추가할 함수 (예시)
-export function getSpecificYearDataForSave(yearToSave) {
+export function getSpecificYearDataForSave(yearToSave) { // (이전 답변에서 제안된 함수)
     const year = parseInt(yearToSave, 10);
     const files = [];
-
-    // 1. 해당 연도의 Yearly Data 저장
-    // state.yearlyData가 현재 로드된 연도와 다를 수 있으므로,
-    // 이 연도 데이터를 직접 로드하거나 접근하는 방식이 필요.
-    // 여기서는 일단 state.yearlyData가 target year의 데이터라고 가정하지 않고,
-    // dirtyFileService나 fetch를 통해 해당 연도의 데이터를 가져오는 로직이 필요할 수 있음.
-    // 하지만 현재 getCurrentYearDataForSave는 state.yearlyData를 직접 사용하므로,
-    // state.yearlyData가 yearToSave의 데이터여야 함.
-
-    // 더 간단하게는, getCurrentYearDataForSave의 로직을 복제하되,
-    // state.view.currentDisplayYear 대신 yearToSave를 사용하는 것.
-
+    
     const yearlyIdentifier = `${year}/${year}.json`;
-    const currentYearlyData = state.yearlyData && state.yearlyData.year === year ? state.yearlyData : dirtyFileService.getDirtyFileData(yearlyIdentifier);
-    // 만약 dirty에도 없고 state.yearlyData도 해당 연도가 아니면, fetch로 가져와야 할 수도 있음.
-    // 여기서는 dirty에 있거나, 현재 로드된 state.yearlyData가 마침 해당 연도인 경우를 가정.
-    // 가장 확실한 방법은 loadDataForYear(year)를 호출하여 state를 해당 연도로 맞추고 시작하는 것이지만,
-    // Cmd+S가 UI 변경 없이 백그라운드 저장하는 느낌이라면 부적절.
-
-    if (currentYearlyData) { // 또는 fetch로 가져온 데이터
-        files.push({
-            filenameInZip: `${year}/${year}.json`,
-            data: {
-                year: currentYearlyData.year || year,
-                labels: currentYearlyData.labels || [],
-                events: currentYearlyData.events || [],
-                backlogTodos: currentYearlyData.backlogTodos || []
-            }
-        });
-    } else {
-        // 해당 연도 파일이 아예 존재하지 않을 수도 있음 (새로운 연도 작업 시작 전)
-        // 이 경우 빈 구조라도 저장할지, 아니면 yearly는 건너뛸지 정책 필요.
-        // 여기서는 getCurrentYearDataForSave()와 유사하게, 데이터가 있으면 저장.
+    // getDirtyFileData는 현재 dirty 상태만 가져오므로, "연도 전체 저장" 시에는 메모리나 fetch를 고려해야 함.
+    // 여기서는 state.yearlyData가 해당 연도의 데이터를 이미 가지고 있거나,
+    // loadDataForYear(year)가 호출되어 채워졌다고 가정하고, state.yearlyData를 사용.
+    // 또는 dirty 파일이 있으면 그것을 우선.
+    let yearDataContent = (state.yearlyData && state.yearlyData.year === year) 
+                          ? state.yearlyData 
+                          : dirtyFileService.getDirtyFileData(yearlyIdentifier);
+    
+    // 만약 위에서 데이터를 못 찾고, 강제로라도 해당 연도 파일을 만들어야 한다면, 기본 구조라도 생성.
+    if (!yearDataContent && state.view.currentDisplayYear === year) { // 현재 작업중인 연도라면 메모리 상태를 사용
+        yearDataContent = state.yearlyData;
+    }
+    if (!yearDataContent) { // 그래도 없다면 최소 구조 (주로 fetch 실패 시)
+        yearDataContent = { year: year, labels: [], events: [], backlogTodos: [] };
     }
 
 
-    // 2. 해당 연도의 모든 Monthly Data 저장
+    files.push({
+        filenameInZip: `${year}/${year}.json`,
+        data: {
+            year: yearDataContent.year || year,
+            labels: yearDataContent.labels || [],
+            events: yearDataContent.events || [],
+            backlogTodos: yearDataContent.backlogTodos || []
+        }
+    });
+
     for (let i = 1; i <= 12; i++) {
         const month = String(i).padStart(2, '0');
         const yearMonthKey = `${year}-${month}`;
         const dailyFileIdentifier = `${year}/${yearMonthKey}.json`;
         
-        // dirtyFileService에서 먼저 확인, 없으면 state.dailyData에서 확인
         let monthDataObject = dirtyFileService.getDirtyFileData(dailyFileIdentifier);
         if (!monthDataObject && state.dailyData.has(yearMonthKey)) {
-            // state.dailyData.get(yearMonthKey)는 이미 로드된 데이터.
-            // dirty가 아니라도 전체 저장 시에는 포함해야 함.
+            // dirty가 아니더라도 메모리에 있는 데이터는 저장 대상임 (연도 전체 저장이므로)
             monthDataObject = state.dailyData.get(yearMonthKey);
         }
 
@@ -686,6 +738,14 @@ export function getSpecificYearDataForSave(yearToSave) {
                 filenameInZip: `${year}/${yearMonthKey}.json`,
                 data: dataToSave
             });
+        } else {
+            // 해당 월에 데이터가 아예 없는 경우 (파일도, dirty도, 메모리에도 없음)
+            // 빈 파일이라도 생성해서 저장할지 여부 결정. 여기서는 데이터 있는 것만 저장.
+            // 만약 빈 파일도 포함해야 한다면:
+            // files.push({
+            //     filenameInZip: `${year}/${yearMonthKey}.json`,
+            //     data: { yearMonth: yearMonthKey, routines: [], colorPalette: [], dailyData: {} }
+            // });
         }
     }
     return files;

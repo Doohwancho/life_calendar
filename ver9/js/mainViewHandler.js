@@ -396,21 +396,29 @@ export async function initMainCalendarView(dataModule, eventBusModule, params, q
     }
 
     const performSaveLabel = () => {
-        if (!labelNameInput || !labelColorInput || !addLabelModal) return; // 요소 없으면 중단
+        if (!labelNameInput || !labelColorInput || !addLabelModal || !data) return; // data 모듈도 확인
 
         const name = labelNameInput.value.trim();
         const color = labelColorInput.value;
         if (name) {
-            data.addLabel({ id: generateId('lbl_'), name, color });
-            addLabelModal.style.display = "none";
+            // dataManager.js에 addLabel 함수가 올바르게 존재하고 export 되어 있어야 합니다.
+            if (typeof data.addLabel === 'function') {
+                data.addLabel({ id: generateId('lbl_'), name, color });
+                addLabelModal.style.display = "none";
+                labelNameInput.value = ""; // 입력 필드 초기화
+                // labelColorInput.value = "#ff0000"; // 기본 색상으로 리셋 (선택 사항)
+            } else {
+                console.error("data.addLabel is not a function. Check dataManager.js");
+                alert("라벨 추가 기능을 사용할 수 없습니다.");
+            }
         } else {
             alert("Label name cannot be empty.");
-            labelNameInput.focus(); // 이름 입력 필드에 다시 포커스
+            labelNameInput.focus();
         }
     };
 
     if (saveLabelBtn && addLabelModal && labelNameInput && labelColorInput) {
-        // saveLabelBtn 클릭 시 performSaveLabel 호출
+        // "Save" 버튼 클릭 시 performSaveLabel 호출
         saveLabelBtn.addEventListener("click", performSaveLabel);
         activeEventListeners.push({ element: saveLabelBtn, type: 'click', handler: performSaveLabel });
 
@@ -424,7 +432,6 @@ export async function initMainCalendarView(dataModule, eventBusModule, params, q
         labelNameInput.addEventListener("keydown", labelNameInputKeydownHandler);
         activeEventListeners.push({ element: labelNameInput, type: 'keydown', handler: labelNameInputKeydownHandler });
 
-        // 사용자가 색상 변경 후 바로 엔터치고 싶어할 수 있음
         const labelColorInputKeydownHandler = (e) => {
             if (e.key === "Enter") {
                 e.preventDefault();
