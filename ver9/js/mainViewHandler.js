@@ -205,13 +205,28 @@ async function handleSaveCurrentYear() {
 function handleLoadYearlyData(event) {
     const file = event.target.files[0];
     if (!file || !file.name.endsWith('.zip')) {
-        alert("연간 백업(.zip) 파일을 선택해주세요."); return;
+        alert("연간 백업(.zip) 파일을 선택해주세요."); 
+        event.target.value = ""; // 파일 선택 초기화
+        return;
     }
-    const yearMatch = file.name.match(/backup_(\d{4})\.zip/);
-    if (!yearMatch) {
-        alert("올바른 형식의 연간 백업 파일이 아닙니다. (예: backup_YYYY.zip)"); return;
+    // 기존: backup_(\d{4})\.zip -> backup_YYYY.zip 만 인식
+    // 수정: backup_(\d{4})(?: \(\d+\))?\.zip -> backup_YYYY.zip 또는 backup_YYYY (숫자).zip 인식
+    //       좀 더 관대하게 하려면: backup_(\d{4}).*?\.zip -> backup_YYYY 다음에 어떤 문자든 올 수 있고 .zip으로 끝나는 경우
+    //       여기서는 'backup_' 다음의 연속된 4자리 숫자를 연도로 간주하고, 그 뒤에 올 수 있는 ' (숫자)' 패턴은 무시.
+    const yearMatch = file.name.match(/^backup_(\d{4})(?: \(\d+\))?\.zip$/i);
+    // 정규식 설명:
+    // ^backup_ : "backup_"으로 시작
+    // (\d{4})  : 숫자 4개를 캡처 (이것이 연도)
+    // (?: \(\d+\))? : 공백, 여는 괄호, 하나 이상의 숫자, 닫는 괄호로 이루어진 그룹이 있거나 없을 수 있음 (?: non-capturing group)
+    // \.zip$   : ".zip"으로 끝나야 함
+    // i        : 대소문자 무시 (선택적이지만, 파일 확장자가 .ZIP 일 수도 있으니)
+
+    if (!yearMatch || !yearMatch[1]) { // yearMatch가 null이거나, 캡처된 연도 그룹(yearMatch[1])이 없는 경우
+        alert("올바른 형식의 연간 백업 파일명이 아닙니다. (예: backup_YYYY.zip 또는 backup_YYYY (N).zip)");
+        event.target.value = ""; // 파일 선택 초기화
+        return;
     }
-    const year = parseInt(yearMatch[1], 10);
+    const year = parseInt(yearMatch[1], 10); // 캡처된 연도 사용
     // if (!confirm(`${year}년 데이터를 불러오면 현재 ${year}년의 모든 내용이 덮어써집니다. 계속하시겠습니까?`)) {
     //     event.target.value = ""; return;
     // }
@@ -221,28 +236,47 @@ function handleLoadYearlyData(event) {
             const zip = await JSZip.loadAsync(e_reader.target.result);
             const filesData = [];
             const promises = [];
-            const yearFolder = zip.folder(String(year));
+            // ZIP 파일 내의 폴더 이름은 여전히 'YYYY' 여야 함
+            const yearFolder = zip.folder(String(year)); 
+            
             if (yearFolder) {
                 yearFolder.forEach((relativePath, zipEntry) => {
                     if (!zipEntry.dir) {
                         const promise = zipEntry.async('string').then(content => {
                             filesData.push({
-                                filenameInZip: `${year}/${relativePath}`,
+                                filenameInZip: `${year}/${relativePath}`, // ZIP 내부 경로 구조는 기존 유지
                                 data: JSON.parse(content)
                             });
                         });
                         promises.push(promise);
                     }
                 });
+            } else {
+                // ZIP 파일 내에 해당 연도 폴더가 없는 경우에 대한 처리
+                alert(`백업 파일(${file.name}) 내에 ${year}년 폴더를 찾을 수 없습니다.`);
+                // event.target.value = ""; // 여기서는 이미 try/catch/finally로 처리되므로 중복될 수 있음
+                return; // filesData가 비어있으면 아래 data.loadYearFromBackup에서 처리될 수도 있지만, 명시적으로 중단
             }
+
             await Promise.all(promises);
-            if (!data) return;
-            data.loadYearFromBackup(year, filesData);
+            
+            if (filesData.length === 0) {
+                alert(`백업 파일(${file.name})의 ${year}년 폴더 내에 데이터 파일이 없습니다.`);
+                // event.target.value = "";
+                return;
+            }
+
+            if (!data) {
+                 console.error("dataManager instance (data) is not available in handleLoadYearlyData.");
+                 alert("데이터 관리자 오류로 파일을 로드할 수 없습니다.");
+                 return;
+            }
+            data.loadYearFromBackup(year, filesData); // dataManager.js의 함수 호출
         } catch (error) {
             console.error("Error loading or parsing yearly backup:", error);
             alert(`연간 백업 파일 처리 중 오류가 발생했습니다: ${error.message}`);
         } finally {
-            event.target.value = "";
+            event.target.value = ""; // 작업 완료 후 파일 선택 input 초기화
         }
     };
     reader.readAsArrayBuffer(file);
