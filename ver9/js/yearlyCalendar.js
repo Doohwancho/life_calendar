@@ -103,58 +103,52 @@ function handleMouseMove(e) {
 function handleMouseUp(e) {
   if (!isDrawing) return;
 
-  const wasActuallyDragging = dragStartDate !== dragCurrentDate; // 실제로 드래그가 발생했는지 여부
+  // const wasActuallyDragging = dragStartDate !== dragCurrentDate; // 이 변수는 이제 직접 사용하지 않음
   const state = data.getState();
 
   isDrawing = false;
   clearTemporaryHighlight();
 
   if (
-    !dragStartDate ||
-    !dragCurrentDate ||
-    !state.selectedLabel ||
-    !state.selectedLabel.id
+      !dragStartDate || // dragCurrentDate는 마우스 업 시점에 항상 dragStartDate와 같거나 다름
+      !state.selectedLabel ||
+      !state.selectedLabel.id
   ) {
-    // dragStartDate가 있는데 selectedLabel이 없다는 것은 거의 발생 안 함 (mousedown에서 체크하므로)
-    // 하지만 방어적으로 코딩
-    dragStartDate = null; // 상태 초기화
-    dragCurrentDate = null;
-    return;
+      dragStartDate = null;
+      dragCurrentDate = null; // dragCurrentDate도 확실히 초기화
+      return;
   }
 
   let finalStartDate = dragStartDate;
-  let finalEndDate = dragCurrentDate;
+  let finalEndDate = dragCurrentDate || dragStartDate; // dragCurrentDate가 없으면 dragStartDate 사용 (클릭의 경우)
 
   if (new Date(finalStartDate) > new Date(finalEndDate)) {
-    [finalStartDate, finalEndDate] = [finalEndDate, finalStartDate];
+      [finalStartDate, finalEndDate] = [finalEndDate, finalStartDate];
   }
 
-  // --- 수정된 로직: 실제 드래그를 했는지, 아니면 단순 클릭에 가까웠는지 판단 ---
-  // "단순 클릭"의 기준: 시작 날짜와 끝 날짜가 동일하고, 마우스 이동이 거의 없었음을 의미할 수 있음
-  // 여기서는 시작 날짜와 현재 (마우스업 시점의) 커서 위치 날짜가 같은지로 판단
-  const isSimpleClickEquivalent = dragStartDate === dragCurrentDate;
-
-  if (isSimpleClickEquivalent && dragStartDate) {
-    // 드래그가 거의 없었고, 클릭에 가까운 동작이었다면 주간 포커싱 변경
-    console.log(`Yearly cell simple click detected on: ${dragStartDate}`);
-    data.updateCurrentWeeklyViewStartDate(new Date(dragStartDate));
-  } else {
-    // 드래그가 발생했다면 새 이벤트 생성
-    const newEvent = {
-      id: generateId(),
+  const newEvent = {
+      id: generateId(), // uiUtils에서 가져온 함수 사용
       labelId: state.selectedLabel.id,
       startDate: finalStartDate,
-      endDate: finalEndDate,
-    };
+      endDate: finalEndDate, // 클릭만 한 경우 finalStartDate와 동일
+  };
 
-    if (data.isDuplicateEvent(newEvent)) {
-      console.log("Duplicate event prevented.");
-    } else {
-      data.addEvent(newEvent);
-    }
+  if (data.isDuplicateEvent(newEvent)) { // dataManager.js에 이 함수가 있어야 함
+      console.log("[YearlyCalendar] Duplicate event prevented for date(s):", finalStartDate, "-", finalEndDate);
+  } else {
+      data.addEvent(newEvent); // dataManager.js에 있는 함수 호출
+      console.log("[YearlyCalendar] Event added:", newEvent);
   }
 
-  // 상태 변수 초기화
+  // 주간 뷰 포커스는 별도의 클릭 핸들러(handleYearlyCellClick)에서 처리하거나,
+  // 여기서 조건을 추가하여 (예: 이벤트 생성 후 포커스 이동) 처리할 수 있습니다.
+  // 현재 로직은 이벤트 생성 후, 해당 날짜로 주간 뷰를 업데이트하지는 않습니다.
+  // 만약 단일 클릭으로 이벤트 생성 후 해당 주로 포커스 이동을 원한다면 아래 코드 추가:
+  if (dragStartDate === (dragCurrentDate || dragStartDate)) { // 단순 클릭이었던 경우
+       data.updateCurrentWeeklyViewStartDate(new Date(dragStartDate));
+  }
+
+
   dragStartDate = null;
   dragCurrentDate = null;
 }
