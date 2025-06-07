@@ -575,6 +575,41 @@ button.dv-routine-action-btn {
 }
 .dv-scheduled-task-delete-btn:hover { color: #c0392b; }
 
+/* ▼▼▼ [추가] 타임라인 블록 리사이즈 핸들 스타일 ▼▼▼ */
+body.dv-task-resizing .dv-scheduled-task-segment-overlay {
+    pointer-events: none;
+}
+
+.dv-resize-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 8px; /* 핸들의 너비 */
+    cursor: ew-resize; /* 동-서 리사이즈 커서 */
+    z-index: 7; /* 텍스트보다 위에 오도록 */
+}
+
+.dv-resize-handle-left {
+    left: 0;
+}
+
+.dv-resize-handle-right {
+    right: 0;
+}
+
+/* 핸들에 마우스를 올렸을 때 시각적 피드백 (선택 사항) */
+.dv-resize-handle:hover::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 60%;
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 2px;
+}
+
 /* --- Color Picker & Modal & Diary --- */
 /* (기존 daily-view.css의 나머지 부분은 변경 없이 그대로 유지) */
 .dv-color-picker { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px; max-width: 100%; width: auto; min-width: 280px; align-items: center; justify-content: center; background-color: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0; position: relative; }

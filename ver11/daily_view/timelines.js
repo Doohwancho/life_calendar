@@ -15,6 +15,16 @@ let isDraggingInternal = false;
 let dragStartCellInternal = null;
 let currentlyEditingCellInternal = null;
 
+let isResizingTask = false;
+let resizingTaskInfo = {
+    taskId: null,
+    handle: null, // 'left' or 'right'
+    initialX: 0,
+    initialStartCellIndex: 0,
+    initialNumBlocks: 0,
+    lastProcessedCellIndex: -1 
+};
+
 const MINUTES_PER_BLOCK = 10; // 각 블록당 분 (기존에도 있었음)
 const BLOCKS_PER_HOUR = 60 / MINUTES_PER_BLOCK; // 시간당 블록 수
 const ACTUAL_DAY_STARTS_AT_HOUR = 6; 
@@ -238,11 +248,12 @@ export function initTimelines(timeGridDomId, goalGridDomId, callbacks) {
     setupTaskOverlayContainer(timeGridActualDomId); 
     setupTaskOverlayContainer(goalGridActualDomId);
 
-    document.addEventListener('mouseup', () => {
-        isDraggingInternal = false;
-        dragStartCellInternal = null;
-        activeGridIdInternal = null;
-    });
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+    // document.addEventListener('mouseup', () => {
+    //     isDraggingInternal = false;
+    //     dragStartCellInternal = null;
+    //     activeGridIdInternal = null;
+    // });
 }
 
 function buildGridStructure(gridDomId, internalGridKey) {
@@ -274,12 +285,20 @@ function buildGridStructure(gridDomId, internalGridKey) {
             
             // 페인팅 관련 리스너
             cell.addEventListener('mousedown', (e) => {
+                // 리사이즈 핸들을 클릭한 경우, 색칠 시작 로직을 실행하지 않음
+                if (e.target.classList.contains('dv-resize-handle')) {
+                    return;
+                }
                 isDraggingInternal = false;
                 dragStartCellInternal = cell;
                 activeGridIdInternal = internalGridKey;
                 storeCurrentColorsForGrid(internalGridKey);
             });
+
             cell.addEventListener('mousemove', (e) => {
+                // 리사이즈 중일 때는 색칠 기능을 완전히 비활성화
+                if (isResizingTask) return; 
+
                 if (e.buttons === 1 && dragStartCellInternal && activeGridIdInternal === internalGridKey) {
                     if (cell !== dragStartCellInternal && !isDraggingInternal) {
                         isDraggingInternal = true;
@@ -289,6 +308,7 @@ function buildGridStructure(gridDomId, internalGridKey) {
                     }
                 }
             });
+
             cell.addEventListener('mouseup', (e) => {
                 if (activeGridIdInternal === internalGridKey) {
                     if (!isDraggingInternal) {
@@ -403,7 +423,6 @@ function renderScheduledTasksOnGrid(gridKey) {
     const gridElement = document.getElementById(actualDomId);
     if (!gridElement) return;
 
-    // << 수정됨: 쿼리 셀렉터 및 fallback 생성에 dv- 접두사 추가
     let overlayContainer = gridElement.querySelector('.dv-task-overlay-container');
     if (!overlayContainer) {
         setupTaskOverlayContainer(actualDomId);
@@ -428,7 +447,6 @@ function renderScheduledTasksOnGrid(gridKey) {
 
         while (blocksProcessed < totalBlocksToProcess && currentHour < 24) {
             const blocksInCurrentRow = Math.min(6 - currentBlockInHour, totalBlocksToProcess - blocksProcessed);
-            // << 수정됨: 쿼리 셀렉터에 dv- 접두사 추가
             const firstCellInSegment = gridElement.querySelector(`.dv-grid-cell[data-hour="${currentHour}"][data-block="${currentBlockInHour}"]`);
             if (!firstCellInSegment) {
                 currentHour++;
@@ -437,7 +455,6 @@ function renderScheduledTasksOnGrid(gridKey) {
             }
 
             const segmentOverlay = document.createElement('div');
-            // << 수정됨: 클래스 이름에 dv- 접두사 추가
             segmentOverlay.className = 'dv-scheduled-task-segment-overlay';
             segmentOverlay.style.position = 'absolute';
             segmentOverlay.style.top = `${firstCellInSegment.offsetTop}px`;
@@ -447,12 +464,12 @@ function renderScheduledTasksOnGrid(gridKey) {
             segmentOverlay.style.borderColor = task.color || DEFAULT_SCHEDULED_TASK_BORDER_COLOR;
 
             const textElement = document.createElement('span');
-            textElement.className = 'dv-scheduled-task-text'; // << 수정됨
+            textElement.className = 'dv-scheduled-task-text';
             textElement.textContent = task.text;
             segmentOverlay.appendChild(textElement);
 
             const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'dv-scheduled-task-delete-btn'; // << 수정됨
+            deleteBtn.className = 'dv-scheduled-task-delete-btn';
             deleteBtn.innerHTML = '&times;';
             deleteBtn.title = 'Remove this task from timeline';
             deleteBtn.addEventListener('click', (e) => {
@@ -464,6 +481,17 @@ function renderScheduledTasksOnGrid(gridKey) {
                 }
             });
             segmentOverlay.appendChild(deleteBtn);
+
+            const leftHandle = document.createElement('div');
+            leftHandle.className = 'dv-resize-handle dv-resize-handle-left';
+            leftHandle.addEventListener('mousedown', (e) => handleResizeStart(e, task.id, 'left'));
+            segmentOverlay.appendChild(leftHandle);
+            
+            const rightHandle = document.createElement('div');
+            rightHandle.className = 'dv-resize-handle dv-resize-handle-right';
+            rightHandle.addEventListener('mousedown', (e) => handleResizeStart(e, task.id, 'right'));
+            segmentOverlay.appendChild(rightHandle);
+
             overlayContainer.appendChild(segmentOverlay);
 
             blocksProcessed += blocksInCurrentRow;
@@ -474,6 +502,118 @@ function renderScheduledTasksOnGrid(gridKey) {
             }
         }
     });
+}
+
+/*******************************8
+ * 타임라인 태스크 리사이즈 핸들 이벤트 핸들러
+ */
+function handleResizeStart(e, taskId, handleType) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const task = scheduledTasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    isResizingTask = true;
+    resizingTaskInfo = {
+        taskId: taskId,
+        handle: handleType,
+        initialX: e.clientX,
+        initialStartCellIndex: task.startHour * BLOCKS_PER_HOUR + task.startBlock,
+        initialNumBlocks: task.numBlocks,
+        lastProcessedCellIndex: -1
+    };
+
+    // 마우스가 오버레이를 통과하도록 body에 클래스 추가
+    document.body.classList.add('dv-task-resizing'); 
+    document.body.style.cursor = 'ew-resize';
+}
+
+function handleResizeMove(e) {
+    if (!isResizingTask) return;
+
+    const targetCell = e.target.closest('.dv-grid-cell');
+    if (!targetCell) return;
+
+    const targetHour = parseInt(targetCell.dataset.hour, 10);
+    const targetBlock = parseInt(targetCell.dataset.block, 10);
+    const targetCellIndex = targetHour * BLOCKS_PER_HOUR + targetBlock;
+
+    if (targetCellIndex === resizingTaskInfo.lastProcessedCellIndex) {
+        return;
+    }
+    resizingTaskInfo.lastProcessedCellIndex = targetCellIndex;
+
+    const task = scheduledTasks.find(t => t.id === resizingTaskInfo.taskId);
+    if (!task) return;
+
+    // --- 디버깅을 위한 로그 ---
+    console.clear(); // 콘솔을 깨끗하게 유지
+    console.log(`%cResizing Task: ${task.text}`, "color: blue; font-weight: bold;");
+    console.log(`Handle: ${resizingTaskInfo.handle}`);
+    // -------------------------
+
+    if (resizingTaskInfo.handle === 'right') {
+        const startCellIndex = task.startHour * BLOCKS_PER_HOUR + task.startBlock;
+        let newNumBlocks;
+
+        // 드래그 위치가 시작점보다 왼쪽에 오면, 블록 크기는 1로 고정
+        if (targetCellIndex < startCellIndex) {
+            newNumBlocks = 1;
+        } else {
+            newNumBlocks = targetCellIndex - startCellIndex + 1;
+        }
+        
+        task.numBlocks = newNumBlocks;
+        
+        console.log(`Start Index: ${startCellIndex}, Target Index: ${targetCellIndex}, New Block Count: ${newNumBlocks}`);
+
+
+    } else if (resizingTaskInfo.handle === 'left') {
+        const endCellIndex = resizingTaskInfo.initialStartCellIndex + resizingTaskInfo.initialNumBlocks - 1;
+        
+        let newStartCellIndex = targetCellIndex;
+        if (newStartCellIndex > endCellIndex) {
+            newStartCellIndex = endCellIndex;
+        }
+
+        const newNumBlocks = endCellIndex - newStartCellIndex + 1;
+
+        task.startHour = Math.floor(newStartCellIndex / BLOCKS_PER_HOUR);
+        task.startBlock = newStartCellIndex % BLOCKS_PER_HOUR;
+        task.numBlocks = newNumBlocks;
+        
+        console.log(`End Index (fixed): ${endCellIndex}, New Start Index: ${newStartCellIndex}, New Block Count: ${newNumBlocks}`);
+    }
+
+    renderScheduledTasksOnGrid(task.gridKey);
+}
+
+function handleResizeEnd() {
+    if (isResizingTask) {
+        // body에 추가했던 클래스와 커서 스타일 제거
+        document.body.classList.remove('dv-task-resizing');
+        document.body.style.cursor = '';
+        
+        isResizingTask = false;
+        resizingTaskInfo = {};
+        if (onTimeGridDataChangeCallback) {
+            onTimeGridDataChangeCallback();
+        }
+    }
+}
+
+function handleGlobalMouseUp() {
+    // 1. 블록 페인팅(색칠) 종료 처리
+    if (isDraggingInternal) {
+        isDraggingInternal = false;
+        dragStartCellInternal = null;
+        activeGridIdInternal = null;
+    }
+    // 2. 스케줄된 태스크 리사이즈 종료 처리
+    if (isResizingTask) {
+        handleResizeEnd();
+    }
 }
 
 
@@ -787,3 +927,9 @@ export function updatePassedTimeVisuals(gridDomIdToUpdate, isTimelineEffectively
         }
     });
 }
+
+document.addEventListener('mousemove', (e) => {
+    if (isResizingTask) {
+        handleResizeMove(e);
+    }
+});
