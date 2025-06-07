@@ -385,7 +385,7 @@
     cursor: pointer;
     display: flex; /* 내부 요소 정렬을 위해 flex 사용 */
     align-items: center;
-    justify-content: space-between; /* 텍스트와 버튼을 양 끝으로 */
+    justify-content: flex-end;
 }
 
 .mv-day-cell-content-wrapper-yearly .mv-project-bar .mv-project-bar-text {
@@ -397,7 +397,7 @@
 .mv-day-cell-content-wrapper-yearly .mv-project-bar .mv-project-bar-delete {
     display: none; /* 평소에는 숨김 */
     font-weight: bold;
-    margin-left: 5px;
+    /* margin-left: 5px; */
     padding: 0 4px;
     border-radius: 50%;
     line-height: 1;

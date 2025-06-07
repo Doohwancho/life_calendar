@@ -410,11 +410,12 @@ export function renderAllYearlyCellContent() {
               itemEl.dataset.eventId = item.id;
               itemEl.style.backgroundColor = sourceLabel.color;
               itemEl.style.top = `${yOffset}px`;
+              itemEl.title = sourceLabel.name;
               
-              const textSpan = document.createElement('span');
-              textSpan.className = 'mv-project-bar-text';
-              textSpan.textContent = sourceLabel.name;
-              itemEl.appendChild(textSpan);
+              // const textSpan = document.createElement('span');
+              // textSpan.className = 'mv-project-bar-text';
+              // textSpan.textContent = sourceLabel.name;
+              // itemEl.appendChild(textSpan);
 
               // ▼▼▼ [추가] 삭제 버튼(X) 생성 및 이벤트 리스너 추가 ▼▼▼
               const deleteBtn = document.createElement('span');
