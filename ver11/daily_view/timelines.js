@@ -148,8 +148,8 @@ function handleCellClickInternal(event, internalGridKey) {
     textarea.className = 'dv-editing-textarea';
     textarea.value = cellData.text;
 
-    modalContent.style.backgroundColor = cellData.color;
-    textarea.style.color = isDarkColorCallback(cellData.color) ? 'white' : 'black';
+    // modalContent.style.backgroundColor = cellData.color;
+    // textarea.style.color = isDarkColorCallback(cellData.color) ? 'white' : 'black';
 
     const buttonsDiv = document.createElement('div');
     buttonsDiv.className = 'dv-modal-buttons';
@@ -192,8 +192,8 @@ function handleCellClickInternal(event, internalGridKey) {
 
     internalSaveBlock(blockKey, cellData.text, cell, internalGridKey, selectedColorFromPicker, colorBeforeThisClick);
     
-    if(modalContent) modalContent.style.backgroundColor = selectedColorFromPicker;
-    if(textarea) textarea.style.color = isDarkColorCallback(selectedColorFromPicker) ? 'white' : 'black';
+    // if(modalContent) modalContent.style.backgroundColor = selectedColorFromPicker;
+    // if(textarea) textarea.style.color = isDarkColorCallback(selectedColorFromPicker) ? 'white' : 'black';
 }
 
 
