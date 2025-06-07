@@ -25,7 +25,7 @@ const DEFAULT_SCHEDULED_TASK_BORDER_COLOR = '#4A90E2';
 const DEFAULT_TIME_BLOCK_COLOR = 'rgb(255,255,255)';
 const DEFAULT_GOAL_BLOCK_COLOR = 'rgb(255,255,255)';
 const DEFAULT_BLOCK_TEXT = "";
-const DEFAULT_PREVIOUS_COLOR = null;
+// const DEFAULT_PREVIOUS_COLOR = null;
 
 // --- Callbacks & Refs ---
 let getSelectedColorCallback = () => 'rgb(255,255,255)';
@@ -125,7 +125,7 @@ function handleCellClickInternal(event, internalGridKey) {
     if (!cellData) {
         console.warn(`[TIMELINES] Data for ${blockKey} not pre-initialized. Using defaults.`);
         const defaultColor = internalGridKey === 'timeGrid' ? DEFAULT_TIME_BLOCK_COLOR : DEFAULT_GOAL_BLOCK_COLOR;
-        cellData = { text: DEFAULT_BLOCK_TEXT, color: defaultColor, previousColor: internalGridKey === 'timeGrid' ? DEFAULT_PREVIOUS_COLOR : undefined };
+        cellData = { text: DEFAULT_BLOCK_TEXT, color: defaultColor };
         dataStore[blockKey] = cellData;
    }
 
@@ -364,9 +364,9 @@ function refreshGridContent(gridDomId, internalGridKey) {
                     text: DEFAULT_BLOCK_TEXT,
                     color: defaultColor,
                 };
-                if (internalGridKey === 'timeGrid') {
-                    dataStore[blockKey].previousColor = DEFAULT_PREVIOUS_COLOR;
-                }
+                // if (internalGridKey === 'timeGrid') {
+                //     dataStore[blockKey].previousColor = DEFAULT_PREVIOUS_COLOR;
+                // }
             }
             const cellData = dataStore[blockKey];
             cell.style.backgroundColor = cellData.color;
@@ -491,8 +491,8 @@ function isBlockDefault(block, isGoalBlock = false) {
     if (isGoalBlock) {
         return textIsDefault && colorIsDefault;
     } else {
-        const previousColorIsDefault = (block.previousColor === DEFAULT_PREVIOUS_COLOR || typeof block.previousColor === 'undefined');
-        return textIsDefault && colorIsDefault && previousColorIsDefault;
+        // const previousColorIsDefault = (block.previousColor === DEFAULT_PREVIOUS_COLOR || typeof block.previousColor === 'undefined');
+        return textIsDefault && colorIsDefault; // && previousColorIsDefault;
     }
 }
 
@@ -558,25 +558,25 @@ export function clearCurrentlyEditingCellFlag() {
     currentlyEditingCellInternal = null;
 }
 
-export function clearAllPreviousColorMarkers(internalGridKeyToClear) {
-    if (internalGridKeyToClear === 'timeGrid' || internalGridKeyToClear === 'all') {
-        Object.keys(blockData).forEach(key => {
-            if (blockData[key]) {
-                blockData[key].previousColor = null;
-            }
-        });
-        if (timeGridActualDomId) {
-            const gridElement = document.getElementById(timeGridActualDomId);
-            if (gridElement) {
-                // << 수정됨: dv- 접두사 추가
-                gridElement.querySelectorAll('.dv-grid-cell.color-changed').forEach(cell => {
-                    cell.classList.remove('color-changed');
-                    cell.style.removeProperty('--previous-color');
-                });
-            }
-        }
-    }
-}
+// export function clearAllPreviousColorMarkers(internalGridKeyToClear) {
+//     if (internalGridKeyToClear === 'timeGrid' || internalGridKeyToClear === 'all') {
+//         Object.keys(blockData).forEach(key => {
+//             if (blockData[key]) {
+//                 blockData[key].previousColor = null;
+//             }
+//         });
+//         if (timeGridActualDomId) {
+//             const gridElement = document.getElementById(timeGridActualDomId);
+//             if (gridElement) {
+//                 // << 수정됨: dv- 접두사 추가
+//                 gridElement.querySelectorAll('.dv-grid-cell.color-changed').forEach(cell => {
+//                     cell.classList.remove('color-changed');
+//                     cell.style.removeProperty('--previous-color');
+//                 });
+//             }
+//         }
+//     }
+// }
 
 function addScheduledTaskToTimeline(todoData, startHourStr, startBlockStr, gridKey) {
     const durationMinutes = parseInt(todoData.time) || 0;
