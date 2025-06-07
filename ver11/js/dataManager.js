@@ -17,7 +17,7 @@ let state = {
         colorPalette: [], // 마스터 색상 팔레트 (애플리케이션 전역 기본값)
         lastOpenedYear: INITIAL_YEAR,
     },
-    yearlyData: null, // 현재 로드된 '연도'의 데이터: { year, labels, events, backlogTodos }
+    yearlyData: null, // 현재 로드된 '연도'의 데이터: { year, projects, events, backlogTodos }
     dailyData: new Map(), // <'YYYY-MM', monthDataObject>
                           // monthDataObject: { yearMonth, routines, colorPalette, dailyData: {'YYYY-MM-DD': daySpecificData} }
     mandalArt: null,
@@ -30,8 +30,8 @@ let state = {
 
 // --- Getters ---
 export function getState() {
-    const currentYearData = state.yearlyData || { labels: [], events: [], backlogTodos: [] };
-    const labels = currentYearData.labels || [];
+    const currentYearData = state.yearlyData || { projects: [], events: [], backlogTodos: [] };
+    const projects = currentYearData.projects || [];
     
     // 현재 월 키 결정 (주간 보기 시작 날짜 기준 또는 현재 날짜 기준 등 상황에 따라 다를 수 있음, 여기서는 주간 보기 기준)
     const refDateForMonth = state.view.currentWeeklyViewStartDate || new Date(); // fallback
@@ -51,7 +51,8 @@ export function getState() {
         ...state.settings, // 전역 설정을 기본으로 깔고
         ...currentYearData, // 연간 데이터를 덮어쓰고 (labels, events, backlogTodos)
         ...state.view,      // 현재 뷰 상태를 덮어쓰고
-        labels: labels,     // yearlyData의 labels를 명시적으로 사용
+        labels: projects, // 호환성을 위해 'labels' 키는 유지하되, 내용은 projects 배열
+        projects: projects, // 명시적으로 projects 키도 제공
         colorPalette: activeColorPalette, // 최종적으로 결정된 활성 컬러 팔레트
         routines: activeRoutines,         // 최종적으로 결정된 활성 루틴
     };
@@ -105,11 +106,18 @@ export function loadDataForYear(year) {
     
     // Yearly data 로드
     const yearlyIdentifier = `${numericYear}/${numericYear}.json`;
-    state.yearlyData = dirtyFileService.getDirtyFileData(yearlyIdentifier) || { year: numericYear, labels: [], events: [], backlogTodos: [] };
+    let yearlyPageData = dirtyFileService.getDirtyFileData(yearlyIdentifier);
+    if (yearlyPageData) {
+        state.yearlyData = yearlyPageData;
+    } else {
+        // fetch 로직 제거 후 기본값 생성
+        state.yearlyData = { year: numericYear, projects: [], events: [], backlogTodos: [] };
+    }
 
     // 데이터 무결성 보장
     state.yearlyData.year = numericYear;
-    if (!state.yearlyData.labels) state.yearlyData.labels = [];
+    if (!state.yearlyData.projects) state.yearlyData.projects = [];
+    state.yearlyData.labels = state.yearlyData.projects; // 호환성을 위한 할당
     if (!state.yearlyData.events) state.yearlyData.events = [];
     if (!state.yearlyData.backlogTodos) state.yearlyData.backlogTodos = [];
 
@@ -140,15 +148,27 @@ export function getCurrentYearDataForSave() {
     if (state.yearlyData) {
         files.push({
             filenameInZip: `${year}/${year}.json`,
-            data: { year: state.yearlyData.year, labels: state.yearlyData.labels, events: state.yearlyData.events, backlogTodos: state.yearlyData.backlogTodos }
+            data: {
+                year: state.yearlyData.year || year,
+                projects: state.yearlyData.projects || [], // labels -> projects
+                events: state.yearlyData.events || [],
+                backlogTodos: state.yearlyData.backlogTodos || []
+            }
         });
     }
 
     state.dailyData.forEach((monthDataObject, yearMonthKey) => {
         if (yearMonthKey.startsWith(String(year))) {
+            const dataToSave = {
+                yearMonth: monthDataObject.yearMonth || yearMonthKey,
+                routines: monthDataObject.routines || [],
+                colorPalette: monthDataObject.colorPalette || [], 
+                dailyData: monthDataObject.dailyData || {}
+            };
+            // dailyData 내부의 projectTodos도 자연스럽게 저장되지 않음
             files.push({
                 filenameInZip: `${year}/${yearMonthKey}.json`,
-                data: monthDataObject
+                data: dataToSave
             });
         }
     });
@@ -198,20 +218,26 @@ export function loadYearFromBackup(year, filesData) {
 
         // 2. 연간 데이터 처리
         if (filenameInZip === `${numericYear}/${numericYear}.json`) {
-            state.yearlyData = {
+            const projects = loadedFileData.projects || loadedFileData.labels || []; // 옛날 데이터(labels)도 호환
+            state.yearlyData = { 
                 year: loadedFileData.year || numericYear,
-                labels: loadedFileData.labels || [],
+                projects: projects,
+                labels: projects, // 호환성
                 events: loadedFileData.events || [],
                 backlogTodos: loadedFileData.backlogTodos || []
             };
             dirtyFileService.markFileAsDirty(filenameInZip, state.yearlyData);
-            console.log('[DataManager] Yearly data loaded from backup.');
-        }
-
+        } 
         // 3. 월간 데이터 처리
-        if (filenameInZip.startsWith(`${numericYear}/${numericYear}-`)) {
+        else if (filenameInZip.startsWith(`${numericYear}/${numericYear}-`)) {
             const yearMonthKey = filenameInZip.replace(`${numericYear}/`, '').replace('.json', '');
-            const monthDataObject = loadedFileData || { yearMonth: yearMonthKey, routines: [], colorPalette: [], dailyData: {} };
+            const monthDataObject = {
+                yearMonth: loadedFileData.yearMonth || yearMonthKey,
+                routines: loadedFileData.routines || [],
+                colorPalette: loadedFileData.colorPalette || [], 
+                dailyData: loadedFileData.dailyData || {}
+            };
+            // monthDataObject.dailyData 내부의 projectTodos는 로드되더라도, getProjectTodosForDate에서 사용 안 함
             state.dailyData.set(yearMonthKey, monthDataObject);
             dirtyFileService.markFileAsDirty(filenameInZip, monthDataObject);
         }
@@ -254,14 +280,14 @@ function getOrInitializeDayDataStructure(monthDataObject, dateStr) {
             goalBlocks: {}, // 이전 답변에서 수정한 부분
             scheduledTimelineTasks: [],
             todos: [],
-            projectTodos: [],
+            // projectTodos: [],
             diary: { keep: "", problem: "", try: "" },
             cellMark: null // ▼▼▼ 셀 마크 기본값 추가 ▼▼▼
         };
     } else {
         // 기존 dailyData[dateStr] 객체가 존재할 때, 하위 필수 속성들 및 cellMark 기본값 보장
         if (monthDataObject.dailyData[dateStr].todos === undefined) monthDataObject.dailyData[dateStr].todos = [];
-        if (monthDataObject.dailyData[dateStr].projectTodos === undefined) monthDataObject.dailyData[dateStr].projectTodos = [];
+        // if (monthDataObject.dailyData[dateStr].projectTodos === undefined) monthDataObject.dailyData[dateStr].projectTodos = [];
         if (monthDataObject.dailyData[dateStr].timeBlocks === undefined) monthDataObject.dailyData[dateStr].timeBlocks = {}; // 오타 수정
         if (monthDataObject.dailyData[dateStr].goalBlocks === undefined) monthDataObject.dailyData[dateStr].goalBlocks = {}; // 오타 수정
         if (monthDataObject.dailyData[dateStr].scheduledTimelineTasks === undefined) monthDataObject.dailyData[dateStr].scheduledTimelineTasks = [];
@@ -354,11 +380,14 @@ export function updateCurrentWeeklyViewStartDate(date) {
 }
 
 // yearlyData 관련 함수들 (labels, events, backlogTodos)은 기존 구조 유지
-export function addLabel(label) {
-    if (!state.yearlyData) state.yearlyData = { year: state.view.currentDisplayYear, labels: [], events: [], backlogTodos: [] };
-    if (!state.yearlyData.labels) state.yearlyData.labels = [];
-    state.yearlyData.labels.push(label);
-    eventBus.dispatch('dataChanged', { source: 'addLabel' });
+export function addLabel(project) { // label -> project
+    if (!state.yearlyData) state.yearlyData = { year: state.view.currentDisplayYear, projects: [], events: [], backlogTodos: [] };
+    if (!state.yearlyData.projects) state.yearlyData.projects = [];
+    if (!project.todos) {
+        project.todos = [];
+    }
+    state.yearlyData.projects.push(project);
+    eventBus.dispatch('dataChanged', { source: 'addProject' });
     dirtyFileService.markFileAsDirty(`${state.view.currentDisplayYear}/${state.view.currentDisplayYear}.json`, state.yearlyData);
 }
 
@@ -367,12 +396,12 @@ export function setSelectedLabel(label) {
     eventBus.dispatch('dataChanged', { source: 'selectedLabelChanged' });
 }
 
-export function reorderLabels(orderedLabelIds) {
-    if (!state.yearlyData || !state.yearlyData.labels) return;
-    state.yearlyData.labels = orderedLabelIds
-        .map(id => state.yearlyData.labels.find(l => l.id === id))
+export function reorderLabels(orderedProjectIds) { // reorderProjects
+    if (!state.yearlyData || !state.yearlyData.projects) return;
+    state.yearlyData.projects = orderedProjectIds
+        .map(id => state.yearlyData.projects.find(p => p.id === id))
         .filter(Boolean);
-    eventBus.dispatch('dataChanged', { source: 'reorderLabels' });
+    eventBus.dispatch('dataChanged', { source: 'reorderProjects' });
     dirtyFileService.markFileAsDirty(`${state.view.currentDisplayYear}/${state.view.currentDisplayYear}.json`, state.yearlyData);
 }
 
@@ -423,6 +452,19 @@ export function deleteLabelAndAssociatedEvents(labelId) {
         eventBus.dispatch('dataChanged', { source: 'deleteLabelAndEvents', payload: { labelId } });
         dirtyFileService.markFileAsDirty(`${state.view.currentDisplayYear}/${state.view.currentDisplayYear}.json`, state.yearlyData);
         console.log(`[DataManager] Label and associated events deleted for labelId: ${labelId}`);
+    }
+}
+
+export function updateProjectTodo(projectId, todoId, completed) {
+    if (!state.yearlyData || !state.yearlyData.projects) return;
+    const project = state.yearlyData.projects.find(p => p.id === projectId);
+    if (project && project.todos) {
+        const todo = project.todos.find(t => t.id === todoId);
+        if (todo && todo.completed !== completed) {
+            todo.completed = completed;
+            dirtyFileService.markFileAsDirty(`${state.view.currentDisplayYear}/${state.view.currentDisplayYear}.json`, state.yearlyData);
+            eventBus.dispatch('dataChanged', { source: 'updateProjectTodo' });
+        }
     }
 }
 
@@ -785,4 +827,10 @@ export function reorderMandalArts(orderedIds) {
     
     // broadcast 옵션을 주지 않아 UI가 다시 렌더링되도록 함
     updateMandalArtState(mandalState); 
+}
+
+export function markYearlyDataAsDirty() {
+    if (state.yearlyData) {
+        dirtyFileService.markFileAsDirty(`${state.yearlyData.year}/${state.yearlyData.year}.json`, state.yearlyData);
+    }
 }

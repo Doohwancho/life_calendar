@@ -313,7 +313,8 @@ export function renderAllYearlyCellContent() {
   clearAllCellItems(); // 기존 프로젝트 바, 투두 박스, 셀 마크 모두 제거
 
   const state = data.getState();
-  const { events, labels, currentDisplayYear } = state;
+  const { events, projects, currentDisplayYear } = state;
+  const labels = projects;
   const dailyItems = {}; // 날짜별 프로젝트/투두 그룹화
 
   // TODO: 실제로는 dataManager에서 날짜별 마크 정보를 가져와야 함.
@@ -404,16 +405,35 @@ export function renderAllYearlyCellContent() {
           if (item.itemType === "project") {
               const sourceLabel = item.labelId ? labels.find((l) => l.id === item.labelId) : null;
               if (!sourceLabel) return; 
+              const itemEl = document.createElement("div");
               itemEl.className = "mv-project-bar";
               itemEl.dataset.eventId = item.id;
               itemEl.style.backgroundColor = sourceLabel.color;
-              itemEl.textContent = sourceLabel.name;
+              itemEl.style.top = `${yOffset}px`;
+              
+              const textSpan = document.createElement('span');
+              textSpan.className = 'mv-project-bar-text';
+              textSpan.textContent = sourceLabel.name;
+              itemEl.appendChild(textSpan);
+
+              // ▼▼▼ [추가] 삭제 버튼(X) 생성 및 이벤트 리스너 추가 ▼▼▼
+              const deleteBtn = document.createElement('span');
+              deleteBtn.className = 'mv-project-bar-delete';
+              deleteBtn.innerHTML = '&times;'; // 'X' 문자
+              deleteBtn.title = 'Delete this schedule';
+              deleteBtn.addEventListener('click', (e) => handleEventDelete(e, item.id));
+              itemEl.appendChild(deleteBtn);
+              // ▲▲▲ [추가] ▲▲▲
+              
               itemEl.title = sourceLabel.name;
-              itemHeight = 8;
+              const itemHeight = 12; // 높이 조절
               itemEl.style.height = `${itemHeight}px`;
+
               itemEl.addEventListener("click", (e) => handleEventBarClick(e, item));
               itemEl.addEventListener("contextmenu", (e) => handleProjectBarContextMenu(e, item));
-              if (item.id === selectedEventId) { /* ... 선택 시 UI ... */ }
+
+              contentWrapper.appendChild(itemEl);
+              yOffset += itemHeight + 1;
           } else if (item.itemType === "todo") {
               itemEl.className = "mv-todo-box-in-calendar";
               itemEl.dataset.todoId = item.id;

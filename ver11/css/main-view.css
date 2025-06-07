@@ -370,6 +370,48 @@
 }
 .mv-day-cell-content-wrapper-yearly::-webkit-scrollbar { display: none; }
 
+/* Yearly Calendar Project Bar Styles */
+.mv-day-cell-content-wrapper-yearly .mv-project-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    font-size: 8px; /* 글자 크기 조정 */
+    color: white;
+    padding: 0 4px;
+    border-radius: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    display: flex; /* 내부 요소 정렬을 위해 flex 사용 */
+    align-items: center;
+    justify-content: space-between; /* 텍스트와 버튼을 양 끝으로 */
+}
+
+.mv-day-cell-content-wrapper-yearly .mv-project-bar .mv-project-bar-text {
+    flex-grow: 1; /* 텍스트가 남는 공간을 모두 차지하도록 */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mv-day-cell-content-wrapper-yearly .mv-project-bar .mv-project-bar-delete {
+    display: none; /* 평소에는 숨김 */
+    font-weight: bold;
+    margin-left: 5px;
+    padding: 0 4px;
+    border-radius: 50%;
+    line-height: 1;
+}
+
+.mv-day-cell-content-wrapper-yearly .mv-project-bar:hover .mv-project-bar-delete {
+    display: inline-block; /* 마우스를 올리면 표시 */
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.mv-day-cell-content-wrapper-yearly .mv-project-bar .mv-project-bar-delete:hover {
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
 .mv-todo-box-in-calendar {
     position: absolute; left: 0; width: 100%; height: 14px;
     box-sizing: border-box; border-radius: 2px; font-size: 0.8em;

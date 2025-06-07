@@ -236,10 +236,11 @@ function handleLoadYearlyData(event) {
 
             // ▼▼▼ [수정] ZIP 파일 전체를 순회하도록 로직 변경 ▼▼▼
             zip.forEach((relativePath, zipEntry) => {
-                if (!zipEntry.dir) {
+                if (!zipEntry.dir) { // 디렉토리가 아닌 파일만 처리
                     const promise = zipEntry.async('string').then(content => {
                         try {
-                            // 파일 경로(relativePath)를 그대로 filenameInZip으로 사용
+                            // 파일 경로(relativePath)를 그대로 filenameInZip으로 사용합니다.
+                            // 예: "2025/2025-06.json" 또는 "mandal-art.json"
                             filesData.push({
                                 filenameInZip: relativePath, 
                                 data: JSON.parse(content)

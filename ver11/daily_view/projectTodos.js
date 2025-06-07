@@ -2,8 +2,8 @@
 const PROJECT_TODOS_STORAGE_KEY = 'projectTodos_v_fresh_start_1';
 
 // --- 전역 변수 ---
-let projects = [];
-let onDataChangeCallback = () => {};
+let projects = []; // 더 이상 자체적으로 데이터를 관리하지 않고, init 시 주입받음
+let onDataChangeCallback = () => {}; // (projectId, todoId, completed) 형식의 콜백
 
 // --- 모듈 UI 상세 변수 ---
 let projectListContainerElement = null; // #project-todo-app-container (CSS에서 .dv-left-pane-top)
@@ -28,12 +28,11 @@ function findProjectById(projectId) {
 
 // --- 데이터 변경 알림 ---
 /**
- * 데이터에 변경이 있을 때마다 호출됩니다.
- * localStorage에 직접 저장하는 대신, main.js에 정의된 콜백을 호출하여
- * 전체 애플리케이션 상태가 저장되도록 합니다.
+ * 데이터에 변경이 있을 때마다 dailyViewHandler에 정의된 콜백을 호출합니다.
+ * @param {object} changeInfo - 변경 정보를 담은 객체. 예: { type: 'UPDATE_PROJECT', payload: project }
  */
-function notifyDataChange() {
-    onDataChangeCallback();
+function notifyDataChange(changeInfo) {
+    onDataChangeCallback(changeInfo);
 }
 
 // --- 핵심 DOM 렌더링 함수 ---
@@ -63,7 +62,7 @@ function createProjectElement(project) {
     // << 수정됨: dv- 접두사 추가
     wrapper.className = `dv-project-item-wrapper ${project.id === openProjectId ? 'open' : ''}`;
     wrapper.dataset.projectId = project.id;
-    wrapper.draggable = true;
+    // wrapper.draggable = true;
 
     const header = document.createElement('div');
     header.className = 'dv-project-header'; // << 수정됨
@@ -99,25 +98,25 @@ function createProjectElement(project) {
         editProjectName(project, nameSpan);
     });
 
-    const deleteBtn = document.createElement('button');
-    // << 수정됨: dv- 접두사 추가
-    deleteBtn.className = 'dv-project-action-btn dv-project-delete-btn';
-    deleteBtn.innerHTML = '🗑️';
-    deleteBtn.title = 'Delete Project';
-    deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (confirm(`Are you sure you want to delete project "${project.name || 'this project'}"?`)) {
-            if (project.id === openProjectId) {
-                hideFloatingDropdown();
-            }
-            projects = projects.filter(p => p.id !== project.id);
-            notifyDataChange();
-            renderProjectList(); // Re-render the whole list
-        }
-    });
+    // const deleteBtn = document.createElement('button');
+    // // << 수정됨: dv- 접두사 추가
+    // deleteBtn.className = 'dv-project-action-btn dv-project-delete-btn';
+    // deleteBtn.innerHTML = '🗑️';
+    // deleteBtn.title = 'Delete Project';
+    // deleteBtn.addEventListener('click', (e) => {
+    //     e.stopPropagation();
+    //     if (confirm(`Are you sure you want to delete project "${project.name || 'this project'}"?`)) {
+    //         if (project.id === openProjectId) {
+    //             hideFloatingDropdown();
+    //         }
+    //         projects = projects.filter(p => p.id !== project.id);
+    //         notifyDataChange();
+    //         renderProjectList(); // Re-render the whole list
+    //     }
+    // });
 
     controlsDiv.appendChild(editBtn);
-    controlsDiv.appendChild(deleteBtn);
+    // controlsDiv.appendChild(deleteBtn);
 
     header.appendChild(arrow);
     header.appendChild(nameSpan);
@@ -146,12 +145,12 @@ function editProjectName(project, nameSpanElement) {
         project.name = newName.trim();
         nameSpanElement.textContent = project.name;
         nameSpanElement.title = project.name; // title도 업데이트
-        notifyDataChange();
+        notifyDataChange({ type: 'UPDATE_PROJECT', payload: { project } });
     } else if (newName !== null && newName.trim() === "" && currentName !== "Unnamed Project") {
         project.name = "Unnamed Project";
         nameSpanElement.textContent = project.name;
         nameSpanElement.title = project.name;
-        notifyDataChange();
+        notifyDataChange({ type: 'UPDATE_PROJECT', payload: { project } });
     }
 }
 
@@ -182,7 +181,7 @@ function renderTodosInDropdown(project) {
     addTaskBtn.addEventListener('click', () => {
         const newTodo = { id: generateId('todo_'), text: 'New Task', completed: false };
         project.todos.push(newTodo);
-        notifyDataChange();
+        notifyDataChange({ type: 'UPDATE_PROJECT', payload: { project } });
         renderTodosInDropdown(project);
 
         // << 수정됨: 쿼리 셀렉터에 dv- 접두사 추가
@@ -220,7 +219,7 @@ function createSubTodoElement(todo, projectId, index) {
     // << 수정됨: dv- 접두사 추가
     li.className = `dv-sub-todo-item ${todo.completed ? 'completed' : ''}`;
     li.dataset.todoId = todo.id;
-    li.draggable = true;
+    // li.draggable = true; //드래그 기능은 일단 비활성화 
 
     const numberSpan = document.createElement('span');
     numberSpan.className = 'dv-sub-todo-number'; // << 수정됨
@@ -240,7 +239,11 @@ function createSubTodoElement(todo, projectId, index) {
         if (project && projectWrapper) {
             updateProjectCompletionDisplay(project, projectWrapper.querySelector('.dv-project-completion'));
         }
-        notifyDataChange();
+        notifyDataChange({ 
+            type: 'TOGGLE_TODO', 
+            payload: { projectId, todoId: todo.id, completed: checkbox.checked }
+        });
+        li.classList.toggle('completed', checkbox.checked);
     });
 
     const textSpan = document.createElement('span');
@@ -257,7 +260,7 @@ function createSubTodoElement(todo, projectId, index) {
         const project = findProjectById(projectId);
         if (!project) return;
         project.todos = project.todos.filter(t => t.id !== todo.id);
-        notifyDataChange();
+        notifyDataChange({ type: 'UPDATE_PROJECT', payload: { project } });
         renderTodosInDropdown(project);
         // << 수정됨: 쿼리 셀렉터에 dv- 접두사 추가
         const projectWrapper = projectsScrollAreaElement.querySelector(`.dv-project-item-wrapper[data-project-id="${projectId}"]`);
@@ -302,7 +305,7 @@ function makeTodoTextEditable(todo, textSpanElement, nextSiblingForInput) {
         if (input.parentElement) {
             input.parentElement.removeChild(input);
         }
-        notifyDataChange();
+        notifyDataChange({ type: 'UPDATE_PROJECT' }); // 텍스트만 변경되어도 전체 프로젝트를 dirty 마킹
     };
     input.addEventListener('blur', saveTodoText);
     input.addEventListener('keypress', (e) => {
@@ -576,21 +579,25 @@ function getDragAfterSubTodo(ulElement, y) {
 
 
 // --- 초기화 ---
-export function initProjectTodoApp(containerSelector, initialExternalData, dataChangeCb = () => {}) {
+export function initProjectTodoApp(containerSelector, initialExternalData, dataChangeCb) {
     projectListContainerElement = document.querySelector(containerSelector);
     if (!projectListContainerElement) {
         console.error("Project todo app container not found:", containerSelector);
         return;
     }
-    onDataChangeCallback = dataChangeCb;
+    onDataChangeCallback = dataChangeCb || (() => {});
 
     // 1. 스크롤 영역 생성
-    projectsScrollAreaElement = document.createElement('div');
-    projectsScrollAreaElement.className = 'dv-projects-scroll-area'; // << 수정됨
-    projectListContainerElement.appendChild(projectsScrollAreaElement);
+    if (!projectListContainerElement.querySelector('.dv-projects-scroll-area')) {
+        projectsScrollAreaElement = document.createElement('div');
+        projectsScrollAreaElement.className = 'dv-projects-scroll-area';
+        projectListContainerElement.innerHTML = ''; // 기존 내용 초기화
+        projectListContainerElement.appendChild(projectsScrollAreaElement);
+    } else {
+        projectsScrollAreaElement = projectListContainerElement.querySelector('.dv-projects-scroll-area');
+    }
 
     // 2. 플로팅 드롭다운 생성 (최초 한 번만)
-    // << 수정됨: ID 대신 클래스로 확인 및 설정
     if (!document.querySelector('.dv-floating-project-dropdown')) {
         floatingDropdownElement = document.createElement('div');
         floatingDropdownElement.className = 'dv-sub-todo-list-container dv-floating-project-dropdown';
@@ -604,40 +611,31 @@ export function initProjectTodoApp(containerSelector, initialExternalData, dataC
 
     // 3. "Add Project" 버튼 생성
     addProjectBtnElement = document.createElement('button');
-    addProjectBtnElement.className = 'dv-add-project-btn'; // << 수정됨: ID를 클래스로 변경
+    addProjectBtnElement.className = 'dv-add-project-btn';
     addProjectBtnElement.textContent = '+ New Project List';
     addProjectBtnElement.addEventListener('click', () => {
-        if (openProjectId) hideFloatingDropdown();
-        const newProjectName = `Project ${projects.length + 1}`;
-        const newProject = { id: generateId('proj_'), name: newProjectName, todos: [] };
-        projects.push(newProject);
-        notifyDataChange();
-        renderProjectList();
-        // << 수정됨: 쿼리 셀렉터에 dv- 접두사 추가
-        const newProjectWrapper = projectsScrollAreaElement.querySelector(`.dv-project-item-wrapper[data-project-id="${newProject.id}"]`);
-        if (newProjectWrapper) {
-            newProjectWrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            // << 수정됨: 쿼리 셀렉터에 dv- 접두사 추가
-            const nameSpan = newProjectWrapper.querySelector('.dv-project-name');
-            if (nameSpan) {
-                setTimeout(() => editProjectName(newProject, nameSpan), 100);
-            }
-        }
+        // 이 버튼은 이제 dataManager의 addLabel을 직접 호출하는 것이 더 명확합니다.
+        // mainViewHandler를 통해 콜백을 넘겨받거나, data 모듈을 직접 import해서 사용해야 합니다.
+        // 현재 구조에서는 data 모듈 참조가 없으므로 alert를 유지합니다.
+        alert("프로젝트 추가는 Main Page의 프로젝트 관리 메뉴에서 진행해주세요.");
     });
 
     // 4. 전역 이벤트 리스너 설정
-    document.addEventListener('click', (event) => {
-        if (!floatingDropdownElement || floatingDropdownElement.style.display === 'none' || !projectsScrollAreaElement) return;
-        const isClickInsideDropdown = floatingDropdownElement.contains(event.target);
-        // << 수정됨: 쿼리 셀렉터에 dv- 접두사 추가
-        const openProjectHeaderElement = openProjectId ? projectsScrollAreaElement.querySelector(`.dv-project-item-wrapper[data-project-id="${openProjectId}"] .dv-project-header`) : null;
-        const isClickOnOpenHeader = openProjectHeaderElement ? openProjectHeaderElement.contains(event.target) : false;
-        // << 수정됨: dv- 접두사 추가
-        const isClickOnEditInput = event.target.matches('.dv-project-name-input, .dv-sub-todo-text-edit');
-        if (!isClickInsideDropdown && !isClickOnOpenHeader && !isClickOnEditInput) {
-            hideFloatingDropdown();
-        }
-    }, true);
+    // document.addEventListener('click', (event) => {
+    //     if (!floatingDropdownElement || floatingDropdownElement.style.display === 'none' || !projectsScrollAreaElement) return;
+    //     const isClickInsideDropdown = floatingDropdownElement.contains(event.target);
+    //     // << 수정됨: 쿼리 셀렉터에 dv- 접두사 추가
+    //     const openProjectHeaderElement = openProjectId ? projectsScrollAreaElement.querySelector(`.dv-project-item-wrapper[data-project-id="${openProjectId}"] .dv-project-header`) : null;
+    //     const isClickOnOpenHeader = openProjectHeaderElement ? openProjectHeaderElement.contains(event.target) : false;
+    //     // << 수정됨: dv- 접두사 추가
+    //     const isClickOnEditInput = event.target.matches('.dv-project-name-input, .dv-sub-todo-text-edit');
+    //     if (!isClickInsideDropdown && !isClickOnOpenHeader && !isClickOnEditInput) {
+    //         hideFloatingDropdown();
+    //     }
+    // }, true);
+    document.removeEventListener('click', hideDropdownOnOutsideClick, true); 
+    document.addEventListener('click', hideDropdownOnOutsideClick, true);
+
     
     projectsScrollAreaElement.addEventListener('scroll', () => { /* ... */ });
     projectsScrollAreaElement.addEventListener('dragover', handleProjectsScrollAreaDragOver);
@@ -647,20 +645,29 @@ export function initProjectTodoApp(containerSelector, initialExternalData, dataC
     setProjectTodoDataAndRender(initialExternalData);
 }
 
+function hideDropdownOnOutsideClick(event) {
+    if (!floatingDropdownElement || floatingDropdownElement.style.display === 'none' || !projectsScrollAreaElement) return;
+    const isClickInsideDropdown = floatingDropdownElement.contains(event.target);
+    const openProjectHeaderElement = openProjectId ? projectsScrollAreaElement.querySelector(`.dv-project-item-wrapper[data-project-id="${openProjectId}"] .dv-project-header`) : null;
+    const isClickOnOpenHeader = openProjectHeaderElement ? openProjectHeaderElement.contains(event.target) : false;
+    const isClickOnEditInput = event.target.matches('.dv-project-name-input, .dv-sub-todo-text-edit');
+
+    if (!isClickInsideDropdown && !isClickOnOpenHeader && !isClickOnEditInput) {
+        hideFloatingDropdown();
+    }
+}
+
 
 // --- 외부 인터페이스 (Export) ---
 export function getProjectTodoData() {
-    return JSON.parse(JSON.stringify(projects));
+    // 이 함수는 이제 dataManager에 직접 데이터를 저장하므로 사실상 불필요해짐.
+    // 하지만 handleDataChange에서 호출하므로 빈 배열을 반환하도록 유지.
+    return [];
 }
 
 export function setProjectTodoDataAndRender(newDataArray) {
     projects = Array.isArray(newDataArray) ? newDataArray : [];
-    projects.forEach(p => {
-        p.id = p.id || generateId('proj_');
-        p.todos = p.todos || [];
-        p.todos.forEach(t => { t.id = t.id || generateId('todo_'); });
-    });
-
+    
     openProjectId = null;
     hideFloatingDropdown();
     renderProjectList();

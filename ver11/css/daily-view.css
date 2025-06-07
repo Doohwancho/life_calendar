@@ -280,8 +280,11 @@
     cursor: pointer; text-align: center;
     transition: background-color 0.2s ease;
 }
-#project-todo-app-container:hover .dv-add-project-btn { display: block; }
-.dv-add-project-btn:hover { background-color: #218838; }
+
+.dv-add-project-btn:hover { 
+    background-color: #e4e9ed; 
+    border-color: #adb5bd;
+}
 
 .dv-sub-todo-list-container.dv-floating-project-dropdown {
     /* position, z-index, display 등은 JavaScript에서 inline으로 설정됩니다. */

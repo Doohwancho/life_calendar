@@ -21,6 +21,7 @@ import {
     updatePassedTimeVisuals
 } from '../daily_view/timelines.js';
 import { initDiaryApp, getDiaryData, setDiaryDataAndRender as setAndRenderDiary } from '../daily_view/diary.js';
+import { isSameDate, getDateRange, formatDate } from '../js/uiUtils.js';
 
 // 모듈 스코프 변수
 let localDataManager;
@@ -244,9 +245,7 @@ function handleDataChange() {
 
     // 현재 Daily View의 날짜별 데이터 수집
     const currentDaySpecificData = {
-        projectTodos: typeof getProjectTodoData === 'function' ? getProjectTodoData() : [],
         todos: typeof getTodoData === 'function' ? getTodoData() : [],
-        // routines는 아래에서 월별 데이터로 처리
         timeBlocks: typeof getTimelineBlockData === 'function' ? getTimelineBlockData() : {},
         goalBlocks: typeof getTimelineGoalData === 'function' ? getTimelineGoalData() : {},
         scheduledTimelineTasks: typeof getScheduledTasksData === 'function' ? getScheduledTasksData() : [],
@@ -265,8 +264,8 @@ function handleDataChange() {
 }
 
 // [수정] setAllModuleData 함수는 이제 날짜별 데이터와 월별 공유 데이터를 별도로 받음
-function setAllModuleData(daySpecificData = {}, monthSharedData = {}) {
-    if (typeof setAndRenderProjectTodos === 'function') setAndRenderProjectTodos(daySpecificData.projectTodos || []);
+function setAllModuleData(daySpecificData = {}, monthSharedData = {}, activeProjects = []) {
+    // if (typeof setAndRenderProjectTodos === 'function') setAndRenderProjectTodos(activeProjects);
     if (typeof setAndRenderTodos === 'function') setAndRenderTodos(daySpecificData.todos || []);
     if (typeof setAndRenderRoutines === 'function') setAndRenderRoutines(monthSharedData.routines || []); // 월별 루틴 사용
     if (typeof setTimelineBlockDataAndRender === 'function') setTimelineBlockDataAndRender(daySpecificData.timeBlocks || {}, 'timeGridDOM');
@@ -296,23 +295,15 @@ export async function initDailyDetailView(dataModule, busModule, params, query) 
     const yearOfDailyView = parseInt(currentLoadedDate.substring(0, 4), 10);
     const yearMonthKeyForDailyView = currentLoadedDate.substring(0, 7);
 
-    // ▼▼▼ 페이지 새로고침 시 데이터 로딩 보장 로직 ▼▼▼
     if (localDataManager && typeof localDataManager.getState === 'function' && typeof localDataManager.loadDataForYear === 'function') {
         const dmState = localDataManager.getState();
-        // 조건: dataManager의 현재 로드된 연도가 daily view의 연도와 다르거나,
-        // 또는 해당 월의 데이터가 dataManager의 state.dailyData에 아직 없는 경우.
-        // (getRawDailyDataForMonth는 state.dailyData.get(yearMonth)을 반환하므로, 없으면 undefined)
-        if (!dmState || dmState.currentDisplayYear !== yearOfDailyView || !localDataManager.getRawDailyDataForMonth(yearMonthKeyForDailyView)) {
-            console.log(`[DailyViewHandler] Data for year ${yearOfDailyView} (month ${yearMonthKeyForDailyView}) not fully loaded or currentDisplayYear is ${dmState?.currentDisplayYear}. Forcing loadDataForYear(${yearOfDailyView}).`);
+        if (!dmState.yearlyData || dmState.currentDisplayYear !== yearOfDailyView || !localDataManager.getRawDailyDataForMonth(yearMonthKeyForDailyView)) {
+            console.log(`[DailyViewHandler] Data for year ${yearOfDailyView} not fully loaded. Forcing loadDataForYear.`);
             await localDataManager.loadDataForYear(yearOfDailyView);
-            // loadDataForYear 후에는 dataManager의 state가 업데이트 되었으므로, 이후 getRawDailyDataForMonth 호출 시 최신 데이터 사용.
         } else {
-            console.log(`[DailyViewHandler] Data for year ${yearOfDailyView} and month ${yearMonthKeyForDailyView} is already considered loaded in dataManager.`);
+            console.log(`[DailyViewHandler] Data for year ${yearOfDailyView} is already loaded.`);
         }
-    } else {
-        console.error("[DailyViewHandler] localDataManager or its required methods (getState, loadDataForYear) are not available. Cannot ensure data loading on refresh.");
     }
-    // ▲▲▲ 페이지 새로고침 시 데이터 로딩 보장 로직 끝 ▲▲▲
 
     const settings = localDataManager.getSettings(); // 최신 설정을 가져옴 (loadDataForYear 이후에 호출될 수 있도록)
     const monthDataObject = localDataManager.getRawDailyDataForMonth(yearMonthKeyForDailyView) ||
@@ -329,10 +320,52 @@ export async function initDailyDetailView(dataModule, busModule, params, query) 
     initializeColorPicker();
 
     const dataForThisDate = monthDataObject.dailyData?.[currentLoadedDate] || {};
+
+
+    // 1. 그날의 Active 프로젝트 목록을 먼저 계산합니다.
+    const allYearlyData = localDataManager.getState();
+    const allProjects = allYearlyData.projects || [];
+    const allEvents = allYearlyData.events || [];
+    const activeProjectsForToday = [];
+
+    const todayDateObj = new Date(currentLoadedDate);
+    todayDateObj.setHours(0,0,0,0);
+
+    allEvents.forEach(event => {
+        const startDate = new Date(event.startDate);
+        const endDate = new Date(event.endDate);
+        startDate.setHours(0,0,0,0);
+        endDate.setHours(0,0,0,0);
+
+        if (todayDateObj >= startDate && todayDateObj <= endDate) {
+            const projectData = allProjects.find(p => p.id === event.labelId);
+            if (projectData) {
+                activeProjectsForToday.push(projectData);
+            }
+        }
+    });
+
+    // 2. 이제 계산된 변수들을 사용하여 다른 모듈에 데이터를 설정합니다.
     setAllModuleData(dataForThisDate, monthDataObject);
 
-    // 각 하위 모듈 초기화
-    if (typeof initProjectTodoApp === 'function') initProjectTodoApp('#project-todo-app-container', dataForThisDate.projectTodos || [], handleDataChange);
+
+    // 3. 마지막으로 각 하위 모듈을 초기화합니다.
+    // ProjectTodos 모듈은 이제 daily data가 아닌, 방금 계산한 연간 프로젝트 데이터를 받습니다.
+    if (typeof initProjectTodoApp === 'function') {
+        initProjectTodoApp(
+            '#project-todo-app-container',
+            activeProjectsForToday,
+            (changeInfo) => { // 콜백 함수 시그니처 변경: {type, payload}
+                if (changeInfo && changeInfo.type === 'TOGGLE_TODO') {
+                    localDataManager.updateProjectTodo(changeInfo.payload.projectId, changeInfo.payload.todoId, changeInfo.payload.completed);
+                } else if (changeInfo && changeInfo.type === 'UPDATE_PROJECT') {
+                    // 프로젝트의 할 일 목록(추가/삭제/이름변경)이 변경되었으므로
+                    // dataManager의 yearlyData를 dirty로 표시하여 저장 유도
+                    localDataManager.markYearlyDataAsDirty();
+                }
+            }
+        );
+    }
     if (typeof initTodoApp === 'function') initTodoApp('#todo-app-container', dataForThisDate.todos || [], handleDataChange);
     if (typeof initRoutinesApp === 'function') initRoutinesApp('#routines-app-container', monthDataObject.routines || [], handleDataChange);
     if (typeof initDiaryApp === 'function') initDiaryApp('#diary-app-container', dataForThisDate.diary || {}, handleDataChange);
@@ -445,6 +478,7 @@ export async function initDailyDetailView(dataModule, busModule, params, query) 
         document.addEventListener('click', outsideColorPopupClickHandler);
         activeEventListeners.push({ target: document, type: 'click', handler: outsideColorPopupClickHandler });
     }
+
 
     // Cmd+S 핸들러 (현재 Daily View의 연도 전체 데이터 저장)
     async function handleSaveDataForCurrentDailyViewYear() {
