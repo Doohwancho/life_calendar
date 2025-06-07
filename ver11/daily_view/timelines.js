@@ -70,32 +70,34 @@ function internalSaveBlock(blockKey, text, cellElement, internalGridKey, newColo
             text: DEFAULT_BLOCK_TEXT,
             color: defaultColor
         };
-        if (internalGridKey === 'timeGrid') {
-            dataStore[blockKey].previousColor = DEFAULT_PREVIOUS_COLOR;
-        }
+        // [주석 처리 1-1] Goal 타임라인과 동일하게 prevColor 필드 생성 로직 비활성화
+        // if (internalGridKey === 'timeGrid') {
+        //     dataStore[blockKey].previousColor = DEFAULT_PREVIOUS_COLOR;
+        // }
     }
 
     dataStore[blockKey].text = text;
     dataStore[blockKey].color = newColor;
 
-    if (internalGridKey === 'timeGrid') {
-        const normalizedNewColor = normalizeColorCallback(newColor);
-        const normalizedPrevColor = normalizeColorCallback(previousColorForInteractionStart);
+    // ▼▼▼ [주석 처리 1-2] 이전 색상을 저장하고, 관련 클래스 및 CSS 변수를 설정하는 로직 전체 비활성화 ▼▼▼
+    // if (internalGridKey === 'timeGrid') {
+    //     const normalizedNewColor = normalizeColorCallback(newColor);
+    //     const normalizedPrevColor = normalizeColorCallback(previousColorForInteractionStart);
 
-        if (previousColorForInteractionStart && normalizedNewColor !== normalizedPrevColor) {
-            dataStore[blockKey].previousColor = previousColorForInteractionStart;
-            cellElement.classList.add('color-changed'); // 이 클래스는 접두사 없음
-            cellElement.style.setProperty('--previous-color', previousColorForInteractionStart);
-        } else {
-            dataStore[blockKey].previousColor = DEFAULT_PREVIOUS_COLOR;
-            cellElement.classList.remove('color-changed');
-            cellElement.style.removeProperty('--previous-color');
-        }
-    } else {
-        delete dataStore[blockKey].previousColor;
-        cellElement.classList.remove('color-changed');
-        cellElement.style.removeProperty('--previous-color');
-    }
+    //     if (previousColorForInteractionStart && normalizedNewColor !== normalizedPrevColor) {
+    //         dataStore[blockKey].previousColor = previousColorForInteractionStart;
+    //         cellElement.classList.add('color-changed'); // 이 클래스는 접두사 없음
+    //         cellElement.style.setProperty('--previous-color', previousColorForInteractionStart);
+    //     } else {
+    //         dataStore[blockKey].previousColor = DEFAULT_PREVIOUS_COLOR;
+    //         cellElement.classList.remove('color-changed');
+    //         cellElement.style.removeProperty('--previous-color');
+    //     }
+    // } else {
+    //     delete dataStore[blockKey].previousColor;
+    //     cellElement.classList.remove('color-changed');
+    //     cellElement.style.removeProperty('--previous-color');
+    // }
     
     cellElement.style.backgroundColor = newColor;
     cellElement.textContent = text;
@@ -226,7 +228,7 @@ export function initTimelines(timeGridDomId, goalGridDomId, callbacks) {
         onTimeGridDataChangeCallback = callbacks.onTimeGridDataChange || onTimeGridDataChangeCallback;
     }
 
-    applyPreviousColorStyle();
+    // applyPreviousColorStyle();
     addPassedTimeAndLineStyle(); // NEW: Add styles for passed time stripes and current time line
 
     buildGridStructure(timeGridActualDomId, 'timeGrid');
@@ -371,14 +373,14 @@ function refreshGridContent(gridDomId, internalGridKey) {
             cell.textContent = cellData.text;
             cell.style.color = isDarkColorCallback(cellData.color) ? 'white' : 'black';
 
-            if (internalGridKey === 'timeGrid' && cellData.previousColor &&
-                normalizeColorCallback(cellData.previousColor) !== normalizeColorCallback(cellData.color)) {
-                cell.classList.add('color-changed');
-                cell.style.setProperty('--previous-color', cellData.previousColor);
-            } else {
-                cell.classList.remove('color-changed');
-                cell.style.removeProperty('--previous-color');
-            }
+            // if (internalGridKey === 'timeGrid' && cellData.previousColor &&
+            //     normalizeColorCallback(cellData.previousColor) !== normalizeColorCallback(cellData.color)) {
+            //     cell.classList.add('color-changed');
+            //     cell.style.setProperty('--previous-color', cellData.previousColor);
+            // } else {
+            //     cell.classList.remove('color-changed');
+            //     cell.style.removeProperty('--previous-color');
+            // }
         }
     }
     renderScheduledTasksOnGrid(internalGridKey);
@@ -669,31 +671,31 @@ function addPassedTimeAndLineStyle() {
 
 
 // --- Core Timeline Functions ---
-function applyPreviousColorStyle() {
-    const styleId = 'timelinePreviousColorStyle';
-    if (document.getElementById(styleId)) return;
-    const previousColorStyle = `
-        .dv-grid-cell.color-changed { 
-            padding-left: 16px; /* This padding makes space for the triangle */
-            position: relative; 
-        }
-        .dv-grid-cell.color-changed::before { /* This is the prevColor triangle */
-            content: ''; 
-            position: absolute; 
-            top: -1px; 
-            left: -1px;
-            border-style: solid; 
-            border-width: 10px 10px 0 0;
-            border-right-color: transparent; 
-            border-bottom-color: transparent;
-            border-top-color: var(--previous-color); 
-            z-index: 0; /* Lower z-index */
-        }`;
-    const styleSheet = document.createElement("style");
-    styleSheet.id = styleId;
-    styleSheet.textContent = previousColorStyle;
-    document.head.appendChild(styleSheet);
-}
+// function applyPreviousColorStyle() {
+//     const styleId = 'timelinePreviousColorStyle';
+//     if (document.getElementById(styleId)) return;
+//     const previousColorStyle = `
+//         .dv-grid-cell.color-changed { 
+//             padding-left: 16px; /* This padding makes space for the triangle */
+//             position: relative; 
+//         }
+//         .dv-grid-cell.color-changed::before { /* This is the prevColor triangle */
+//             content: ''; 
+//             position: absolute; 
+//             top: -1px; 
+//             left: -1px;
+//             border-style: solid; 
+//             border-width: 10px 10px 0 0;
+//             border-right-color: transparent; 
+//             border-bottom-color: transparent;
+//             border-top-color: var(--previous-color); 
+//             z-index: 0; /* Lower z-index */
+//         }`;
+//     const styleSheet = document.createElement("style");
+//     styleSheet.id = styleId;
+//     styleSheet.textContent = previousColorStyle;
+//     document.head.appendChild(styleSheet);
+// }
 
 
 // --- NEW: Function to update passed time visuals (stripes and red line) ---
