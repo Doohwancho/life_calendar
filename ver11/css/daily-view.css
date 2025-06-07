@@ -1,0 +1,663 @@
+/* css/daily-view.css (수정 완료) */
+@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&display=swap');
+
+/* --- Global & Wrapper --- */
+.dv-wrapper {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    background-color: #f0f2f5;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.dv-wrapper * {
+    box-sizing: border-box;
+}
+
+.dv-wrapper .dv-diary-section,
+.dv-wrapper .dv-diary-section textarea {
+    font-family: 'Gaegu', cursive;
+}
+
+/* --- Date Header --- */
+.dv-date-header {
+    padding: 0;
+    background-color: #1a2533;
+    color: white;
+    text-align: center;
+    height: 28px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.dv-year-progress-bar {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+}
+
+.dv-day-segment {
+    flex: 1 1 auto;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+.dv-day-segment:last-child { border-right: none; }
+.dv-day-segment.dv-passed { background-color: #4CAF50; }
+.dv-day-segment.dv-future { background-color: rgba(255, 255, 255, 0.15); }
+.dv-day-segment.dv-month-end-segment {
+    border-right-color: rgba(255, 255, 255, 0.4);
+    border-right-width: 2px;
+}
+.dv-day-segment.dv-month-end-segment:last-child { border-right: none; }
+
+#current-date-display {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    color: white;
+    font-size: 0.9em;
+    font-weight: bold;
+    padding: 3px 10px;
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+/* --- Day Progress Bar --- */
+.dv-day-progress-container {
+    width: 100%;
+    height: 12px;
+    background-color: #e0e4e8;
+    padding: 2px 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-shrink: 0;
+}
+
+.dv-day-progress-bar-visual {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    border-left: 1px solid #b0b8c0;
+    border-right: 1px solid #b0b8c0;
+}
+
+.dv-time-segment {
+    flex: 1 1 auto;
+    position: relative;
+}
+.dv-time-segment::after {
+    content: '';
+    position: absolute;
+    right: -1px;
+    top: 25%;
+    height: 50%;
+    width: 1px;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+.dv-time-segment.dv-hour-marker::after {
+    top: 10%;
+    height: 80%;
+    width: 2px;
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: 1;
+}
+.dv-time-segment:last-child::after { display: none; }
+.dv-time-segment.dv-passed-time { background-color: #64b5f6; }
+.dv-time-segment.dv-future-time { background-color: #d0d4d8; }
+
+/* --- Main Page Container --- */
+.dv-page-container {
+    display: flex;
+    width: 100%;
+    flex-grow: 1;
+    padding: 15px;
+    gap: 15px;
+    overflow: hidden;
+}
+
+.dv-left-pane, .dv-center-pane, .dv-right-pane {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    overflow-y: auto;
+    padding: 15px;
+}
+
+/* --- Left Pane --- */
+.dv-left-pane {
+    flex: 1 1 22%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 0;
+}
+
+.dv-left-pane-top, .dv-left-pane-middle, .dv-left-pane-bottom {
+    position: relative;
+    display: flex;
+    border: 1px solid #e7eaf0;
+    border-radius: 6px;
+    padding: 15px;
+    flex-direction: column;
+    overflow: hidden;
+    color: #777;
+}
+.dv-left-pane-top { flex: 0.4; min-height: 250px; }
+.dv-left-pane-middle { flex: 0.5; min-height: 220px; z-index: 20; }
+.dv-left-pane-bottom { flex: 1; min-height: 150px; z-index: 10; }
+
+/* --- Project TODOs (추가된 스타일) --- */
+#project-todo-app-container {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+}
+.dv-projects-scroll-area {
+    flex-grow: 1; overflow-y: auto;
+    padding: 10px; position: relative;
+}
+.dv-project-item-wrapper {
+    background-color: #fff;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 6px;
+    border-radius: 4px;
+    position: relative;
+}
+.dv-project-item-wrapper.open { z-index: 50; }
+.dv-project-header {
+    display: flex; align-items: center;
+    padding: 10px 12px;
+    cursor: pointer; user-select: none;
+    transition: background-color 0.15s ease;
+}
+.dv-project-header:hover { background-color: #f1f5f9; }
+.dv-project-item-wrapper:hover .dv-project-controls { opacity: 1; visibility: visible; }
+.dv-project-arrow {
+    font-size: 0.65em; margin-right: 10px;
+    color: #667788; transition: transform 0.2s ease-out;
+    display: inline-block;
+}
+.dv-project-item-wrapper.open .dv-project-arrow { transform: rotate(90deg); }
+.dv-project-name {
+    flex-grow: 1; font-weight: 500; color: #2c3e50;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    padding-right: 8px;
+}
+.dv-project-completion {
+    font-size: 0.8em; color: #52616b;
+    margin-left: auto; padding-left: 10px;
+    white-space: nowrap; flex-shrink: 0;
+}
+.dv-project-controls {
+    display: flex; align-items: center;
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    margin-left: 8px;
+}
+.dv-project-action-btn {
+    background: none; border: none; cursor: pointer;
+    padding: 3px; margin-left: 5px; font-size: 1em;
+    color: #7f8c8d; line-height: 1;
+}
+.dv-project-action-btn:hover { color: #34495e; }
+.dv-project-delete-btn:hover { color: #c0392b; }
+/* 드롭다운 내부의 리스트 스타일 */
+.dv-sub-todo-list {
+    list-style: none;
+    padding: 8px 12px;
+    margin: 0;
+}
+.dv-sub-todo-list-container.dv-floating-dropdown {
+    position: fixed;
+    background-color: #ffffff;
+    border: 1px solid #d1dce5;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+    border-radius: 5px;
+    min-width: 280px;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding-bottom: 8px;
+    box-sizing: border-box;
+}
+.dv-sub-todo-list {
+    list-style: none; padding: 8px 12px; margin: 0;
+}
+.dv-sub-todo-item {
+    position: relative; display: flex; align-items: center;
+    padding: 7px 3px; border-bottom: 1px solid #f2f4f6;
+    font-size: 0.9em;
+}
+.dv-sub-todo-item:last-child { border-bottom: none; }
+.dv-sub-todo-item.completed .dv-sub-todo-text {
+    text-decoration: line-through; color: #a0a0a0; opacity: 0.7;
+}
+.dv-sub-todo-number {
+    margin-right: 7px; color: #888; font-size: 0.9em;
+    min-width: 20px; text-align: right; user-select: none;
+}
+.dv-sub-todo-checkbox { margin-right: 8px; transform: scale(0.9); cursor: pointer; }
+.dv-sub-todo-text { flex-grow: 1; padding: 2px 4px; cursor: text; line-height: 1.4; }
+.dv-sub-todo-text-edit {
+    flex-grow: 1; padding: 3px 5px; font-size: inherit;
+    border: 1px solid #badcff; border-radius: 3px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.07);
+}
+.dv-sub-todo-delete-btn {
+    background: none; border: none; cursor: pointer; color: #c0c0c0;
+    font-size: 1.1em; padding: 2px 6px; margin-left: 8px;
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.2s ease, color 0.2s ease;
+    line-height: 1;
+}
+.dv-sub-todo-item:hover .dv-sub-todo-delete-btn { opacity: 1; visibility: visible; color: #e74c3c; }
+.dv-sub-todo-delete-btn:hover { color: #c0392b !important; }
+/* 드롭다운 내부의 'Add Task' 버튼 스타일 */
+.dv-add-sub-task-btn {
+    display: block;
+    margin: 10px 15px 5px 35px; /* 버튼 위치 조정 */
+    padding: 6px 12px;
+    font-size: 0.85em;
+    color: #333;
+    background-color: #f0f2f5; /* 버튼 자체 배경색 (기존 스타일 유지 또는 흰색으로 변경 가능) */
+    border: 1px solid #d1dce5;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    width: auto;
+}
+.dv-add-sub-task-btn:hover { background-color: #e4e9ed; border-color: #c1cdd8; }
+.dv-add-project-btn {
+    display: none; width: calc(100% - 20px);
+    margin: 15px auto 10px auto; padding: 10px 15px;
+    font-size: 0.9em; font-weight: 500; color: #fff;
+    background-color: #28a745; border: none; border-radius: 5px;
+    cursor: pointer; text-align: center;
+    transition: background-color 0.2s ease;
+}
+#project-todo-app-container:hover .dv-add-project-btn { display: block; }
+.dv-add-project-btn:hover { background-color: #218838; }
+
+.dv-sub-todo-list-container.dv-floating-project-dropdown {
+    /* position, z-index, display 등은 JavaScript에서 inline으로 설정됩니다. */
+    background-color: #ffffff; /* ✨ 흰색 배경을 지정합니다 ✨ */
+    border: 1px solid #d1dce5; /* 약간 부드러운 테두리 */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.12); /* 그림자 효과 */
+    border-radius: 5px; /* 모서리 둥글게 */
+    min-width: 280px; /* 최소 너비 (JS가 실제 너비 설정) */
+    max-height: 80vh; /* 화면 높이의 80%를 넘지 않도록 */
+    overflow-y: auto; /* 내용이 많으면 스크롤 */
+    padding-bottom: 8px; /* 내부 'Add Task' 버튼 등을 위한 하단 여백 */
+    box-sizing: border-box;
+}
+
+
+
+
+
+/* --- General TODOs (추가된 스타일) --- */
+#todo-app-container {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+}
+.dv-todo-list {
+    list-style: none;
+    padding: 0; /* 버튼 컨테이너가 자체 패딩을 가질 것이므로 여기서 패딩 제거 가능 */
+    margin: 0;
+    flex-grow: 1;
+    overflow-y: auto;
+    /* 리스트 맨 아래 약간의 여유 공간 (선택적) */
+    /* padding-bottom: 10px; */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.dv-todo-list::-webkit-scrollbar { display: none; }
+
+.dv-todo-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px; /* 좌우 패딩 약간 늘림 */
+    border-bottom: 1px solid #f0f0f0;
+    gap: 8px; /* 아이템 간 간격 조정 */
+    font-size: 0.9em;
+    position: relative;
+    width: 100%; /* 부모 너비에 맞춤 */
+    box-sizing: border-box; /* 패딩과 테두리를 너비에 포함 */
+}
+.dv-todo-item:last-child { border-bottom: none; }
+.dv-todo-number {
+    color: #909090; font-size: 0.9em; min-width: 20px;
+    text-align: right; margin-right: 3px; user-select: none;
+}
+.dv-todo-checkbox { margin-right: 6px; flex-shrink: 0; transform: scale(0.9); }
+.dv-todo-text-input {
+    flex-grow: 1; /* 사용 가능한 공간을 모두 차지 */
+    border: 1px solid transparent;
+    padding: 5px;
+    border-radius: 3px;
+    font-size: 1em;
+    background-color: transparent;
+    min-width: 0; /* flex 아이템이 줄어들 수 있도록 함 */
+    overflow: hidden; /* 내용이 넘칠 경우 숨김 */
+    text-overflow: ellipsis; /* 넘치는 텍스트는 ...으로 표시 */
+    white-space: nowrap; /* 줄바꿈 방지 */
+}
+.dv-todo-text-input:focus { border: 1px solid #007bff;
+    background-color: #fff; /* 포커스 시에는 흰색 배경 */
+    white-space: normal; /* 포커스 시에는 줄바꿈 허용 (선택사항) */ }
+.dv-todo-text-input.completed { text-decoration: line-through; color: #a0a0a0; }
+.dv-todo-controls {
+    display: flex; align-items: center; gap: 8px;
+    flex-shrink: 0; margin-left: auto;
+}
+.dv-todo-importance {
+    width: 35px; padding: 3px 2px; border: 1px solid #ddd;
+    border-radius: 3px; font-size: 0.9em; text-align: center;
+}
+.dv-todo-time-label {
+    font-size: 0.9em; color: #555; display: flex;
+    align-items: center; cursor: default;
+}
+.dv-todo-time {
+    width: 40px; padding: 3px 2px; border: 1px solid #ddd;
+    border-radius: 3px; font-size: 0.9em; text-align: center; margin-left: 2px;
+}
+.dv-todo-delete-btn {
+    background-color: transparent; color: #adb5bd; border: none;
+    padding: 3px 7px; border-radius: 3px; cursor: pointer; font-size: 0.8em;
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s, color 0.2s;
+    font-weight: bold;
+}
+.dv-todo-item:hover .dv-todo-delete-btn { opacity: 1; visibility: visible; color: #dc3545; }
+.dv-todo-delete-btn:hover { color: #c82333 !important; }
+
+
+.dv-add-todo-btn-container {
+    /* 버튼 컨테이너 자체의 시각적 스타일 */
+    padding: 15px 10px 10px 10px; /* 버튼 주변 여백 */
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 10px; /* 마지막 할 일 항목과의 간격 (선택 사항) */
+
+    /* 기본적으로 숨김 상태 */
+    opacity: 0;
+    visibility: hidden;
+    max-height: 0; /* 높이를 0으로 만들어 공간 차지 안함 (애니메이션용) */
+    overflow: hidden; /* 내용 숨김 */
+    
+    /* 부드러운 전환 효과 */
+    transition: opacity 0.1s ease-in-out, 
+                visibility 0.1s ease-in-out, 
+                max-height 0.1s ease-in-out,
+                padding-top 0.1s ease-in-out,    /* 패딩도 애니메이션 */
+                padding-bottom 0.1s ease-in-out,
+                margin-top 0.1s ease-in-out;
+}
+
+#todo-app-container:hover .dv-add-todo-btn-container {
+    opacity: 1;
+    visibility: visible;
+    max-height: 100px; /* 버튼과 패딩을 포함할 충분한 높이 */
+    /* padding과 margin-top 값은 기본값으로 복원됩니다 (transition에 명시했으므로) */
+}
+
+.dv-add-todo-btn {
+    width: 100%;
+    padding: 10px 12px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.95em;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: background-color 0.2s;
+}
+.dv-add-todo-btn:hover { background-color: #2980b9; }
+.dv-todo-item.dv-highlight-red { background-color: #fff0f0; }
+.dv-todo-item.dv-highlight-blue { background-color: #e3f2fd; }
+/* 하이라이트 시 내부 input 배경 투명하게 (선택사항: 이미 transparent지만 명시) */
+.dv-todo-item.dv-highlight-red .dv-todo-text-input,
+.dv-todo-item.dv-highlight-blue .dv-todo-text-input {
+    background-color: transparent;
+}
+
+/* --- Routines (추가된 스타일) --- */
+#routines-app-container {
+    position: relative; width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    overflow-y: auto; padding: 10px;
+}
+.dv-routines-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 0.85em; table-layout: fixed;
+    margin-bottom: auto;
+}
+.dv-routines-table thead {
+    display: table-header-group; position: sticky;
+    top: -1px; background-color: #f8f9fa; z-index: 1;
+}
+.dv-routines-table thead tr,
+.dv-routines-table tbody .dv-routine-table-row {
+    display: table-row; position: relative;
+}
+.dv-routines-table tbody { display: table-row-group; }
+.dv-routines-table th, .dv-routines-table td {
+    border: 1px solid #e7e9ec; padding: 8px 10px;
+    text-align: left; vertical-align: middle;
+    word-break: break-word;
+}
+.dv-routines-table th { font-weight: 600; color: #343a40; background-color: #f8f9fa; }
+.dv-routines-table td { background-color: #fff; }
+.dv-routines-table tr:hover td:not(.editing-row td) { background-color: #f8f9fa; }
+.dv-routines-table select, .dv-routines-table input[type="text"], .dv-routines-table textarea {
+    width: 100%; padding: 6px; border: 1px solid #ced4da;
+    border-radius: 4px; box-sizing: border-box; font-size: 1em;
+    font-family: inherit; background-color: #fff;
+}
+.dv-routines-table textarea { resize: vertical; min-height: 40px; line-height: 1.4; }
+.dv-routines-table select:focus, .dv-routines-table input[type="text"]:focus, .dv-routines-table textarea:focus {
+    border-color: #86b7fe; outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, .25);
+}
+.dv-routine-row-actions-container {
+    position: absolute; right: 8px; top: 50%;
+    transform: translateY(-50%); display: flex; align-items: center;
+    gap: 6px; background-color: rgba(255, 255, 255, 0.9);
+    padding: 4px 6px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+    z-index: 2;
+}
+.dv-routine-table-row:hover .dv-routine-row-actions-container,
+.dv-routine-table-row.editing-row .dv-routine-row-actions-container {
+    opacity: 1; visibility: visible;
+}
+button.dv-routine-action-btn {
+    background: none; border: none; cursor: pointer; padding: 4px;
+    font-size: 1em; color: #6c757d; line-height: 1;
+}
+.dv-routine-action-btn.dv-routine-edit-btn:hover { color: #007bff; }
+.dv-routine-action-btn.dv-routine-delete-btn:hover { color: #dc3545; }
+.dv-routine-action-btn.dv-routine-confirm-btn { color: #198754; }
+.dv-routine-action-btn.dv-routine-confirm-btn:hover { color: #157347; }
+.dv-routine-action-btn.dv-routine-cancel-btn { color: #ffc107; }
+.dv-routine-action-btn.dv-routine-cancel-btn:hover { color: #d39e00; }
+.dv-empty-routines-message {
+    text-align: center; padding: 20px !important; color: #6c757d;
+    font-style: italic; font-size: 0.9em;
+}
+.dv-add-routine-btn {
+    margin: 15px auto 10px auto; padding: 10px 18px;
+    background-color: #0d6efd; color: white; border: none;
+    border-radius: 5px; cursor: pointer; font-size: 0.95em;
+    display: block; width: fit-content; flex-shrink: 0;
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s, background-color 0.2s;
+}
+#routines-app-container:hover .dv-add-routine-btn { opacity: 1; visibility: visible; }
+.dv-add-routine-btn:hover { background-color: #0b5ed7; }
+
+/* --- Center Pane & Timelines --- */
+.dv-center-pane {
+    flex: 2 1 56%;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 20px;
+    padding: 0;
+}
+.dv-timelines-side-by-side-wrapper {
+    display: flex; gap: 15px;
+    width: 100%; justify-content: space-around;
+}
+.dv-timelines-side-by-side-wrapper > .dv-grid-wrapper { flex: 1; min-width: 0; }
+.dv-grid-wrapper {
+    display: flex; flex-direction: column; align-items: center;
+    width: 100%; max-width: 450px;
+}
+.dv-grid-label {
+    font-weight: 600; margin-bottom: 12px;
+    font-size: 1.05em; color: #2c3e50;
+}
+.dv-grid-container {
+    display: grid; grid-template-columns: 45px repeat(6, 1fr);
+    gap: 1px; background-color: #dde1e6;
+    width: 100%; border: 1px solid #c5cdd3;
+    border-radius: 4px; overflow: hidden;
+    position: relative; /* 자식 absolute 요소들의 기준점 */
+}
+.dv-grid-container .dv-header-cell,
+.dv-grid-container .dv-time-cell {
+    background-color: #edf2f7; padding: 7px 5px; text-align: center;
+    font-weight: 500; user-select: none; font-size: 0.8em; color: #4a5568;
+}
+.dv-grid-container .dv-time-cell { text-align: right; }
+.dv-grid-container .dv-grid-cell {
+    background-color: white; min-height: 20px; border: 1px solid #e2e8f0;
+    padding: 3px; cursor: pointer; position: relative; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; z-index: 1;
+    font-size: 0.7em; transition: border-color 0.2s ease;
+}
+.dv-grid-container .dv-grid-cell:hover { border-color: #a0aec0; }
+.dv-grid-container .dv-grid-cell.dv-timeline-drop-target-hover {
+    background-color: #d0e9ff !important;
+    outline: 2px dashed #007bff; outline-offset: -2px;
+}
+.dv-task-overlay-container {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none; z-index: 5;
+}
+.dv-scheduled-task-segment-overlay {
+    position: absolute; padding: 2px 0px 2px 4px; box-sizing: border-box;
+    border: 3px solid #f7a6a6; background-color: rgba(247, 166, 166, 0.3);
+    display: flex; align-items: center; overflow: hidden; font-size: 0.75em;
+    border-radius: 3px; pointer-events: auto; cursor: default; z-index: 6;
+}
+.dv-scheduled-task-text {
+    flex-grow: 1; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; color: #2c3e50; padding-right: 20px;
+}
+.dv-scheduled-task-delete-btn {
+    position: absolute; top: 50%; right: 5px; transform: translateY(-50%);
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    background: none; border: none; color: #7f8c8d; cursor: pointer;
+    font-size: 1.3em; padding: 0 3px; line-height: 1;
+}
+.dv-scheduled-task-segment-overlay:hover .dv-scheduled-task-delete-btn {
+    opacity: 1; visibility: visible;
+}
+.dv-scheduled-task-delete-btn:hover { color: #c0392b; }
+
+/* --- Color Picker & Modal & Diary --- */
+/* (기존 daily-view.css의 나머지 부분은 변경 없이 그대로 유지) */
+.dv-color-picker { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px; max-width: 100%; width: auto; min-width: 280px; align-items: center; justify-content: center; background-color: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0; position: relative; }
+.dv-add-color-btn{ width:30px;height:30px;border:2px dashed #ccc;border-radius:4px;cursor:pointer; display:flex;align-items:center;justify-content:center;font-size:18px; background:#fff;color:#777;transition:all .2s ease }
+.dv-add-color-btn:hover{border-color:#aaa;color:#555}
+.dv-color-picker-popup{ position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%); min-width:220px;background:#fff;padding:15px;border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:1000;display:none }
+.dv-color-picker-popup.dv-show{display:block}
+.dv-color-input-group{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.dv-color-input-group input[type="color"]{height:30px;padding:0 2px; border:1px solid #ddd; border-radius:4px;}
+.dv-color-input-group input[type="text"]{padding:8px;border:1px solid #ddd;border-radius:4px;}
+.dv-color-option{ width:28px;height:28px;border:1px solid #ccc;border-radius:4px;cursor:pointer; position:relative;transition:transform .1s ease }
+.dv-color-option:hover{transform:scale(1.1);border-color:#999}
+.dv-color-option:hover::after{ content:attr(data-label);position:absolute;bottom:calc(100% + 5px);left:50%; transform:translateX(-50%);padding:5px 8px;background:rgba(0,0,0,.85);color:#fff; border-radius:4px;font-size:11px;white-space:nowrap;z-index:1001 }
+.dv-color-picker-popup .dv-save-btn { width:100%; padding:10px; font-size:0.9em; background-color: #28a745; border-color: #28a745; color: white; }
+.dv-color-picker-popup .dv-save-btn:hover { background-color: #218838; border-color: #1e7e34; }
+.dv-color-option-context-menu {
+    position: absolute; /* JS에서 pageX, pageY 기준으로 위치 설정 */
+    background-color: #ffffff;
+    border: 1px solid #cccccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding: 5px 0;
+    min-width: 80px; /* 최소 너비 */
+    z-index: 1002; /* 색상 추가 팝업(z-index:1000)보다 위에 오도록 */
+    font-size: 13px; /* 내부 폰트 크기 */
+}
+
+.dv-color-option-delete-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: #e74c3c; /* 삭제 텍스트는 빨간색 계열 */
+}
+
+.dv-color-option-delete-item:hover {
+    background-color: #f5f5f5;
+}
+.dv-modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background-color:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:2000;backdrop-filter:blur(3px);animation:dv-fadeIn .2s ease-out}
+.dv-modal-content{background-color:#fff;padding:20px 24px;border-radius:10px;width:90%;max-width:420px;min-height:200px;position:relative;box-shadow:0 5px 20px rgba(0,0,0,.2);animation:dv-slideIn .25s ease-out;color:#000;display:flex;flex-direction:column}
+.dv-editing-textarea{width:100%;flex-grow:1;border:1px solid #ccc;padding:10px;resize:vertical;font-family:inherit;font-size:1em;box-sizing:border-box;background-color:transparent;z-index:10;border-radius:4px;margin-bottom:15px}
+.dv-modal-buttons{display:flex;justify-content:flex-end;padding-top:0;gap:10px}
+.dv-modal-button, .dv-save-text-button, .dv-cancel-text-button{padding:8px 18px;border:none;border-radius:5px;cursor:pointer;font-weight:500;font-size:0.9em;transition:all .2s ease}
+.dv-save-text-button{background-color:#007bff;color:#fff}.dv-save-text-button:hover{background-color:#0056b3}
+.dv-cancel-text-button{background-color:#f0f0f0;color:#333}.dv-cancel-text-button:hover{background-color:#e0e0e0}
+@keyframes dv-fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes dv-slideIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+.dv-right-pane { flex: 1 1 22%; display: flex; padding: 0; }
+#diary-app-container { width: 100%; height: 100%; background-color: #fff; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+.dv-diary-section { width: 100%; display: flex; flex-direction: column; flex: 1; min-height: 120px; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.dv-diary-section h3 { margin: 0 0 12px 0; font-size: 1.1em; font-weight: 600; color: #2c5282; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
+.dv-diary-section textarea { 
+    width: 100%; flex-grow: 1; 
+    border: 1px solid #d2d6dc; 
+    border-radius: 4px; padding: 10px 12px; 
+    font-size: 22px; line-height: 1.7; 
+    resize: none; box-sizing: border-box; 
+    background-color: #fdfdfd; 
+    color: #333; 
+}
+.dv-diary-section textarea::placeholder { color: #a0aec0; font-style: italic; }
+.dv-diary-section textarea:focus { border-color: #66afe9; box-shadow: 0 0 0 0.2rem rgba(102, 175, 233, 0.25); outline: none; }
+.dv-current-time-indicator {
+    position: absolute;
+    /* top: 0;  */
+    /* left: 0;  */
+    width: 2px;
+    /* height: 100%;  */
+    background-color: red;
+    z-index: 10; 
+    pointer-events: none;
+    display: none; /* JS로 표시/숨김 제어 */
+}
+.dv-grid-cell.dv-passed-time-block {
+    background-image: repeating-linear-gradient(
+        -45deg,
+        rgba(0, 0, 0, 0.05),
+        rgba(0, 0, 0, 0.05) 4px,
+        transparent 4px,
+        transparent 8px
+    );
+    /* 기존 배경색과 섞이도록 background-blend-mode 사용 가능 (선택적) */
+    /* background-blend-mode: multiply; */
+}
+.dv-grid-cell.dv-current-time-block {
+    /* 특별한 스타일이 필요하면 여기에 추가 */
+    /* 예: background-color: rgba(255, 255, 0, 0.1); */
+}
