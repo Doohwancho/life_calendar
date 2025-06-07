@@ -114,10 +114,11 @@ function renderLabels() {
             activeLabelContextMenu = document.createElement("div");
             activeLabelContextMenu.id = "customLabelContextMenu";
             activeLabelContextMenu.className = "mv-custom-context-menu";
-            activeLabelContextMenu.style.position = "absolute";
+            // activeLabelContextMenu.style.position = "absolute";
             activeLabelContextMenu.style.left = `${e.pageX}px`;
             activeLabelContextMenu.style.top = `${e.pageY}px`;
 
+            // 1. 이름 변경
             const editNameItem = document.createElement("div");
             editNameItem.textContent = `이름 변경 ("${label.name}")`;
             editNameItem.className = "mv-context-menu-item";
@@ -130,17 +131,30 @@ function renderLabels() {
             };
             activeLabelContextMenu.appendChild(editNameItem);
 
-            const deleteLabelItem = document.createElement("div");
-            deleteLabelItem.textContent = `라벨 삭제 ("${label.name}")`;
-            deleteLabelItem.className = "mv-context-menu-item";
-            deleteLabelItem.style.color = "red";
-            deleteLabelItem.onclick = () => {
-                if (confirm(`"${label.name}" 라벨과 이 라벨을 사용하는 모든 프로젝트 일정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
-                    data.deleteLabelAndAssociatedEvents(label.id);
+            // 2. "캘린더에서 모든 일정 제거" (기존 삭제 버튼의 기능 변경)
+            const unscheduleItem = document.createElement("div");
+            unscheduleItem.textContent = `캘린더에서 모든 일정 제거`;
+            unscheduleItem.className = "mv-context-menu-item";
+            unscheduleItem.onclick = () => {
+                if (confirm(`'${label.name}' 프로젝트의 모든 캘린더 일정을 제거하시겠습니까? (프로젝트 목록에서는 사라지지 않습니다.)`)) {
+                    data.unscheduleAllEventsForProject(label.id);
                 }
                 removeActiveLabelContextMenu();
             };
-            activeLabelContextMenu.appendChild(deleteLabelItem);
+            activeLabelContextMenu.appendChild(unscheduleItem);
+
+            // 3. "프로젝트 완전 삭제" (새로운 위험 옵션)
+            const permanentDeleteItem = document.createElement("div");
+            permanentDeleteItem.textContent = `프로젝트 완전 삭제`;
+            permanentDeleteItem.className = "mv-context-menu-item";
+            permanentDeleteItem.style.color = "red"; // 위험한 작업임을 표시
+            permanentDeleteItem.onclick = () => {
+                if (confirm(`'${label.name}' 프로젝트와 내부의 모든 할 일, 그리고 캘린더의 모든 관련 일정이 영구적으로 삭제됩니다.\n\n정말 삭제하시겠습니까?`)) {
+                    data.deleteProjectPermanently(label.id);
+                }
+                removeActiveLabelContextMenu();
+            };
+            activeLabelContextMenu.appendChild(permanentDeleteItem);
 
             document.body.appendChild(activeLabelContextMenu);
             setTimeout(() => {

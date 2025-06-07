@@ -834,3 +834,54 @@ export function markYearlyDataAsDirty() {
         dirtyFileService.markFileAsDirty(`${state.yearlyData.year}/${state.yearlyData.year}.json`, state.yearlyData);
     }
 }
+
+/**
+ * [이름 변경] 기존 deleteLabelAndAssociatedEvents에서 이름 변경.
+ * 프로젝트 정의(labels 배열)와 관련 이벤트(events 배열)를 모두 영구 삭제합니다.
+ * @param {string} projectId - 삭제할 프로젝트의 ID
+ */
+export function deleteProjectPermanently(projectId) {
+    if (!state.yearlyData) return;
+    let changed = false;
+
+    // 1. 프로젝트 목록(구 labels)에서 해당 프로젝트 삭제
+    if (state.yearlyData.projects) {
+        const initialLength = state.yearlyData.projects.length;
+        state.yearlyData.projects = state.yearlyData.projects.filter(p => p.id !== projectId);
+        if (state.yearlyData.projects.length !== initialLength) changed = true;
+        state.yearlyData.labels = state.yearlyData.projects; // 호환성 유지
+    }
+
+    // 2. 해당 프로젝트를 사용하는 모든 이벤트(일정) 삭제
+    if (state.yearlyData.events) {
+        const initialLength = state.yearlyData.events.length;
+        state.yearlyData.events = state.yearlyData.events.filter(event => event.labelId !== projectId);
+        if (state.yearlyData.events.length !== initialLength) changed = true;
+    }
+    
+    if (state.view.selectedLabel && state.view.selectedLabel.id === projectId) {
+        state.view.selectedLabel = null;
+        changed = true;
+    }
+
+    if (changed) {
+        eventBus.dispatch('dataChanged', { source: 'deleteProject', payload: { projectId } });
+        dirtyFileService.markFileAsDirty(`${state.view.currentDisplayYear}/${state.view.currentDisplayYear}.json`, state.yearlyData);
+    }
+}
+
+/**
+ * [새로운 함수] 특정 프로젝트의 모든 일정을 캘린더에서만 제거합니다. 프로젝트 정의는 남겨둡니다.
+ * @param {string} projectId - 일정을 제거할 프로젝트의 ID
+ */
+export function unscheduleAllEventsForProject(projectId) {
+    if (!state.yearlyData || !state.yearlyData.events) return;
+    
+    const initialLength = state.yearlyData.events.length;
+    state.yearlyData.events = state.yearlyData.events.filter(event => event.labelId !== projectId);
+
+    if (state.yearlyData.events.length < initialLength) {
+        eventBus.dispatch('dataChanged', { source: 'unscheduleProject', payload: { projectId } });
+        dirtyFileService.markFileAsDirty(`${state.view.currentDisplayYear}/${state.view.currentDisplayYear}.json`, state.yearlyData);
+    }
+}
