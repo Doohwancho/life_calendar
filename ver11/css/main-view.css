@@ -115,17 +115,14 @@
     padding: 0; /* 내부에서 패딩 제어 */
     /* display: flex; flex-direction: column; -> .mv-grid-area 에서 상속 */
     overflow: hidden; /* 내부 요소가 스크롤하도록 */
+    display: flex;
+    flex-direction: column;
 }
-
-.mv-weekly-header,
-.mv-weekly-grid {
+.mv-weekly-header {
+    flex-shrink: 0; /* 헤더 높이는 고정 */
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     text-align: center;
-}
-
-.mv-weekly-header {
-    flex-shrink: 0;
     border-bottom: 1px solid #ddd;
     background-color: #f9f9f9;
 }
@@ -141,61 +138,66 @@
 }
 
 .mv-weekly-grid {
-    flex-grow: 1;
-    /* height: 100%; /* 부모가 flex container이므로 불필요할 수 있음 */
-    /* display: grid; 는 이미 적용됨 */
-    /* 각 셀의 높이가 그리드 행의 높이를 따르도록 함 */
+    flex-grow: 1; /* 헤더를 제외한 나머지 모든 공간 차지 */
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: 1fr; /* 모든 셀이 같은 높이를 갖도록 */
+    min-height: 0; /* flex 자식의 높이 계산을 위해 중요 */
 }
 
 .mv-weekly-day-cell {
     display: flex;
     flex-direction: column;
     border-right: 1px solid #eee;
-    border-top: 1px solid #eee; /* 첫 번째 행 제외? 그리드 구조에 따라 달라짐 */
-    padding: 5px; /* 패딩 약간 줄임 */
+    border-top: 1px solid #eee;
     position: relative;
-    /* overflow-y: auto; -> .mv-weekly-cell-content 로 이동 */
-    min-height: 100px; /* 주간 캘린더 셀 최소 높이, grid row 설정에 따라 조정 */
+    overflow: hidden; /* 자식인 .mv-weekly-cell-content가 넘치지 않도록 */
 }
+
 .mv-weekly-day-cell:last-child {
     border-right: none;
 }
-/* 그리드 첫번째 줄의 셀들은 상단 테두리가 필요 없을 수 있습니다. */
-.mv-weekly-grid .mv-weekly-day-cell:nth-child(-n+7) { /* 첫번째 줄 (7개) */
-    /* border-top: none;  만약 grid 자체에 테두리가 있다면 */
-}
-
 
 .mv-weekly-day-cell.mv-today {
     background-color: #fff3cd;
 }
 
+/* 그리드 첫번째 줄의 셀들은 상단 테두리가 필요 없을 수 있습니다. */
+.mv-weekly-grid .mv-weekly-day-cell:nth-child(-n+7) { /* 첫번째 줄 (7개) */
+    /* border-top: none;  만약 grid 자체에 테두리가 있다면 */
+}
+
 .mv-weekly-cell-header {
-    display: flex;
-    justify-content: space-between; /* 버튼을 오른쪽으로 보내기 위해 */
-    align-items: center;
-    margin-bottom: 5px;
-    flex-shrink: 0;
+    padding: 5px;
+    flex-shrink: 0; /* 헤더 높이는 고정 */
 }
 /* .mv-weekly-cell-day-info { ... } */
 
 .mv-add-todo-in-weekly {
     background: none; border: 1px solid #ccc; border-radius: 50%;
-    width: 20px; height: 20px; line-height: 18px; /* 크기 약간 줄임 */
+    width: 20px; height: 20px; line-height: 18px;
     padding: 0; font-size: 1em; color: #555;
+    float: right; /* 오른쪽으로 보내기 */
+    cursor: pointer;
 }
 .mv-add-todo-in-weekly:hover {
-    background-color: #e9ecef; border-color: #007bff;
+    background-color: #e9ecef;
 }
 
 .mv-weekly-cell-content {
-    flex-grow: 1;
-    overflow-y: auto;
-    min-height: 0; /* Flex 자식 스크롤에 중요 */
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    flex-grow: 1; /* 남은 공간을 모두 차지 */
+    overflow-y: auto; /* 내용이 넘치면 세로 스크롤 생성 */
+    min-height: 0; /* flex 자식의 스크롤을 위해 필수! */
+    padding: 0 5px 5px 5px; /* 내부 컨텐츠 여백 */
+
+    /* 스크롤바 숨기기 */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE, Edge */
 }
-.mv-weekly-cell-content::-webkit-scrollbar { display: none; }
+
+.mv-weekly-cell-content::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
 
 .mv-weekly-todo-item {
     font-size: 0.8em; /* 약간 줄임 */
