@@ -183,16 +183,21 @@ export function loadYearFromBackup(year, filesData) {
     const numericYear = parseInt(year, 10);
     state.yearlyData = null;
     state.dailyData.clear();
+    state.mandalArt = null;
     state.view.currentDisplayYear = numericYear;
     
     filesData.forEach(fileInfo => {
         const { filenameInZip, data: loadedFileData } = fileInfo;
 
+        // 1. 만다라트 데이터 처리
         if (filenameInZip === 'mandal-art.json') {
             state.mandalArt = _hydrateMandalArt(loadedFileData);
             dirtyFileService.markFileAsDirty('mandal-art.json', state.mandalArt);
             console.log('[DataManager] Mandal-Art data loaded from backup.');
-        } else if (filenameInZip === `${numericYear}/${numericYear}.json`) {
+        }
+
+        // 2. 연간 데이터 처리
+        if (filenameInZip === `${numericYear}/${numericYear}.json`) {
             state.yearlyData = {
                 year: loadedFileData.year || numericYear,
                 labels: loadedFileData.labels || [],
@@ -200,7 +205,11 @@ export function loadYearFromBackup(year, filesData) {
                 backlogTodos: loadedFileData.backlogTodos || []
             };
             dirtyFileService.markFileAsDirty(filenameInZip, state.yearlyData);
-        } else if (filenameInZip.startsWith(`${numericYear}/${numericYear}-`)) {
+            console.log('[DataManager] Yearly data loaded from backup.');
+        }
+
+        // 3. 월간 데이터 처리
+        if (filenameInZip.startsWith(`${numericYear}/${numericYear}-`)) {
             const yearMonthKey = filenameInZip.replace(`${numericYear}/`, '').replace('.json', '');
             const monthDataObject = loadedFileData || { yearMonth: yearMonthKey, routines: [], colorPalette: [], dailyData: {} };
             state.dailyData.set(yearMonthKey, monthDataObject);
