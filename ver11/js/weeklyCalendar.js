@@ -9,8 +9,8 @@ import {
 import { navigate } from './spaRouter.js';
 
 let weeklyCalendarArea = null;
-const today = new Date();
-today.setHours(0, 0, 0, 0);
+// const today = new Date();
+// today.setHours(0, 0, 0, 0);
 
 let draggedTodoId = null;
 let draggedTodoOriginalDate = null;
@@ -21,6 +21,10 @@ export function renderWeeklyCalendar(weekStartDate) {
         return;
     }
     weeklyCalendarArea.innerHTML = "";
+
+    // 렌더링 시점에 '오늘' 날짜를 새로 계산합니다.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     const header = document.createElement("header");
     header.className = "mv-weekly-header";
