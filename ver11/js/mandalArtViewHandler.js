@@ -6,6 +6,8 @@ import * as dirtyFileService from './dirtyFileService.js';
 let data;
 let eventBus;
 
+let draggedMandalId = null; // 드래그 중인 항목의 ID를 저장할 변수
+
 // 이 뷰에서 추가한 모든 이벤트 리스너를 추적하여 cleanup 시 제거하기 위한 배열
 const activeEventListeners = [];
 
@@ -55,6 +57,7 @@ function renderSidebar() {
         const li = document.createElement('li');
         li.textContent = mandal.name;
         li.dataset.id = mandal.id;
+        li.draggable = true; // ▼▼▼ [추가] 드래그 가능하도록 설정 ▼▼▼
         if (mandal.id === mandalState.activeMandalArtId) li.classList.add('active');
         mandalListEl.appendChild(li);
     });
@@ -205,6 +208,7 @@ export async function initMandalArtView(dataModule, eventBusModule) {
     const sidebarContextMenuEl = document.getElementById('mandal-sidebar-context-menu');
     const colorPicker = document.getElementById('mandal-color-picker');
 
+
     // --- 이벤트 리스너 등록 ---
 
     // 1. 데이터 변경 감지 리스너
@@ -248,6 +252,64 @@ export async function initMandalArtView(dataModule, eventBusModule) {
         };
         mandalListEl.addEventListener('contextmenu', sidebarContextMenuHandler);
         activeEventListeners.push({ element: mandalListEl, type: 'contextmenu', handler: sidebarContextMenuHandler });
+
+        const dragStartHandler = (e) => {
+            const li = e.target.closest('li');
+            if (li) {
+                draggedMandalId = li.dataset.id;
+                // 드래그 중인 항목에 시각적 효과를 주기 위함 (선택적)
+                setTimeout(() => li.classList.add('mandal-dragging'), 0);
+            }
+        };
+        mandalListEl.addEventListener('dragstart', dragStartHandler);
+        activeEventListeners.push({ element: mandalListEl, type: 'dragstart', handler: dragStartHandler });
+
+        const dragEndHandler = (e) => {
+            const li = e.target.closest('li');
+            if (li) {
+                li.classList.remove('mandal-dragging');
+            }
+            draggedMandalId = null;
+        };
+        mandalListEl.addEventListener('dragend', dragEndHandler);
+        activeEventListeners.push({ element: mandalListEl, type: 'dragend', handler: dragEndHandler });
+        
+        const dragOverHandler = (e) => {
+            e.preventDefault(); // drop 이벤트를 허용하기 위해 필수
+            const draggingEl = mandalListEl.querySelector('.mandal-dragging');
+            const afterElement = getDragAfterElement(mandalListEl, e.clientY);
+            if (afterElement == null) {
+                mandalListEl.appendChild(draggingEl);
+            } else {
+                mandalListEl.insertBefore(draggingEl, afterElement);
+            }
+        };
+        mandalListEl.addEventListener('dragover', dragOverHandler);
+        activeEventListeners.push({ element: mandalListEl, type: 'dragover', handler: dragOverHandler });
+
+        const dropHandler = (e) => {
+            e.preventDefault();
+            // DOM에서 현재 순서대로 ID 목록을 추출
+            const newIdOrder = Array.from(mandalListEl.querySelectorAll('li')).map(li => li.dataset.id);
+            // dataManager에 순서 변경 요청
+            data.reorderMandalArts(newIdOrder);
+        };
+        mandalListEl.addEventListener('drop', dropHandler);
+        activeEventListeners.push({ element: mandalListEl, type: 'drop', handler: dropHandler });
+
+        // 드래그 위치를 계산하는 헬퍼 함수
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('li:not(.mandal-dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
     }
 
     if (gridContainerEl) {
@@ -347,8 +409,13 @@ export async function initMandalArtView(dataModule, eventBusModule) {
             switch (action) {
                 case 'toggle-complete': cellData.isCompleted = !cellData.isCompleted; break;
                 case 'highlight': cellData.isHighlighted = !cellData.isHighlighted; break;
-                case 'delete-content': cellData.content = ''; break;
                 case 'set-color': colorPicker.click(); return;
+                case 'reset-cell':
+                    cellData.content = '';
+                    cellData.isCompleted = false;
+                    cellData.isHighlighted = false;
+                    cellData.color = null;
+                    break;
             }
             cellContextMenuEl.style.display = 'none';
             data.updateMandalArtState(mandalState);

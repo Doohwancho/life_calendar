@@ -761,3 +761,19 @@ function _hydrateMandalArt(loadedMandalArt) {
     return loadedMandalArt;
 }
 
+/**
+ * ID 배열 순서에 맞춰 만다라트 목록의 순서를 변경합니다.
+ * @param {Array<string>} orderedIds - 정렬된 만다라트 ID 배열
+ */
+export function reorderMandalArts(orderedIds) {
+    const mandalState = getMandalArtState();
+    if (!mandalState || !mandalState.mandalArts) return;
+
+    // ID 순서에 맞춰 새로운 배열을 생성
+    mandalState.mandalArts = orderedIds
+        .map(id => mandalState.mandalArts.find(m => m.id === id))
+        .filter(Boolean); // 혹시 모를 undefined 제거
+    
+    // broadcast 옵션을 주지 않아 UI가 다시 렌더링되도록 함
+    updateMandalArtState(mandalState); 
+}
