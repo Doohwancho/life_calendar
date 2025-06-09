@@ -205,7 +205,8 @@ export function loadYearFromBackup(year, filesData) {
     state.dailyData.clear();
     state.mandalArt = null;
     state.view.currentDisplayYear = numericYear;
-    
+
+
     filesData.forEach(fileInfo => {
         const { filenameInZip, data: loadedFileData } = fileInfo;
 
