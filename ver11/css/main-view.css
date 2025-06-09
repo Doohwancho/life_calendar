@@ -405,25 +405,33 @@
 .mv-day-cell-content-wrapper-yearly {
     height: 100%; width: 100%; overflow-y: auto; position: relative;
     scrollbar-width: none; -ms-overflow-style: none;
+
+    display: flex;
+    flex-direction: column; /* 핵심: 아이템을 역순으로 쌓습니다. */
+    /* justify-content: flex-end;  */
+    gap: 0;
 }
 .mv-day-cell-content-wrapper-yearly::-webkit-scrollbar { display: none; }
 
 /* Yearly Calendar Project Bar Styles */
 .mv-day-cell-content-wrapper-yearly .mv-project-bar {
-    position: absolute;
-    left: 0;
-    right: 0;
-    font-size: 8px; /* 글자 크기 조정 */
+    /* position: absolute; */
+    position: relative;
+    /* left: 0;
+    right: 0; */
+    /* margin-top: 1px;  */
+    flex-shrink: 0;   /* 아이템 크기가 줄어들지 않도록 설정 */
+    display: flex; 
+    align-items: center;
+    justify-content: flex-end;
+    font-size: 8px;
     color: white;
     padding: 0 4px;
-    border-radius: 2px;
+    /* border-radius: 2px; */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     cursor: pointer;
-    display: flex; /* 내부 요소 정렬을 위해 flex 사용 */
-    align-items: center;
-    justify-content: flex-end;
 }
 
 .mv-day-cell-content-wrapper-yearly .mv-project-bar .mv-project-bar-text {
@@ -451,11 +459,25 @@
 }
 
 .mv-todo-box-in-calendar {
-    position: absolute; left: 0; width: 100%; height: 14px;
-    box-sizing: border-box; border-radius: 2px; font-size: 0.8em;
-    padding: 1px 3px; overflow: hidden; white-space: nowrap;
-    text-overflow: ellipsis; user-select: none; cursor: pointer;
-    z-index: 3; border: 1px solid rgba(0,0,0,0.2);
+    /* position: absolute; <-- 이 줄을 삭제하거나 주석 처리 */
+    position: relative;  /* <-- position: relative; 로 변경 */
+    width: 100%;
+    /* top, left 속성은 더 이상 필요 없습니다. */
+
+    /* ▼▼▼ [추가] Flex 아이템 스타일 ▼▼▼ */
+    /* margin-top: 1px; */
+    flex-shrink: 0;
+    box-sizing: border-box;
+    border-radius: 2px;
+    font-size: 0.8em;
+    padding: 1px 3px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    user-select: none;
+    cursor: pointer;
+    z-index: 3;
+    border: 1px solid rgba(0,0,0,0.2);
 }
 
 /* Custom Context Menu for Labels */
@@ -472,7 +494,11 @@
 /* Project Bar Styling */
 .mv-project-bar {
     position: absolute; left: 0; width: calc(100% / 0.75); height: 6px;
-    box-sizing: border-box; border: 1px solid transparent; border-radius: 2px;
+    box-sizing: border-box; border: 0px solid transparent; border-radius: 0px;
+    border: none;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin: 0;
     font-size: 0.5em; color: white; overflow: hidden; white-space: nowrap;
     text-overflow: ellipsis; user-select: none; cursor: pointer;
     z-index: 2; transition: filter 0.2s;

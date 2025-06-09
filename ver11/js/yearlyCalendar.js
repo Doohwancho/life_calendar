@@ -325,16 +325,16 @@ export function renderAllYearlyCellContent() {
   // let yearMarks = data.getYearlyCellMarks(currentDisplayYear) || {};
 
 
-  // 1. 프로젝트 이벤트 처리 (기존과 동일)
+  // 1. 프로젝트 이벤트 처리 ...
   if (events && Array.isArray(events)) {
-      events.forEach((event) => {
-          const dateRange = getDateRange(event.startDate, event.endDate);
-          dateRange.forEach((date) => {
-              const dateStr = formatDate(date);
-              if (!dailyItems[dateStr]) dailyItems[dateStr] = [];
-              dailyItems[dateStr].push({ ...event, itemType: "project" });
-          });
-      });
+    events.forEach((event, index) => {
+        const dateRange = getDateRange(event.startDate, event.endDate);
+        dateRange.forEach((date) => {
+            const dateStr = formatDate(date);
+            if (!dailyItems[dateStr]) dailyItems[dateStr] = [];
+            dailyItems[dateStr].push({ ...event, itemType: "project", originalIndex: index });
+        });
+    });
   }
 
   // 2. To-do 처리 (기존과 동일)
@@ -387,11 +387,27 @@ export function renderAllYearlyCellContent() {
 
       // contentWrapper.innerHTML = ""; // clearAllCellItems에서 이미 처리됨
 
-      dailyItems[dateStr].sort((a, b) =>
-          a.itemType === "project" ? -1 : b.itemType === "project" ? 1 : 0
-      );
+      // dailyItems[dateStr].sort((a, b) =>
+      //     a.itemType === "project" ? -1 : b.itemType === "project" ? 1 : 0
+      // );
+      dailyItems[dateStr].sort((a, b) => {
+        const isAProject = a.itemType === 'project';
+        const isBProject = b.itemType === 'project';
 
-      let yOffset = 0;
+        // 규칙 1: 프로젝트가 To-do보다 항상 먼저 오도록 정렬합니다.
+        if (isAProject && !isBProject) return -1;
+        if (!isAProject && isBProject) return 1;
+
+        // 규칙 2: 두 아이템이 모두 프로젝트인 경우, 생성 순서(originalIndex)로 정렬합니다.
+        if (isAProject && isBProject) {
+            return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+        }
+
+        // 규칙 3: 그 외 (둘 다 To-do 등)는 순서를 유지합니다.
+        return 0;
+    });
+
+      // let yOffset = 0;
       // contentWrapper에 있는 기존 .cell-mark-on-date는 유지하면서 프로젝트/투두를 추가해야 함.
       // 또는, clearAllCellItems에서 .cell-mark-on-date도 지우고, 여기서 마크를 다시 그려야 함. (후자가 더 깔끔)
       // 여기서는 clearAllCellItems에서 마크도 지운다고 가정.
@@ -409,7 +425,7 @@ export function renderAllYearlyCellContent() {
               itemEl.className = "mv-project-bar";
               itemEl.dataset.eventId = item.id;
               itemEl.style.backgroundColor = sourceLabel.color;
-              itemEl.style.top = `${yOffset}px`;
+              // itemEl.style.top = `${yOffset}px`;
               itemEl.title = sourceLabel.name;
               
               // const textSpan = document.createElement('span');
@@ -434,7 +450,7 @@ export function renderAllYearlyCellContent() {
               itemEl.addEventListener("contextmenu", (e) => handleProjectBarContextMenu(e, item));
 
               contentWrapper.appendChild(itemEl);
-              yOffset += itemHeight + 1;
+              // yOffset += itemHeight + 1;
           } else if (item.itemType === "todo") {
               itemEl.className = "mv-todo-box-in-calendar";
               itemEl.dataset.todoId = item.id;
@@ -447,9 +463,9 @@ export function renderAllYearlyCellContent() {
           }
 
           if (itemHeight > 0) {
-              itemEl.style.top = `${yOffset}px`;
+              // itemEl.style.top = `${yOffset}px`;
               contentWrapper.appendChild(itemEl);
-              yOffset += itemHeight + 1;
+              // yOffset += itemHeight + 1;
           }
       });
   }
