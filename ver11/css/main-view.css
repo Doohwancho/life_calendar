@@ -9,6 +9,44 @@
     overflow: hidden; /* 내부에서 스크롤 관리 */
 }
 
+.mv-yearly-goal-container {
+    position: relative;
+    margin: 0 15px;
+}
+
+#yearlyGoalInput {
+    /* width: 100%; */
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9em;
+    background-color: #f8f9fa;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: width 0.2s ease-out;
+}
+
+#yearlyGoalInput:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+    outline: none;
+    background-color: #fff;
+}
+
+#yearlyGoalSizer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    visibility: hidden; /* 보이지 않게 처리 */
+    height: 0; /* 높이도 0으로 */
+    overflow: hidden; /* 넘치는 내용 숨김 */
+    white-space: pre; /* 공백 문자 유지 */
+    
+    /* Input과 똑같은 폰트, 패딩 값을 주어 정확한 너비를 계산하게 함 */
+    font-size: 0.9em;
+    padding: 6px 10px;
+    border: 1px solid transparent;
+}
+
 /* Toolbar */
 .mv-toolbar-container { /* 기존 .toolbar-container */
     display: flex;
@@ -31,6 +69,8 @@
 .mv-toolbar-section.mv-main-controls { /* 기존 .toolbar-section.main-controls */
     flex-grow: 1;
     flex-wrap: wrap;
+    gap: 8px;
+    align-items: center; /* 세로 정렬을 위해 추가 */
 }
 
 /* .mv-main-controls 클래스는 HTML 템플릿에서 mv-toolbar-section mv-main-controls 와 같이 사용 */
@@ -74,11 +114,7 @@
 
 /* #addLabelBtn (ID 선택자는 이미 위에서 구체적으로 스타일링됨) */
 #labelsContainer { /* .mv-main-controls 내부의 #labelsContainer */
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    flex-wrap: wrap;
-    margin-left: 8px;
+    display: contents; 
 }
 
 /* Main Content Grid */

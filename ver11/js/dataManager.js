@@ -111,11 +111,12 @@ export function loadDataForYear(year) {
         state.yearlyData = yearlyPageData;
     } else {
         // fetch 로직 제거 후 기본값 생성
-        state.yearlyData = { year: numericYear, projects: [], events: [], backlogTodos: [] };
+        state.yearlyData = { year: numericYear, yearlyGoal: '', projects: [], events: [], backlogTodos: [] };
     }
 
     // 데이터 무결성 보장
     state.yearlyData.year = numericYear;
+    if (!state.yearlyData.yearlyGoal) state.yearlyData.yearlyGoal = ''; 
     if (!state.yearlyData.projects) state.yearlyData.projects = [];
     state.yearlyData.labels = state.yearlyData.projects; // 호환성을 위한 할당
     if (!state.yearlyData.events) state.yearlyData.events = [];
@@ -150,6 +151,7 @@ export function getCurrentYearDataForSave() {
             filenameInZip: `${year}/${year}.json`,
             data: {
                 year: state.yearlyData.year || year,
+                yearlyGoal: state.yearlyData.yearlyGoal || '',
                 projects: state.yearlyData.projects || [], // labels -> projects
                 events: state.yearlyData.events || [],
                 backlogTodos: state.yearlyData.backlogTodos || []
@@ -222,6 +224,7 @@ export function loadYearFromBackup(year, filesData) {
             const projects = loadedFileData.projects || loadedFileData.labels || []; // 옛날 데이터(labels)도 호환
             state.yearlyData = { 
                 year: loadedFileData.year || numericYear,
+                yearlyGoal: loadedFileData.yearlyGoal || '', 
                 projects: projects,
                 labels: projects, // 호환성
                 events: loadedFileData.events || [],
@@ -884,5 +887,20 @@ export function unscheduleAllEventsForProject(projectId) {
     if (state.yearlyData.events.length < initialLength) {
         eventBus.dispatch('dataChanged', { source: 'unscheduleProject', payload: { projectId } });
         dirtyFileService.markFileAsDirty(`${state.view.currentDisplayYear}/${state.view.currentDisplayYear}.json`, state.yearlyData);
+    }
+}
+
+export function updateYearlyGoal(goalText) {
+    if (!state.yearlyData) {
+        // 연도 데이터가 아직 로드되지 않은 경우를 대비해 기본 구조 생성
+        state.yearlyData = { year: state.view.currentDisplayYear, yearlyGoal: '', projects: [], events: [], backlogTodos: [] };
+    }
+    
+    if (state.yearlyData.yearlyGoal !== goalText) {
+        state.yearlyData.yearlyGoal = goalText;
+        // 변경 사항을 localStorage에 기록
+        markYearlyDataAsDirty(); 
+        // 실시간 저장은 아니므로 dataChanged 이벤트는 생략하거나 필요시 추가
+        // eventBus.dispatch('dataChanged', { source: 'updateYearlyGoal' });
     }
 }

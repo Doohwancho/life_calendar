@@ -2,17 +2,21 @@
     <header class="mv-toolbar-container" id="main-toolbar">
         <div class="mv-toolbar-section mv-main-controls">
             <span id="currentYearDisplay"></span>
+            <div class="mv-yearly-goal-container">
+                <span id="yearlyGoalSizer"></span>
+                <input type="text" id="yearlyGoalInput" placeholder="올해의 핵심 목표를 입력하세요...">
+            </div>
             <div id="labelsContainer">
             </div>
             <button id="addLabelBtn" title="Add New Label">+</button>
-        </div>
-
-        <div class="mv-toolbar-section mv-file-operations">
-            <button id="mandalArtBtn" title="Mandal-Art">☸️</button>
-            <span class="mv-toolbar-separator">|</span>
-            <button id="saveDataBtn" title="Save Current Year Data">💾</button>
-            <button id="loadDataBtn" title="Load Yearly Data">📂</button>
-            <input type="file" id="fileInput" accept=".zip" style="display:none;">
+    
+            <div class="mv-toolbar-section mv-file-operations">
+                <button id="mandalArtBtn" title="Mandal-Art">☸️</button>
+                <span class="mv-toolbar-separator">|</span>
+                <button id="saveDataBtn" title="Save Current Year Data">💾</button>
+                <button id="loadDataBtn" title="Load Yearly Data">📂</button>
+                <input type="file" id="fileInput" accept=".zip" style="display:none;">
+            </div>
         </div>
     </header>
 

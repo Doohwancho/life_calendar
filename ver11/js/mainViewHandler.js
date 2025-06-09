@@ -303,6 +303,7 @@ export async function initMainCalendarView(dataModule, eventBusModule, params, q
 
     // 1. DOM 요소 참조 (일반 UI 요소)
     const currentYearDisplay = document.getElementById("currentYearDisplay"); // Toolbar
+    const yearlyGoalInput = document.getElementById("yearlyGoalInput");
     const labelsContainer = document.getElementById("labelsContainer");
     const addLabelBtn = document.getElementById("addLabelBtn");
     const addLabelModal = document.getElementById("addLabelModal");
@@ -321,7 +322,15 @@ export async function initMainCalendarView(dataModule, eventBusModule, params, q
         updateToolbarDisplays();
         if (labelsContainer) renderLabels();
         
-        const state = data.getState(); // render 함수들이 최신 상태를 사용하도록 여기서 한 번 더 가져옴
+        const state = data.getState();
+
+        const yearlyGoalInput = document.getElementById("yearlyGoalInput");
+        if (yearlyGoalInput && document.activeElement !== yearlyGoalInput) {
+            yearlyGoalInput.value = state.yearlyGoal || '';
+            
+            updateYearlyGoalWidth(yearlyGoalInput.value);
+        }
+        
         renderYearlyCalendar(state.currentDisplayYear);
         renderWeeklyCalendar(state.currentWeeklyViewStartDate);
         renderBacklog();
@@ -399,7 +408,27 @@ export async function initMainCalendarView(dataModule, eventBusModule, params, q
     // --- 백로그 관련 이벤트 리스너 설정 끝 ---
 
 
-    // 4. 나머지 이벤트 리스너 설정 (기존 코드)
+    // 4. 나머지 이벤트 리스너 설정 
+    if (yearlyGoalInput) {
+        // [역할 1] 데이터 저장
+        const yearlyGoalInputHandler = (e) => {
+            data.updateYearlyGoal(e.target.value);
+        };
+        yearlyGoalInput.addEventListener('input', yearlyGoalInputHandler);
+        activeEventListeners.push({ element: yearlyGoalInput, type: 'input', handler: yearlyGoalInputHandler });
+
+        // [역할 2] 'Enter' 키로 너비 조절
+        const yearlyGoalKeydownHandler = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                // ▼▼▼ 새로운 너비 조절 함수 호출 ▼▼▼
+                updateYearlyGoalWidth(e.target.value);
+            }
+        };
+        yearlyGoalInput.addEventListener('keydown', yearlyGoalKeydownHandler);
+        activeEventListeners.push({ element: yearlyGoalInput, type: 'keydown', handler: yearlyGoalKeydownHandler });
+    }
+
     if (labelsContainer) {
         const labelsDragOverHandler = (e) => {
             e.preventDefault();
@@ -549,4 +578,18 @@ export function cleanupMainCalendarView() {
 
     removeActiveLabelContextMenu();
     console.log('[MainViewHandler] 메인 캘린더 뷰 정리 완료');
+}
+
+// 새로운 너비 조절 헬퍼 함수 ▼▼▼
+function updateYearlyGoalWidth(text) {
+    const goalInput = document.getElementById('yearlyGoalInput');
+    const goalSizer = document.getElementById('yearlyGoalSizer');
+    if (!goalInput || !goalSizer) return;
+
+    // Sizer에 텍스트를 넣어서 실제 렌더링 너비를 계산
+    // 입력값이 없으면 placeholder 기준으로 너비 계산
+    goalSizer.textContent = text || goalInput.placeholder;
+    
+    // 계산된 너비를 input의 너비로 설정 (약간의 여유 공간 추가)
+    goalInput.style.width = `${goalSizer.offsetWidth + 2}px`;
 }
