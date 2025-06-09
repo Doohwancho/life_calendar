@@ -49,15 +49,11 @@
 
 /* Toolbar */
 .mv-toolbar-container { /* 기존 .toolbar-container */
-    display: flex;
-    /* justify-content: space-between; */
-    align-items: center;
+    display: flex; /* 자식인 .mv-main-controls가 꽉 차도록 */
     padding: 8px 15px;
     background: #ffffff;
     border-bottom: 1px solid #ddd;
     flex-shrink: 0;
-    flex-wrap: wrap;
-    gap: 15px;
 }
 
 .mv-toolbar-section { /* 기존 .toolbar-section */
@@ -67,10 +63,11 @@
 }
 
 .mv-toolbar-section.mv-main-controls { /* 기존 .toolbar-section.main-controls */
-    flex-grow: 1;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center; /* 세로 정렬을 위해 추가 */
+    display: flex;       /* 자식 요소들을 가로로 배치 */
+    flex-wrap: wrap;     /* 공간이 부족하면 줄바꿈 허용 */
+    align-items: center; /* 세로 중앙 정렬 */
+    gap: 8px;            /* 요소들 사이의 간격 */
+    width: 100%;         /* 부모 너비를 꽉 채움 */
 }
 
 /* .mv-main-controls 클래스는 HTML 템플릿에서 mv-toolbar-section mv-main-controls 와 같이 사용 */
@@ -94,7 +91,9 @@
 /* .mv-label-display-area { ... } */ /* 현재 HTML 구조에 없음, 필요시 추가 */
 
 .mv-toolbar-section.mv-file-operations { /* 기존 .file-operations */
-    justify-content: flex-end;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin-left: auto;
 }
 
