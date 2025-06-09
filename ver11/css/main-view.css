@@ -12,7 +12,7 @@
 /* Toolbar */
 .mv-toolbar-container { /* 기존 .toolbar-container */
     display: flex;
-    justify-content: space-between;
+    /* justify-content: space-between; */
     align-items: center;
     padding: 8px 15px;
     background: #ffffff;
@@ -30,7 +30,7 @@
 
 .mv-toolbar-section.mv-main-controls { /* 기존 .toolbar-section.main-controls */
     flex-grow: 1;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
 }
 
 /* .mv-main-controls 클래스는 HTML 템플릿에서 mv-toolbar-section mv-main-controls 와 같이 사용 */
@@ -55,6 +55,7 @@
 
 .mv-toolbar-section.mv-file-operations { /* 기존 .file-operations */
     justify-content: flex-end;
+    margin-left: auto;
 }
 
 .mv-file-operations #saveDataBtn,
