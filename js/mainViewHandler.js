@@ -183,6 +183,7 @@ function getDragAfterElementForLabels(container, x) {
     ).element;
 }
 
+
 async function handleSaveCurrentYear() {
     if (typeof JSZip === 'undefined') {
         alert("JSZip library is not loaded."); return;
@@ -194,25 +195,31 @@ async function handleSaveCurrentYear() {
         alert(`${currentYear}년에 저장할 데이터가 없습니다.`); return;
     }
     const zip = new JSZip();
-    
-    // ▼▼▼ [수정] 파일 저장 로직 수정 ▼▼▼
+
+    // ... (파일을 zip에 추가하는 로직은 그대로) ...
     filesToSave.forEach(fileInfo => {
-        // 파일 경로에 '/'가 포함되어 있는지 여부로 폴더 안/밖을 결정
         if (fileInfo.filenameInZip.includes('/')) {
             const pathParts = fileInfo.filenameInZip.split('/');
             const folderName = pathParts[0];
             const fileName = pathParts[1];
             zip.folder(folderName).file(fileName, JSON.stringify(fileInfo.data, null, 2));
         } else {
-            // 경로가 없으면 (예: mandal-art.json) ZIP 최상위에 저장
             zip.file(fileInfo.filenameInZip, JSON.stringify(fileInfo.data, null, 2));
         }
     });
-    // ▲▲▲ [수정] ▲▲▲
 
     try {
         const zipBlob = await zip.generateAsync({ type: "blob" });
-        const zipFilename = `backup_${currentYear}.zip`;
+        
+        const now = new Date();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0'); // 초(seconds) 추가
+        const timestamp = `${month}_${day}_${hours}${minutes}${seconds}`; // 타임스탬프에 초 포함
+        const zipFilename = `backup_${currentYear}_${timestamp}.zip`;
+
         const link = document.createElement('a');
         link.href = URL.createObjectURL(zipBlob);
         link.download = zipFilename;
@@ -234,12 +241,20 @@ function handleLoadYearlyData(event) {
         event.target.value = "";
         return;
     }
-    const yearMatch = file.name.match(/^backup_(\d{4})(?: \(\d+\))?\.zip$/i);
+    const yearMatch = file.name.match(/^backup_(\d{4}).*?\.zip$/i);
     if (!yearMatch || !yearMatch[1]) {
-        alert("올바른 형식의 연간 백업 파일명이 아닙니다. (예: backup_YYYY.zip)");
+        // [수정] 에러 메시지도 좀 더 명확하게 변경
+        alert("올바른 형식의 연간 백업 파일명이 아닙니다. 파일 이름이 'backup_YYYY'로 시작해야 합니다. (예: backup_2025_....zip)");
         event.target.value = "";
         return;
     }
+    // const yearMatch = file.name.match(/^backup_(\d{4})(?: \(\d+\))?\.zip$/i);
+    // if (!yearMatch || !yearMatch[1]) {
+    //     alert("올바른 형식의 연간 백업 파일명이 아닙니다. (예: backup_YYYY.zip)");
+    //     event.target.value = "";
+    //     return;
+    // }
+
     const year = parseInt(yearMatch[1], 10);
     const reader = new FileReader();
     reader.onload = async (e_reader) => {
