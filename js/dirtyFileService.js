@@ -187,11 +187,13 @@ export async function triggerPartialSave() {
     }
 }
 
+// dirtyFileService.js 파일에서 triggerFullYearSave 함수를 찾아 아래와 같이 수정하세요.
+
 /**
- * 전달받은 파일 목록을 표준 연간 백업 파일명으로 ZIP 압축하여 다운로드합니다.
- * @param {number} year - 저장할 연도 (파일 이름에 사용)
- * @param {Array<object>} filesToSave - 저장할 파일 정보 배열
- */
+ * 전달받은 파일 목록을 표준 연간 백업 파일명으로 ZIP 압축하여 다운로드합니다.
+ * @param {number} year - 저장할 연도 (파일 이름에 사용)
+ * @param {Array<object>} filesToSave - 저장할 파일 정보 배열
+ */
 export async function triggerFullYearSave(year, filesToSave) {
     if (typeof JSZip === 'undefined') {
         alert("JSZip library is not loaded."); return;
@@ -212,7 +214,18 @@ export async function triggerFullYearSave(year, filesToSave) {
 
     try {
         const zipBlob = await zip.generateAsync({ type: "blob" });
-        const zipFilename = `backup_${year}.zip`;
+
+        // ▼▼▼ 파일명 생성 로직을 새로운 형식으로 수정 ▼▼▼
+        const now = new Date();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const timestamp = `${month}_${day}_${hours}${minutes}${seconds}`;
+        const zipFilename = `backup_${year}_${timestamp}.zip`;
+        // ▲▲▲ 수정된 부분 ▲▲▲
+
         const link = document.createElement('a');
         link.href = URL.createObjectURL(zipBlob);
         link.download = zipFilename;

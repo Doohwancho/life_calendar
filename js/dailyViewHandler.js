@@ -480,7 +480,6 @@ export async function initDailyDetailView(dataModule, busModule, params, query) 
     }
 
 
-    // Cmd+S 핸들러 (현재 Daily View의 연도 전체 데이터 저장)
     async function handleSaveDataForCurrentDailyViewYear() {
         if (typeof JSZip === 'undefined') {
             alert("JSZip library is not loaded."); return;
@@ -491,38 +490,48 @@ export async function initDailyDetailView(dataModule, busModule, params, query) 
         }
         const yearOfDailyView = parseInt(currentLoadedDate.substring(0, 4), 10);
         console.log(`[DailyViewHandler] Attempting to save all data for year: ${yearOfDailyView} (like main view's Cmd+S)`);
-
+    
         let filesToSave;
-        // dataManager.js의 getCurrentYearDataForSave()를 사용합니다.
-        // 이 함수는 내부적으로 dataManager.state.view.currentDisplayYear를 사용합니다.
-        // initDailyDetailView 상단에서 yearOfDailyView로 loadDataForYear를 호출했으므로,
-        // dataManager.state.view.currentDisplayYear는 yearOfDailyView로 설정되어 있을 것입니다.
         if (typeof localDataManager.getCurrentYearDataForSave === 'function') {
-             // 먼저 dataManager의 currentDisplayYear가 daily view의 연도와 일치하는지 확인/설정하는 것이 안전합니다.
-             // loadDataForYear를 호출하면 currentDisplayYear가 업데이트됩니다.
-             // 위에서 이미 yearOfDailyView로 loadDataForYear를 호출했을 것이므로, 여기서는 그냥 호출합니다.
             filesToSave = localDataManager.getCurrentYearDataForSave();
         } else {
             console.error("localDataManager.getCurrentYearDataForSave is not available.");
             alert("연도별 전체 저장 기능을 사용할 수 없습니다.");
             return;
         }
-
+    
         if (!filesToSave || filesToSave.length === 0) {
-             alert(`${yearOfDailyView}년에 저장할 데이터가 없습니다.`); return;
+            alert(`${yearOfDailyView}년에 저장할 데이터가 없습니다.`); return;
         }
-
+    
         const zip = new JSZip();
-        const yearFolder = zip.folder(String(yearOfDailyView));
+        // ▼▼▼ mainViewHandler.js 와 동일한 로직으로 수정 ▼▼▼
         filesToSave.forEach(fileInfo => {
-            const filenameParts = fileInfo.filenameInZip.split('/');
-            const filename = filenameParts.length > 1 ? filenameParts[1] : filenameParts[0];
-            yearFolder.file(filename, JSON.stringify(fileInfo.data, null, 2));
+            if (fileInfo.filenameInZip.includes('/')) {
+                const pathParts = fileInfo.filenameInZip.split('/');
+                const folderName = pathParts[0];
+                const fileName = pathParts[1];
+                zip.folder(folderName).file(fileName, JSON.stringify(fileInfo.data, null, 2));
+            } else {
+                zip.file(fileInfo.filenameInZip, JSON.stringify(fileInfo.data, null, 2));
+            }
         });
-
+        // ▲▲▲ 수정된 부분 ▲▲▲
+    
         try {
             const zipBlob = await zip.generateAsync({ type: "blob" });
-            const zipFilename = `backup_${yearOfDailyView}.zip`;
+            
+            // ▼▼▼ 파일명 생성 로직을 mainViewHandler.js 와 동일하게 수정 ▼▼▼
+            const now = new Date();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const timestamp = `${month}_${day}_${hours}${minutes}${seconds}`;
+            const zipFilename = `backup_${yearOfDailyView}_${timestamp}.zip`;
+            // ▲▲▲ 수정된 부분 ▲▲▲
+    
             const link = document.createElement('a');
             link.href = URL.createObjectURL(zipBlob);
             link.download = zipFilename;
@@ -530,16 +539,13 @@ export async function initDailyDetailView(dataModule, busModule, params, query) 
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(link.href);
-            // if (typeof localDataManager.clearAllDirtyFilesForYear === 'function') {
-            //     localDataManager.clearAllDirtyFilesForYear(yearOfDailyView);
-            //     console.log(`[DailyViewHandler] Data for year ${yearOfDailyView} saved and dirty flags for this year cleared.`);
-            // }
         } catch (e) {
             console.error(`Error generating ZIP for year ${yearOfDailyView}:`, e);
             alert(`${yearOfDailyView}년 데이터 백업 파일 생성 중 오류가 발생했습니다.`);
         }
     }
 
+    // Cmd+S 핸들러 (현재 Daily View의 연도 전체 데이터 저장)
     const dailyViewKeydownHandler = (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 's') {
             e.preventDefault();
