@@ -8,7 +8,7 @@ import {
   getDateRange,
   generateId,
 } from "./uiUtils.js";
-import { navigate } from './spaRouter.js'; // [수정] 라우터의 navigate 함수 임포트
+import { navigate } from "./spaRouter.js"; // [수정] 라우터의 navigate 함수 임포트
 
 const todayStatic = new Date(); // 파일 로드 시점의 '오늘' (시간 정규화는 renderYearlyCalendar에서)
 todayStatic.setHours(0, 0, 0, 0);
@@ -40,10 +40,37 @@ const AVAILABLE_MARKS = [
   { type: "pin", symbol: "📌", name: "핀", cssClass: "mark-pin" },
   { type: "warning", symbol: "⚠️", name: "경고", cssClass: "mark-warning" },
   { type: "question", symbol: "❓", name: "물음표", cssClass: "mark-question" },
-  { type: "exclamation", symbol: "❗", name: "느낌표", cssClass: "mark-exclamation" },
+  {
+    type: "exclamation",
+    symbol: "❗",
+    name: "느낌표",
+    cssClass: "mark-exclamation",
+  },
   { type: "cross", symbol: "❌", name: "X 표시", cssClass: "mark-cross" },
-  { type: "none", symbol: "🚫", name: "표시 없음", cssClass: "mark-none" }
+  { type: "none", symbol: "🚫", name: "표시 없음", cssClass: "mark-none" },
 ];
+
+/**
+ * 프로젝트의 전체 기간 길이를 계산합니다.
+ * @param {object} projectItem - 프로젝트 아이템 객체 (startDate, endDate 포함)
+ * @returns {number} 기간 길이 (일 단위)
+ */
+function getProjectDuration(projectItem) {
+  if (!projectItem.startDate || !projectItem.endDate) return 0;
+
+  const startDate = new Date(projectItem.startDate);
+  const endDate = new Date(projectItem.endDate);
+
+  // 날짜 정규화
+  startDate.setHours(0, 0, 0, 0);
+  endDate.setHours(0, 0, 0, 0);
+
+  // 기간 계산 (포함)
+  const timeDiff = endDate.getTime() - startDate.getTime();
+  const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)) + 1; // +1은 시작일과 종료일 모두 포함
+
+  return daysDiff;
+}
 
 function handleYearlyCellClick(e) {
   // --- 중요: 만약 현재 새로운 프로젝트를 그리고 있는 중이라면,
@@ -109,9 +136,13 @@ function handleMouseDown(e) {
 function handleMouseMove(e) {
   if (!isDrawing) return;
   const cellUnderMouse = e.target.closest(".mv-day-cell-yearly.mv-interactive"); // 접두사 적용
-  if (cellUnderMouse && cellUnderMouse.dataset.date && cellUnderMouse.dataset.date !== dragCurrentDate) {
-      dragCurrentDate = cellUnderMouse.dataset.date;
-      renderTemporaryHighlight();
+  if (
+    cellUnderMouse &&
+    cellUnderMouse.dataset.date &&
+    cellUnderMouse.dataset.date !== dragCurrentDate
+  ) {
+    dragCurrentDate = cellUnderMouse.dataset.date;
+    renderTemporaryHighlight();
   }
 }
 
@@ -125,44 +156,50 @@ function handleMouseUp(e) {
   clearTemporaryHighlight();
 
   if (
-      !dragStartDate || // dragCurrentDate는 마우스 업 시점에 항상 dragStartDate와 같거나 다름
-      !state.selectedLabel ||
-      !state.selectedLabel.id
+    !dragStartDate || // dragCurrentDate는 마우스 업 시점에 항상 dragStartDate와 같거나 다름
+    !state.selectedLabel ||
+    !state.selectedLabel.id
   ) {
-      dragStartDate = null;
-      dragCurrentDate = null; // dragCurrentDate도 확실히 초기화
-      return;
+    dragStartDate = null;
+    dragCurrentDate = null; // dragCurrentDate도 확실히 초기화
+    return;
   }
 
   let finalStartDate = dragStartDate;
   let finalEndDate = dragCurrentDate || dragStartDate; // dragCurrentDate가 없으면 dragStartDate 사용 (클릭의 경우)
 
   if (new Date(finalStartDate) > new Date(finalEndDate)) {
-      [finalStartDate, finalEndDate] = [finalEndDate, finalStartDate];
+    [finalStartDate, finalEndDate] = [finalEndDate, finalStartDate];
   }
 
   const newEvent = {
-      id: generateId(), // uiUtils에서 가져온 함수 사용
-      labelId: state.selectedLabel.id,
-      startDate: finalStartDate,
-      endDate: finalEndDate, // 클릭만 한 경우 finalStartDate와 동일
+    id: generateId(), // uiUtils에서 가져온 함수 사용
+    labelId: state.selectedLabel.id,
+    startDate: finalStartDate,
+    endDate: finalEndDate, // 클릭만 한 경우 finalStartDate와 동일
   };
 
-  if (data.isDuplicateEvent(newEvent)) { // dataManager.js에 이 함수가 있어야 함
-      console.log("[YearlyCalendar] Duplicate event prevented for date(s):", finalStartDate, "-", finalEndDate);
+  if (data.isDuplicateEvent(newEvent)) {
+    // dataManager.js에 이 함수가 있어야 함
+    console.log(
+      "[YearlyCalendar] Duplicate event prevented for date(s):",
+      finalStartDate,
+      "-",
+      finalEndDate
+    );
   } else {
-      data.addEvent(newEvent); // dataManager.js에 있는 함수 호출
-      console.log("[YearlyCalendar] Event added:", newEvent);
+    data.addEvent(newEvent); // dataManager.js에 있는 함수 호출
+    console.log("[YearlyCalendar] Event added:", newEvent);
   }
 
   // 주간 뷰 포커스는 별도의 클릭 핸들러(handleYearlyCellClick)에서 처리하거나,
   // 여기서 조건을 추가하여 (예: 이벤트 생성 후 포커스 이동) 처리할 수 있습니다.
   // 현재 로직은 이벤트 생성 후, 해당 날짜로 주간 뷰를 업데이트하지는 않습니다.
   // 만약 단일 클릭으로 이벤트 생성 후 해당 주로 포커스 이동을 원한다면 아래 코드 추가:
-  if (dragStartDate === (dragCurrentDate || dragStartDate)) { // 단순 클릭이었던 경우
-       data.updateCurrentWeeklyViewStartDate(new Date(dragStartDate));
+  if (dragStartDate === (dragCurrentDate || dragStartDate)) {
+    // 단순 클릭이었던 경우
+    data.updateCurrentWeeklyViewStartDate(new Date(dragStartDate));
   }
-
 
   dragStartDate = null;
   dragCurrentDate = null;
@@ -170,9 +207,9 @@ function handleMouseUp(e) {
 
 function handleDragOver(e) {
   if (e.dataTransfer.types.includes("application/x-backlog-source")) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-      e.target.closest(".mv-day-cell-yearly")?.classList.add("mv-drag-over"); // 접두사 클래스
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    e.target.closest(".mv-day-cell-yearly")?.classList.add("mv-drag-over"); // 접두사 클래스
   }
 }
 
@@ -183,21 +220,23 @@ function handleDragLeave(e) {
 function handleDrop(e) {
   // [수정] 커스텀 데이터 타입을 확인
   if (e.dataTransfer.types.includes("application/x-backlog-source")) {
-      e.preventDefault(); // 기본 동작 방지 및 이벤트 전파 중단 효과
-      const targetCell = e.target.closest(".mv-day-cell-yearly");
-      if (targetCell) {
-          targetCell.classList.remove("mv-drag-over");
+    e.preventDefault(); // 기본 동작 방지 및 이벤트 전파 중단 효과
+    const targetCell = e.target.closest(".mv-day-cell-yearly");
+    if (targetCell) {
+      targetCell.classList.remove("mv-drag-over");
 
-          const todoId = e.dataTransfer.getData("text/plain"); // ID는 text/plain으로 가져옴
-          const targetDate = targetCell.dataset.date;
+      const todoId = e.dataTransfer.getData("text/plain"); // ID는 text/plain으로 가져옴
+      const targetDate = targetCell.dataset.date;
 
-          if (todoId && targetDate) {
-              console.log(`[YearlyCalendar Drop] Moving backlog item ${todoId} to ${targetDate}`);
-              data.moveBacklogTodoToCalendar(todoId, targetDate);
-          } else {
-              console.warn("[YearlyCalendar Drop] todoId or targetDate is missing.");
-          }
+      if (todoId && targetDate) {
+        console.log(
+          `[YearlyCalendar Drop] Moving backlog item ${todoId} to ${targetDate}`
+        );
+        data.moveBacklogTodoToCalendar(todoId, targetDate);
+      } else {
+        console.warn("[YearlyCalendar Drop] todoId or targetDate is missing.");
       }
+    }
   }
 }
 
@@ -256,10 +295,12 @@ function clearTemporaryHighlight() {
   if (!calendarGridYearlyEl) {
     // console.warn("calendarGridYearlyEl not ready for clearTemporaryHighlight");
     return;
-}
+  }
   const highlightedCells =
     calendarGridYearlyEl.querySelectorAll(".mv-temp-highlight");
-  highlightedCells.forEach((cell) => cell.classList.remove("mv-temp-highlight"));
+  highlightedCells.forEach((cell) =>
+    cell.classList.remove("mv-temp-highlight")
+  );
 }
 
 /**
@@ -304,10 +345,12 @@ function renderProjectBarInCell(event, dateStr) {
  */
 export function renderAllYearlyCellContent() {
   if (!calendarGridYearlyEl) {
-      if (!ensureCalendarStructure() || !calendarGridYearlyEl) {
-          console.error("[renderAllYearlyCellContent] Failed to ensure structure. Aborting.");
-          return;
-      }
+    if (!ensureCalendarStructure() || !calendarGridYearlyEl) {
+      console.error(
+        "[renderAllYearlyCellContent] Failed to ensure structure. Aborting."
+      );
+      return;
+    }
   }
 
   clearAllCellItems(); // 기존 프로젝트 바, 투두 박스, 셀 마크 모두 제거
@@ -324,153 +367,179 @@ export function renderAllYearlyCellContent() {
   // 예를 들어, data.getYearlyCellMarks(currentDisplayYear) 같은 함수로 해당 연도의 모든 마크 정보를 가져올 수 있음.
   // let yearMarks = data.getYearlyCellMarks(currentDisplayYear) || {};
 
-
   // 1. 프로젝트 이벤트 처리 ...
   if (events && Array.isArray(events)) {
     events.forEach((event, index) => {
-        const dateRange = getDateRange(event.startDate, event.endDate);
-        dateRange.forEach((date) => {
-            const dateStr = formatDate(date);
-            if (!dailyItems[dateStr]) dailyItems[dateStr] = [];
-            dailyItems[dateStr].push({ ...event, itemType: "project", originalIndex: index });
+      const dateRange = getDateRange(event.startDate, event.endDate);
+      dateRange.forEach((date) => {
+        const dateStr = formatDate(date);
+        if (!dailyItems[dateStr]) dailyItems[dateStr] = [];
+        dailyItems[dateStr].push({
+          ...event,
+          itemType: "project",
+          originalIndex: index,
         });
+      });
     });
   }
 
   // 2. To-do 처리 (기존과 동일)
   if (currentDisplayYear) {
-      for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
-          const daysInCurrentMonth = getDaysInMonth(currentDisplayYear, monthIndex);
-          for (let day = 1; day <= daysInCurrentMonth; day++) {
-              const currentDateObj = new Date(currentDisplayYear, monthIndex, day);
-              const dateStr = formatDate(currentDateObj);
-              const todosForDay = data.getTodosForDate(dateStr);
-              if (todosForDay && todosForDay.length > 0) {
-                  if (!dailyItems[dateStr]) dailyItems[dateStr] = [];
-                  todosForDay.forEach(todo => {
-                      dailyItems[dateStr].push({ ...todo, date: dateStr, itemType: "todo" });
-                  });
-              }
-              const markType = data.getCellMark(dateStr); // dataManager에서 해당 날짜의 마크 정보 가져오기
-              if (markType) { // markType이 null이나 undefined가 아니면 (즉, 마크가 설정되어 있으면)
-                  const markDefinition = AVAILABLE_MARKS.find(m => m.type === markType);
-                  if (markDefinition) {
-                      const cell = calendarGridYearlyEl.querySelector(`.mv-day-cell-yearly[data-date="${dateStr}"]`);
-                      if (cell) {
-                          const markEl = document.createElement('span');
-                          markEl.className = `cell-mark-on-date ${markDefinition.cssClass}`; // CSS 적용 위함
-                          markEl.textContent = markDefinition.symbol; // 이모지 표시
-                          
-                          const contentWrapper = cell.querySelector(".mv-day-cell-content-wrapper-yearly") || cell;
-                          // 마크는 다른 아이템들과 겹치지 않도록 contentWrapper보다는 cell에 직접 추가하는 것이
-                          // z-index 관리나 위치 잡기에 더 용이할 수 있습니다. CSS에서 .cell-mark-on-date 위치를 잘 잡아주세요.
-                          // 여기서는 예시로 contentWrapper에 추가합니다. CSS에 맞게 조정 필요.
-                          cell.appendChild(markEl); // 또는 contentWrapper.appendChild(markEl);
-                      }
-                  }
-              }
+    for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
+      const daysInCurrentMonth = getDaysInMonth(currentDisplayYear, monthIndex);
+      for (let day = 1; day <= daysInCurrentMonth; day++) {
+        const currentDateObj = new Date(currentDisplayYear, monthIndex, day);
+        const dateStr = formatDate(currentDateObj);
+        const todosForDay = data.getTodosForDate(dateStr);
+        if (todosForDay && todosForDay.length > 0) {
+          if (!dailyItems[dateStr]) dailyItems[dateStr] = [];
+          todosForDay.forEach((todo) => {
+            dailyItems[dateStr].push({
+              ...todo,
+              date: dateStr,
+              itemType: "todo",
+            });
+          });
+        }
+        const markType = data.getCellMark(dateStr); // dataManager에서 해당 날짜의 마크 정보 가져오기
+        if (markType) {
+          // markType이 null이나 undefined가 아니면 (즉, 마크가 설정되어 있으면)
+          const markDefinition = AVAILABLE_MARKS.find(
+            (m) => m.type === markType
+          );
+          if (markDefinition) {
+            const cell = calendarGridYearlyEl.querySelector(
+              `.mv-day-cell-yearly[data-date="${dateStr}"]`
+            );
+            if (cell) {
+              const markEl = document.createElement("span");
+              markEl.className = `cell-mark-on-date ${markDefinition.cssClass}`; // CSS 적용 위함
+              markEl.textContent = markDefinition.symbol; // 이모지 표시
+
+              const contentWrapper =
+                cell.querySelector(".mv-day-cell-content-wrapper-yearly") ||
+                cell;
+              // 마크는 다른 아이템들과 겹치지 않도록 contentWrapper보다는 cell에 직접 추가하는 것이
+              // z-index 관리나 위치 잡기에 더 용이할 수 있습니다. CSS에서 .cell-mark-on-date 위치를 잘 잡아주세요.
+              // 여기서는 예시로 contentWrapper에 추가합니다. CSS에 맞게 조정 필요.
+              cell.appendChild(markEl); // 또는 contentWrapper.appendChild(markEl);
+            }
           }
+        }
       }
+    }
   }
   // console.log("Yearly rendering with dailyItems (after fetching todos):", dailyItems);
 
-    // 3. dailyItems (프로젝트, 투두) DOM 렌더링 (기존과 동일)
-    // ... (기존 for (const dateStr in dailyItems) 루프) ...
-    for (const dateStr in dailyItems) {
-      const cell = calendarGridYearlyEl.querySelector(
-          `.mv-day-cell-yearly[data-date="${dateStr}"]`
-      );
-      if (!cell) continue;
+  // 3. dailyItems (프로젝트, 투두) DOM 렌더링 (기존과 동일)
+  // ... (기존 for (const dateStr in dailyItems) 루프) ...
+  for (const dateStr in dailyItems) {
+    const cell = calendarGridYearlyEl.querySelector(
+      `.mv-day-cell-yearly[data-date="${dateStr}"]`
+    );
+    if (!cell) continue;
 
-      const contentWrapper = cell.querySelector(".mv-day-cell-content-wrapper-yearly");
-      if (!contentWrapper) continue;
+    const contentWrapper = cell.querySelector(
+      ".mv-day-cell-content-wrapper-yearly"
+    );
+    if (!contentWrapper) continue;
 
-      // contentWrapper.innerHTML = ""; // clearAllCellItems에서 이미 처리됨
+    // contentWrapper.innerHTML = ""; // clearAllCellItems에서 이미 처리됨
 
-      // dailyItems[dateStr].sort((a, b) =>
-      //     a.itemType === "project" ? -1 : b.itemType === "project" ? 1 : 0
-      // );
-      dailyItems[dateStr].sort((a, b) => {
-        const isAProject = a.itemType === 'project';
-        const isBProject = b.itemType === 'project';
+    // dailyItems[dateStr].sort((a, b) =>
+    //     a.itemType === "project" ? -1 : b.itemType === "project" ? 1 : 0
+    // );
+    dailyItems[dateStr].sort((a, b) => {
+      const isAProject = a.itemType === "project";
+      const isBProject = b.itemType === "project";
 
-        // 규칙 1: 프로젝트가 To-do보다 항상 먼저 오도록 정렬합니다.
-        if (isAProject && !isBProject) return -1;
-        if (!isAProject && isBProject) return 1;
+      // 규칙 1: 프로젝트가 To-do보다 항상 먼저 오도록 정렬합니다.
+      if (isAProject && !isBProject) return -1;
+      if (!isAProject && isBProject) return 1;
 
-        // 규칙 2: 두 아이템이 모두 프로젝트인 경우, 생성 순서(originalIndex)로 정렬합니다.
-        if (isAProject && isBProject) {
-            return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
-        }
+      // 규칙 2: 두 아이템이 모두 프로젝트인 경우, 연결된 기간의 길이로 정렬합니다.
+      if (isAProject && isBProject) {
+        // 프로젝트의 전체 기간 길이 계산
+        const aDuration = getProjectDuration(a);
+        const bDuration = getProjectDuration(b);
 
-        // 규칙 3: 그 외 (둘 다 To-do 등)는 순서를 유지합니다.
-        return 0;
+        // 긴 기간이 위에 오도록 내림차순 정렬
+        return bDuration - aDuration;
+      }
+
+      // 규칙 3: 그 외 (둘 다 To-do 등)는 순서를 유지합니다.
+      return 0;
     });
 
-      // let yOffset = 0;
-      // contentWrapper에 있는 기존 .cell-mark-on-date는 유지하면서 프로젝트/투두를 추가해야 함.
-      // 또는, clearAllCellItems에서 .cell-mark-on-date도 지우고, 여기서 마크를 다시 그려야 함. (후자가 더 깔끔)
-      // 여기서는 clearAllCellItems에서 마크도 지운다고 가정.
+    // let yOffset = 0;
+    // contentWrapper에 있는 기존 .cell-mark-on-date는 유지하면서 프로젝트/투두를 추가해야 함.
+    // 또는, clearAllCellItems에서 .cell-mark-on-date도 지우고, 여기서 마크를 다시 그려야 함. (후자가 더 깔끔)
+    // 여기서는 clearAllCellItems에서 마크도 지운다고 가정.
 
-      dailyItems[dateStr].forEach((item) => {
-          const itemEl = document.createElement("div");
-          itemEl.title = item.itemType === "project" ? item.name : item.text;
-          itemEl.textContent = item.itemType === "project" ? item.name : item.text;
-          let itemHeight = 0;
-          
-          if (item.itemType === "project") {
-              const sourceLabel = item.labelId ? labels.find((l) => l.id === item.labelId) : null;
-              if (!sourceLabel) return; 
-              const itemEl = document.createElement("div");
-              itemEl.className = "mv-project-bar";
-              itemEl.dataset.eventId = item.id;
-              itemEl.style.backgroundColor = sourceLabel.color;
-              // itemEl.style.top = `${yOffset}px`;
-              itemEl.title = sourceLabel.name;
-              
-              // const textSpan = document.createElement('span');
-              // textSpan.className = 'mv-project-bar-text';
-              // textSpan.textContent = sourceLabel.name;
-              // itemEl.appendChild(textSpan);
+    dailyItems[dateStr].forEach((item) => {
+      const itemEl = document.createElement("div");
+      itemEl.title = item.itemType === "project" ? item.name : item.text;
+      itemEl.textContent = item.itemType === "project" ? item.name : item.text;
+      let itemHeight = 0;
 
-              // ▼▼▼ [추가] 삭제 버튼(X) 생성 및 이벤트 리스너 추가 ▼▼▼
-              const deleteBtn = document.createElement('span');
-              deleteBtn.className = 'mv-project-bar-delete';
-              deleteBtn.innerHTML = '&times;'; // 'X' 문자
-              deleteBtn.title = 'Delete this schedule';
-              deleteBtn.addEventListener('click', (e) => handleEventDelete(e, item.id));
-              itemEl.appendChild(deleteBtn);
-              // ▲▲▲ [추가] ▲▲▲
-              
-              itemEl.title = sourceLabel.name;
-              const itemHeight = 12; // 높이 조절
-              itemEl.style.height = `${itemHeight}px`;
+      if (item.itemType === "project") {
+        const sourceLabel = item.labelId
+          ? labels.find((l) => l.id === item.labelId)
+          : null;
+        if (!sourceLabel) return;
+        const itemEl = document.createElement("div");
+        itemEl.className = "mv-project-bar";
+        itemEl.dataset.eventId = item.id;
+        itemEl.style.backgroundColor = sourceLabel.color;
+        // itemEl.style.top = `${yOffset}px`;
+        itemEl.title = sourceLabel.name;
 
-              itemEl.addEventListener("click", (e) => handleEventBarClick(e, item));
-              itemEl.addEventListener("contextmenu", (e) => handleProjectBarContextMenu(e, item));
+        // const textSpan = document.createElement('span');
+        // textSpan.className = 'mv-project-bar-text';
+        // textSpan.textContent = sourceLabel.name;
+        // itemEl.appendChild(textSpan);
 
-              contentWrapper.appendChild(itemEl);
-              // yOffset += itemHeight + 1;
-          } else if (item.itemType === "todo") {
-              itemEl.className = "mv-todo-box-in-calendar";
-              itemEl.dataset.todoId = item.id;
-              itemEl.style.backgroundColor = item.color || "#6c757d";
-              itemEl.style.color = "#ffffff"; 
-              itemEl.textContent = item.text;
-              itemEl.title = item.text;
-              itemHeight = 14; 
-              itemEl.style.height = `${itemHeight}px`;
-          }
+        // ▼▼▼ [추가] 삭제 버튼(X) 생성 및 이벤트 리스너 추가 ▼▼▼
+        const deleteBtn = document.createElement("span");
+        deleteBtn.className = "mv-project-bar-delete";
+        deleteBtn.innerHTML = "&times;"; // 'X' 문자
+        deleteBtn.title = "Delete this schedule";
+        deleteBtn.addEventListener("click", (e) =>
+          handleEventDelete(e, item.id)
+        );
+        itemEl.appendChild(deleteBtn);
+        // ▲▲▲ [추가] ▲▲▲
 
-          if (itemHeight > 0) {
-              // itemEl.style.top = `${yOffset}px`;
-              contentWrapper.appendChild(itemEl);
-              // yOffset += itemHeight + 1;
-          }
-      });
+        itemEl.title = sourceLabel.name;
+        const itemHeight = 12; // 높이 조절
+        itemEl.style.height = `${itemHeight}px`;
+
+        itemEl.addEventListener("click", (e) => handleEventBarClick(e, item));
+        itemEl.addEventListener("contextmenu", (e) =>
+          handleProjectBarContextMenu(e, item)
+        );
+
+        contentWrapper.appendChild(itemEl);
+        // yOffset += itemHeight + 1;
+      } else if (item.itemType === "todo") {
+        itemEl.className = "mv-todo-box-in-calendar";
+        itemEl.dataset.todoId = item.id;
+        itemEl.style.backgroundColor = item.color || "#6c757d";
+        itemEl.style.color = "#ffffff";
+        itemEl.textContent = item.text;
+        itemEl.title = item.text;
+        itemHeight = 14;
+        itemEl.style.height = `${itemHeight}px`;
+      }
+
+      if (itemHeight > 0) {
+        // itemEl.style.top = `${yOffset}px`;
+        contentWrapper.appendChild(itemEl);
+        // yOffset += itemHeight + 1;
+      }
+    });
   }
 }
-
 
 /**
  * 셀의 모든 동적 아이템들(프로젝트 바, 투두 박스, 그리고 셀 마크)을 제거합니다.
@@ -478,48 +547,51 @@ export function renderAllYearlyCellContent() {
 function clearAllCellItems() {
   if (!calendarGridYearlyEl) return;
   calendarGridYearlyEl
-      .querySelectorAll(
-          ".mv-day-cell-content-wrapper-yearly .mv-project-bar, " + // 프로젝트 바
-          ".mv-day-cell-content-wrapper-yearly .mv-todo-box-in-calendar, " + // 캘린더 내 투두
-          ".mv-day-cell-yearly .cell-mark-on-date" // 셀에 표시된 마크
-      )
-      .forEach((el) => el.remove());
+    .querySelectorAll(
+      ".mv-day-cell-content-wrapper-yearly .mv-project-bar, " + // 프로젝트 바
+        ".mv-day-cell-content-wrapper-yearly .mv-todo-box-in-calendar, " + // 캘린더 내 투두
+        ".mv-day-cell-yearly .cell-mark-on-date" // 셀에 표시된 마크
+    )
+    .forEach((el) => el.remove());
 }
 
 function ensureCalendarStructure() {
   yearlyCalendarArea = document.getElementById("yearly-calendar-area"); // 템플릿의 ID
   if (!yearlyCalendarArea) {
-      console.error("Yearly calendar area (id: yearly-calendar-area) not found!");
-      return false;
+    console.error("Yearly calendar area (id: yearly-calendar-area) not found!");
+    return false;
   }
 
   calendarHeaderDaysEl = document.getElementById("calendarHeaderDaysYearly");
   if (!calendarHeaderDaysEl) {
-      calendarHeaderDaysEl = document.createElement("div");
-      calendarHeaderDaysEl.id = "calendarHeaderDaysYearly"; // HTML 템플릿과 ID 일치
-      calendarHeaderDaysEl.className = "mv-calendar-header-days-yearly"; // 접두사 클래스
-      yearlyCalendarArea.appendChild(calendarHeaderDaysEl);
+    calendarHeaderDaysEl = document.createElement("div");
+    calendarHeaderDaysEl.id = "calendarHeaderDaysYearly"; // HTML 템플릿과 ID 일치
+    calendarHeaderDaysEl.className = "mv-calendar-header-days-yearly"; // 접두사 클래스
+    yearlyCalendarArea.appendChild(calendarHeaderDaysEl);
   }
 
   calendarGridYearlyEl = document.getElementById("calendarGridYearly");
   if (!calendarGridYearlyEl) {
-      calendarGridYearlyEl = document.createElement("div");
-      calendarGridYearlyEl.id = "calendarGridYearly"; // HTML 템플릿과 ID 일치
-      calendarGridYearlyEl.className = "mv-calendar-grid-yearly"; // 접두사 클래스
-      yearlyCalendarArea.appendChild(calendarGridYearlyEl);
+    calendarGridYearlyEl = document.createElement("div");
+    calendarGridYearlyEl.id = "calendarGridYearly"; // HTML 템플릿과 ID 일치
+    calendarGridYearlyEl.className = "mv-calendar-grid-yearly"; // 접두사 클래스
+    yearlyCalendarArea.appendChild(calendarGridYearlyEl);
   }
   return true;
 }
 
-
 export function renderYearlyCalendar(year) {
   if (!ensureCalendarStructure()) {
-      console.error("[renderYearlyCalendar] Aborting render due to missing calendar structure.");
-      return;
+    console.error(
+      "[renderYearlyCalendar] Aborting render due to missing calendar structure."
+    );
+    return;
   }
   if (!calendarHeaderDaysEl || !calendarGridYearlyEl) {
-       console.error("[renderYearlyCalendar] Critical DOM elements not found after ensure. Aborting.");
-      return;
+    console.error(
+      "[renderYearlyCalendar] Critical DOM elements not found after ensure. Aborting."
+    );
+    return;
   }
 
   calendarHeaderDaysEl.innerHTML = "";
@@ -532,85 +604,89 @@ export function renderYearlyCalendar(year) {
   const focusedWeekMonday = state.currentWeeklyViewStartDate;
   let focusedWeekSunday = null;
   if (focusedWeekMonday) {
-      focusedWeekSunday = new Date(focusedWeekMonday);
-      focusedWeekSunday.setDate(focusedWeekMonday.getDate() + 6);
-      focusedWeekSunday.setHours(0, 0, 0, 0);
+    focusedWeekSunday = new Date(focusedWeekMonday);
+    focusedWeekSunday.setDate(focusedWeekMonday.getDate() + 6);
+    focusedWeekSunday.setHours(0, 0, 0, 0);
   }
 
   const monthPlaceholder = document.createElement("div");
   monthPlaceholder.className = "mv-month-column-placeholder"; // 접두사 클래스
   calendarHeaderDaysEl.appendChild(monthPlaceholder);
   for (let i = 1; i <= 31; i++) {
-      const dayHeaderCell = document.createElement("div");
-      dayHeaderCell.className = "mv-day-header-cell-yearly"; // 접두사 클래스
-      dayHeaderCell.textContent = i;
-      calendarHeaderDaysEl.appendChild(dayHeaderCell);
+    const dayHeaderCell = document.createElement("div");
+    dayHeaderCell.className = "mv-day-header-cell-yearly"; // 접두사 클래스
+    dayHeaderCell.textContent = i;
+    calendarHeaderDaysEl.appendChild(dayHeaderCell);
   }
 
   KOREAN_MONTH_NAMES.forEach((monthName, monthIndex) => {
-      const monthRow = document.createElement("div");
-      monthRow.className = "mv-month-row-yearly"; // 접두사 클래스
-      monthRow.id = `month-yearly-${monthIndex}`;
+    const monthRow = document.createElement("div");
+    monthRow.className = "mv-month-row-yearly"; // 접두사 클래스
+    monthRow.id = `month-yearly-${monthIndex}`;
 
-      const monthHeader = document.createElement("div");
-      monthHeader.className = "mv-month-header-yearly"; // 접두사 클래스
-      monthHeader.textContent = monthName;
-      monthRow.appendChild(monthHeader);
+    const monthHeader = document.createElement("div");
+    monthHeader.className = "mv-month-header-yearly"; // 접두사 클래스
+    monthHeader.textContent = monthName;
+    monthRow.appendChild(monthHeader);
 
-      const daysInCurrentMonth = getDaysInMonth(year, monthIndex);
-      for (let day = 1; day <= 31; day++) {
-          const dayCell = document.createElement("div");
-          dayCell.className = "mv-day-cell-yearly"; // 접두사 클래스
+    const daysInCurrentMonth = getDaysInMonth(year, monthIndex);
+    for (let day = 1; day <= 31; day++) {
+      const dayCell = document.createElement("div");
+      dayCell.className = "mv-day-cell-yearly"; // 접두사 클래스
 
-          const contentWrapper = document.createElement("div");
-          contentWrapper.className = "mv-day-cell-content-wrapper-yearly"; // 접두사 클래스
-          dayCell.appendChild(contentWrapper);
+      const contentWrapper = document.createElement("div");
+      contentWrapper.className = "mv-day-cell-content-wrapper-yearly"; // 접두사 클래스
+      dayCell.appendChild(contentWrapper);
 
-          if (day <= daysInCurrentMonth) {
-              const currentDateObj = new Date(year, monthIndex, day);
-              currentDateObj.setHours(0, 0, 0, 0);
-              const dateStr = formatDate(currentDateObj);
-              dayCell.dataset.date = dateStr;
-              dayCell.classList.add("mv-interactive"); // 접두사 클래스
+      if (day <= daysInCurrentMonth) {
+        const currentDateObj = new Date(year, monthIndex, day);
+        currentDateObj.setHours(0, 0, 0, 0);
+        const dateStr = formatDate(currentDateObj);
+        dayCell.dataset.date = dateStr;
+        dayCell.classList.add("mv-interactive"); // 접두사 클래스
 
-              dayCell.addEventListener("mousedown", handleMouseDown);
-              dayCell.addEventListener("click", handleYearlyCellClick);
-              dayCell.addEventListener("dblclick", handleYearlyCellDoubleClick); // mainViewHandler 또는 spaRouter에서 처리
-              dayCell.addEventListener("dragover", handleDragOver);
-              dayCell.addEventListener("dragleave", handleDragLeave);
-              dayCell.addEventListener("drop", handleDrop);
-              // 주의: 이벤트 리스너는 cleanup 시 제거해야 함 (mainViewHandler에서 관리)
+        dayCell.addEventListener("mousedown", handleMouseDown);
+        dayCell.addEventListener("click", handleYearlyCellClick);
+        dayCell.addEventListener("dblclick", handleYearlyCellDoubleClick); // mainViewHandler 또는 spaRouter에서 처리
+        dayCell.addEventListener("dragover", handleDragOver);
+        dayCell.addEventListener("dragleave", handleDragLeave);
+        dayCell.addEventListener("drop", handleDrop);
+        // 주의: 이벤트 리스너는 cleanup 시 제거해야 함 (mainViewHandler에서 관리)
 
-              dayCell.addEventListener("contextmenu", (e) => {
-                if (isDrawing) { // 그리기 중에는 컨텍스트 메뉴 안 뜨게 (선택적)
-                    isDrawing = false;
-                    clearTemporaryHighlight();
-                    dragStartDate = null;
-                    dragCurrentDate = null;
-                    // e.preventDefault(); // 이미 drawing 중이었다면, 여기서 preventDefault 불필요할 수도
-                    // return;
-                }
-                showDayCellMarkContextMenu(e, dateStr);
-            });
-
-              if (isSameDate(currentDateObj, today)) dayCell.classList.add("mv-today"); // 접두사 클래스
-              if (focusedWeekMonday && focusedWeekSunday &&
-                  currentDateObj.getTime() >= focusedWeekMonday.getTime() &&
-                  currentDateObj.getTime() <= focusedWeekSunday.getTime()) {
-                  dayCell.classList.add("mv-current-week-day"); // 접두사 클래스
-              }
-          } else {
-              dayCell.classList.add("mv-empty"); // 접두사 클래스
+        dayCell.addEventListener("contextmenu", (e) => {
+          if (isDrawing) {
+            // 그리기 중에는 컨텍스트 메뉴 안 뜨게 (선택적)
+            isDrawing = false;
+            clearTemporaryHighlight();
+            dragStartDate = null;
+            dragCurrentDate = null;
+            // e.preventDefault(); // 이미 drawing 중이었다면, 여기서 preventDefault 불필요할 수도
+            // return;
           }
-          monthRow.appendChild(dayCell);
+          showDayCellMarkContextMenu(e, dateStr);
+        });
+
+        if (isSameDate(currentDateObj, today))
+          dayCell.classList.add("mv-today"); // 접두사 클래스
+        if (
+          focusedWeekMonday &&
+          focusedWeekSunday &&
+          currentDateObj.getTime() >= focusedWeekMonday.getTime() &&
+          currentDateObj.getTime() <= focusedWeekSunday.getTime()
+        ) {
+          dayCell.classList.add("mv-current-week-day"); // 접두사 클래스
+        }
+      } else {
+        dayCell.classList.add("mv-empty"); // 접두사 클래스
       }
-      calendarGridYearlyEl.appendChild(monthRow);
+      monthRow.appendChild(dayCell);
+    }
+    calendarGridYearlyEl.appendChild(monthRow);
   });
 
   // calendarGridYearlyEl.addEventListener("mousemove", handleMouseMove); // mainViewHandler에서 관리
   renderAllYearlyCellContent();
 }
-
 
 function removeCustomContextMenu() {
   if (customContextMenu) {
@@ -692,10 +768,12 @@ function handleProjectBarContextMenu(e, eventItem) {
 }
 
 function handleYearlyCellDoubleClick(e) {
-  const cell = e.currentTarget; 
+  const cell = e.currentTarget;
   const dateStr = cell.dataset.date;
   if (dateStr) {
-    console.log(`[YearlyCalendar] Cell double-clicked: ${dateStr}. Navigating to daily view...`);
+    console.log(
+      `[YearlyCalendar] Cell double-clicked: ${dateStr}. Navigating to daily view...`
+    );
     // navigate 함수는 spaRouter.js에서 import 해야 합니다.
     // navigate 함수의 경로는 '#/daily/:date' 형식을 따릅니다.
     navigate(`/daily/${dateStr}`);
@@ -778,40 +856,37 @@ document.addEventListener("click", (e) => {
   }
 });
 
-
-
-
 function createDayCellMarkContextMenuOnce() {
   if (dayCellMarkContextMenuEl) return; // 이미 생성되었으면 반환
 
-  dayCellMarkContextMenuEl = document.createElement('div');
-  dayCellMarkContextMenuEl.className = 'mv-day-cell-context-menu'; // CSS 클래스 적용
+  dayCellMarkContextMenuEl = document.createElement("div");
+  dayCellMarkContextMenuEl.className = "mv-day-cell-context-menu"; // CSS 클래스 적용
   // 기본적으로 숨김 (JS로 display 제어)
-  dayCellMarkContextMenuEl.style.display = 'none'; 
-  dayCellMarkContextMenuEl.style.position = 'absolute'; // 위치는 JS로
+  dayCellMarkContextMenuEl.style.display = "none";
+  dayCellMarkContextMenuEl.style.position = "absolute"; // 위치는 JS로
 
-  const titleEl = document.createElement('div');
-  titleEl.className = 'context-menu-title';
-  titleEl.textContent = '표시 선택:';
+  const titleEl = document.createElement("div");
+  titleEl.className = "context-menu-title";
+  titleEl.textContent = "표시 선택:";
   dayCellMarkContextMenuEl.appendChild(titleEl);
 
-  AVAILABLE_MARKS.forEach(mark => {
-      const itemEl = document.createElement('div');
-      itemEl.className = 'context-menu-item';
-      itemEl.dataset.markType = mark.type;
-      // itemEl.dataset.markSymbol = mark.symbol; // 심볼은 textContent로 충분
+  AVAILABLE_MARKS.forEach((mark) => {
+    const itemEl = document.createElement("div");
+    itemEl.className = "context-menu-item";
+    itemEl.dataset.markType = mark.type;
+    // itemEl.dataset.markSymbol = mark.symbol; // 심볼은 textContent로 충분
 
-      const iconSpan = document.createElement('span');
-      iconSpan.className = `mark-icon ${mark.cssClass}`;
-      iconSpan.textContent = mark.symbol;
-      itemEl.appendChild(iconSpan);
+    const iconSpan = document.createElement("span");
+    iconSpan.className = `mark-icon ${mark.cssClass}`;
+    iconSpan.textContent = mark.symbol;
+    itemEl.appendChild(iconSpan);
 
-      const textSpan = document.createElement('span');
-      textSpan.textContent = ` ${mark.name}`; // 이름 앞에 공백 추가
-      itemEl.appendChild(textSpan);
+    const textSpan = document.createElement("span");
+    textSpan.textContent = ` ${mark.name}`; // 이름 앞에 공백 추가
+    itemEl.appendChild(textSpan);
 
-      itemEl.addEventListener('click', handleMarkSelectionFromMenu);
-      dayCellMarkContextMenuEl.appendChild(itemEl);
+    itemEl.addEventListener("click", handleMarkSelectionFromMenu);
+    dayCellMarkContextMenuEl.appendChild(itemEl);
   });
 
   document.body.appendChild(dayCellMarkContextMenuEl);
@@ -826,63 +901,101 @@ function showDayCellMarkContextMenu(event, dateStr) {
   currentContextMenuDateStr = dateStr; // 현재 작업 대상 날짜 저장
 
   // 이전 메뉴 닫기 리스너들 제거 (중복 방지)
-  window.removeEventListener('click', hideDayCellMarkContextMenuOnClickOutside, true);
-  window.removeEventListener('contextmenu', hideDayCellMarkContextMenuOnAnotherRightClick, true);
-  
+  window.removeEventListener(
+    "click",
+    hideDayCellMarkContextMenuOnClickOutside,
+    true
+  );
+  window.removeEventListener(
+    "contextmenu",
+    hideDayCellMarkContextMenuOnAnotherRightClick,
+    true
+  );
+
   dayCellMarkContextMenuEl.style.left = `${event.pageX}px`;
   dayCellMarkContextMenuEl.style.top = `${event.pageY}px`;
-  dayCellMarkContextMenuEl.style.display = 'block';
+  dayCellMarkContextMenuEl.style.display = "block";
 
   // 메뉴 외부 클릭 시 메뉴 닫기 (capture true로 다른 클릭보다 먼저 처리 시도)
-  setTimeout(() => { // 현재 이벤트 사이클 직후에 리스너 등록
-      window.addEventListener('click', hideDayCellMarkContextMenuOnClickOutside, { once: true, capture: true });
-      // 다른 우클릭 시 현재 메뉴 닫기 (선택적)
-      window.addEventListener('contextmenu', hideDayCellMarkContextMenuOnAnotherRightClick, { once: true, capture: true });
+  setTimeout(() => {
+    // 현재 이벤트 사이클 직후에 리스너 등록
+    window.addEventListener("click", hideDayCellMarkContextMenuOnClickOutside, {
+      once: true,
+      capture: true,
+    });
+    // 다른 우클릭 시 현재 메뉴 닫기 (선택적)
+    window.addEventListener(
+      "contextmenu",
+      hideDayCellMarkContextMenuOnAnotherRightClick,
+      { once: true, capture: true }
+    );
   }, 0);
 }
 
 function hideDayCellMarkContextMenu() {
   if (dayCellMarkContextMenuEl) {
-      dayCellMarkContextMenuEl.style.display = 'none';
+    dayCellMarkContextMenuEl.style.display = "none";
   }
   currentContextMenuDateStr = null;
   // 리스너 제거는 once:true로 인해 자동으로 처리될 수 있지만, 명시적으로 제거할 수도 있음
-  window.removeEventListener('click', hideDayCellMarkContextMenuOnClickOutside, true);
-  window.removeEventListener('contextmenu', hideDayCellMarkContextMenuOnAnotherRightClick, true);
+  window.removeEventListener(
+    "click",
+    hideDayCellMarkContextMenuOnClickOutside,
+    true
+  );
+  window.removeEventListener(
+    "contextmenu",
+    hideDayCellMarkContextMenuOnAnotherRightClick,
+    true
+  );
 }
 
 function hideDayCellMarkContextMenuOnClickOutside(event) {
   // 메뉴 자체를 클릭한 경우는 닫지 않음 (메뉴 아이템 클릭은 handleMarkSelectionFromMenu에서 처리)
-  if (dayCellMarkContextMenuEl && !dayCellMarkContextMenuEl.contains(event.target)) {
-      hideDayCellMarkContextMenu();
-  } else if (dayCellMarkContextMenuEl && dayCellMarkContextMenuEl.contains(event.target) && !event.target.closest('.context-menu-item')) {
-      // 메뉴 내부지만 아이템이 아닌 곳(예: 타이틀, 빈 공간) 클릭 시, 리스너를 다시 달아줘야 할 수 있음 (once:true 때문)
-      // 하지만 아이템 클릭 시 메뉴가 닫히므로 크게 문제되지 않을 수 있음
-      // 안전하게 하려면, 아이템 클릭 핸들러에서도 명시적으로 닫고, 여기서도 닫도록.
+  if (
+    dayCellMarkContextMenuEl &&
+    !dayCellMarkContextMenuEl.contains(event.target)
+  ) {
+    hideDayCellMarkContextMenu();
+  } else if (
+    dayCellMarkContextMenuEl &&
+    dayCellMarkContextMenuEl.contains(event.target) &&
+    !event.target.closest(".context-menu-item")
+  ) {
+    // 메뉴 내부지만 아이템이 아닌 곳(예: 타이틀, 빈 공간) 클릭 시, 리스너를 다시 달아줘야 할 수 있음 (once:true 때문)
+    // 하지만 아이템 클릭 시 메뉴가 닫히므로 크게 문제되지 않을 수 있음
+    // 안전하게 하려면, 아이템 클릭 핸들러에서도 명시적으로 닫고, 여기서도 닫도록.
   }
 }
 
 function hideDayCellMarkContextMenuOnAnotherRightClick(event) {
   // 또 다른 우클릭이 메뉴 내부가 아니면 현재 메뉴를 닫음
-  if (dayCellMarkContextMenuEl && !dayCellMarkContextMenuEl.contains(event.target)) {
-      hideDayCellMarkContextMenu();
+  if (
+    dayCellMarkContextMenuEl &&
+    !dayCellMarkContextMenuEl.contains(event.target)
+  ) {
+    hideDayCellMarkContextMenu();
   }
 }
-
 
 function handleMarkSelectionFromMenu(event) {
   const selectedMarkType = event.currentTarget.dataset.markType;
   // const markDefinition = AVAILABLE_MARKS.find(m => m.type === selectedMarkType); // data.setCellMark는 markType만 받음
 
   if (currentContextMenuDateStr) {
-      console.log(`[YearlyCalendar] Mark type selected: ${selectedMarkType} for date: ${currentContextMenuDateStr}`);
+    console.log(
+      `[YearlyCalendar] Mark type selected: ${selectedMarkType} for date: ${currentContextMenuDateStr}`
+    );
 
-      // dataManager를 통해 데이터 상태 업데이트 요청
-      // selectedMarkType이 "none"이면 null을 전달하여 마크 제거를 나타냄.
-      data.setCellMark(currentContextMenuDateStr, selectedMarkType === "none" ? null : selectedMarkType);
-      // data.setCellMark 내부의 updateDailyData가 'dataChanged' 이벤트를 발생시킬 것입니다.
-      // 이 이벤트는 mainViewHandler에 의해 감지되어 renderYearlyCalendar -> renderAllYearlyCellContent를 호출,
-      // 결과적으로 전체 캘린더가 데이터 기준으로 다시 그려지며 마크가 표시/제거됩니다.
+    // dataManager를 통해 데이터 상태 업데이트 요청
+    // selectedMarkType이 "none"이면 null을 전달하여 마크 제거를 나타냄.
+    data.setCellMark(
+      currentContextMenuDateStr,
+      selectedMarkType === "none" ? null : selectedMarkType
+    );
+    // data.setCellMark 내부의 updateDailyData가 'dataChanged' 이벤트를 발생시킬 것입니다.
+    // 이 이벤트는 mainViewHandler에 의해 감지되어 renderYearlyCalendar -> renderAllYearlyCellContent를 호출,
+    // 결과적으로 전체 캘린더가 데이터 기준으로 다시 그려지며 마크가 표시/제거됩니다.
   }
   hideDayCellMarkContextMenu(); // 메뉴 아이템 클릭 후 메뉴 닫기
 }
