@@ -206,7 +206,10 @@ function handleMouseUp(e) {
 }
 
 function handleDragOver(e) {
-  if (e.dataTransfer.types.includes("application/x-backlog-source")) {
+  if (
+    e.dataTransfer.types.includes("application/x-backlog-source") ||
+    e.dataTransfer.types.includes("application/x-weekly-todo-source")
+  ) {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     e.target.closest(".mv-day-cell-yearly")?.classList.add("mv-drag-over"); // 접두사 클래스
@@ -233,6 +236,26 @@ function handleDrop(e) {
           `[YearlyCalendar Drop] Moving backlog item ${todoId} to ${targetDate}`
         );
         data.moveBacklogTodoToCalendar(todoId, targetDate);
+      } else {
+        console.warn("[YearlyCalendar Drop] todoId or targetDate is missing.");
+      }
+    }
+  } else if (
+    e.dataTransfer.types.includes("application/x-weekly-todo-source")
+  ) {
+    e.preventDefault();
+    const targetCell = e.target.closest(".mv-day-cell-yearly");
+    if (targetCell) {
+      targetCell.classList.remove("mv-drag-over");
+
+      const todoId = e.dataTransfer.getData("text/plain");
+      const targetDate = targetCell.dataset.date;
+
+      if (todoId && targetDate) {
+        console.log(
+          `[YearlyCalendar Drop] Moving weekly todo ${todoId} to ${targetDate}`
+        );
+        data.moveWeeklyTodoToYearlyCalendar(todoId, targetDate);
       } else {
         console.warn("[YearlyCalendar Drop] todoId or targetDate is missing.");
       }

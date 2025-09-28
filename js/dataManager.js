@@ -925,6 +925,88 @@ export function moveWeeklyTodoToBacklog(todoId) {
   }
 }
 
+export function moveWeeklyTodoToYearlyCalendar(todoId, targetDate) {
+  // 주간 캘린더에서 연간 캘린더로 할 일을 이동하는 함수
+  // 모든 월의 데이터에서 해당 todoId를 찾아서 제거하고, 새로운 날짜로 이동
+
+  let foundTodo = null;
+  let foundDate = null;
+
+  // 1. 기존 할 일 찾기 및 제거
+  for (const [yearMonth, monthData] of state.dailyData) {
+    if (monthData.dailyData) {
+      for (const [dateStr, dayData] of Object.entries(monthData.dailyData)) {
+        if (dayData.todos) {
+          const todoIndex = dayData.todos.findIndex(
+            (todo) => todo.id === todoId
+          );
+          if (todoIndex !== -1) {
+            foundTodo = dayData.todos[todoIndex];
+            foundDate = dateStr;
+            dayData.todos.splice(todoIndex, 1);
+
+            // 해당 월의 데이터 업데이트
+            updateDailyData(yearMonth, monthData);
+            break;
+          }
+        }
+      }
+      if (foundTodo) break;
+    }
+  }
+
+  if (foundTodo && targetDate) {
+    // 2. 새로운 날짜에 할 일 추가
+    const yearMonth = targetDate.substring(0, 7);
+    let monthData = getRawDailyDataForMonth(yearMonth);
+
+    if (!monthData) {
+      // 해당 월의 데이터가 없으면 초기화
+      monthData = {
+        yearMonth: yearMonth,
+        routines: [],
+        colorPalette: state.settings.colorPalette || [],
+        dailyData: {},
+      };
+      state.dailyData.set(yearMonth, monthData);
+    } else {
+      // 기존 데이터 복사본 사용
+      monthData = JSON.parse(JSON.stringify(monthData));
+    }
+
+    const dayData = getOrInitializeDayDataStructure(monthData, targetDate);
+
+    // 새로운 ID로 할 일 생성 (기존 속성 유지)
+    const newTodo = {
+      id: generateId("daytodo_"),
+      text: foundTodo.text,
+      completed: foundTodo.completed || false,
+      color: foundTodo.color || "#6c757d",
+      importance: foundTodo.importance || 0,
+      time: foundTodo.time || 0,
+    };
+
+    dayData.todos.push(newTodo);
+    updateDailyData(yearMonth, monthData);
+
+    console.log(
+      `Moved todo "${foundTodo.text}" from ${foundDate} to ${targetDate}`
+    );
+    eventBus.dispatch("dataChanged", {
+      source: "moveWeeklyTodoToYearlyCalendar",
+      payload: {
+        movedTodo: newTodo,
+        fromDate: foundDate,
+        toDate: targetDate,
+      },
+    });
+  } else {
+    console.warn(
+      `Todo with ID ${todoId} not found or target date ${targetDate} is invalid`
+    );
+  }
+}
+
 // dataManager.js 에 추가할 함수 (예시)
 export function getSpecificYearDataForSave(yearToSave) {
   // (이전 답변에서 제안된 함수)
