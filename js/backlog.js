@@ -26,7 +26,7 @@ export function renderBacklog() {
   // (현재 구조상 addTodoFormContainer는 backlogListContainer의 형제 DOM일 가능성이 높음)
 
   if (backlogTodos && backlogTodos.length > 0) {
-    // 우선순위별로 정렬: 1순위(1) > 2순위(2) > 3순위(3) > 0순위(0)
+    // 우선순위별로 정렬: 1순위(1) > 2순위(2) > 3순위(3) > 4순위(4) > 0순위(0)
     const sortedTodos = backlogTodos.sort((a, b) => {
       // 0은 가장 낮은 우선순위로 처리
       if (a.priority === 0 && b.priority !== 0) return 1;
@@ -60,7 +60,7 @@ function createTodoElement(todo) {
   const priorityInput = document.createElement("input");
   priorityInput.type = "number";
   priorityInput.min = 0;
-  priorityInput.max = 3;
+  priorityInput.max = 4;
   priorityInput.value = todo.priority;
   priorityInput.title = `Priority: ${todo.priority}`;
   priorityInput.addEventListener("change", () => {
