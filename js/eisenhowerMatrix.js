@@ -118,8 +118,21 @@ function createEisenhowerTodoElement(todo) {
   priorityDiv.className = "mv-todo-priority";
   priorityDiv.textContent = `Priority: ${todo.priority}`;
 
+  // X 버튼 추가
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "mv-eisenhower-delete-btn";
+  deleteBtn.innerHTML = "×";
+  deleteBtn.title = "Delete todo";
+  deleteBtn.addEventListener("click", (e) => {
+    e.stopPropagation(); // 드래그 이벤트 방지
+    if (confirm(`"${todo.text}" 할 일을 삭제하시겠습니까?`)) {
+      data.deleteBacklogTodo(todo.id);
+    }
+  });
+
   item.appendChild(textDiv);
   item.appendChild(priorityDiv);
+  item.appendChild(deleteBtn);
 
   // 드래그 이벤트 설정
   item.addEventListener("dragstart", (e) => {

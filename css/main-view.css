@@ -645,6 +645,7 @@
   transition: box-shadow 0.2s, transform 0.2s;
   font-size: 0.9em;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 .mv-eisenhower-todo-item:hover {
@@ -669,6 +670,39 @@
   padding: 2px 6px;
   border-radius: 3px;
   display: inline-block;
+}
+
+/* X 버튼 스타일 */
+.mv-eisenhower-delete-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background-color: #ff4444;
+  color: white;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.mv-eisenhower-delete-btn:hover {
+  background-color: #cc0000;
+  transform: scale(1.1);
+}
+
+.mv-eisenhower-todo-item:hover .mv-eisenhower-delete-btn {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Yearly Calendar Specific Styles */
