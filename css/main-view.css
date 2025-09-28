@@ -879,6 +879,13 @@
   border: 1px dashed #007bff;
 }
 
+/* 백로그 영역 드래그오버 스타일 */
+#backlogListContainer.mv-drag-over {
+  background-color: #e8f5e8;
+  border: 2px dashed #28a745;
+  border-radius: 4px;
+}
+
 .mv-day-cell-content-wrapper-yearly {
   height: 100%;
   width: 100%;

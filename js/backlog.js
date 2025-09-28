@@ -176,12 +176,19 @@ function getDragAfterElement(container, y) {
 // handleBacklogDragOver 함수는 외부(mainViewHandler.js)에서 사용될 수 있으므로 export (선택 사항)
 export function handleBacklogDragOver(e) {
   let isCorrectSource = false;
+  let isWeeklySource = false;
+
   try {
     if (
       e.dataTransfer.types &&
       e.dataTransfer.types.includes("application/x-backlog-source")
     ) {
       isCorrectSource = true;
+    } else if (
+      e.dataTransfer.types &&
+      e.dataTransfer.types.includes("application/x-weekly-todo-source")
+    ) {
+      isWeeklySource = true;
     }
   } catch (err) {
     /* ignore */
@@ -205,29 +212,53 @@ export function handleBacklogDragOver(e) {
         backlogListContainer.insertBefore(draggingItem, afterElement);
       }
     }
+  } else if (isWeeklySource) {
+    // 주간 캘린더에서 드래그된 할 일을 백로그로 이동
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    // 시각적 피드백을 위해 백로그 영역에 드롭 가능 표시
+    backlogListContainer.classList.add("mv-drag-over");
   }
 }
 // handleBacklogDrop 함수는 외부(mainViewHandler.js)에서 사용될 수 있으므로 export (선택 사항)
 export function handleBacklogDrop(e) {
   e.preventDefault();
   let isCorrectSource = false;
+  let isWeeklySource = false;
+
   try {
     if (
       e.dataTransfer.types &&
       e.dataTransfer.types.includes("application/x-backlog-source")
     ) {
       isCorrectSource = true;
+    } else if (
+      e.dataTransfer.types &&
+      e.dataTransfer.types.includes("application/x-weekly-todo-source")
+    ) {
+      isWeeklySource = true;
     }
   } catch (err) {
     /* ignore */
   }
-  if (!isCorrectSource) return;
 
-  // const droppedTodoId = e.dataTransfer.getData("text/plain"); // 사용되지 않으므로 주석 처리 가능
-  const newOrderedIds = [
-    ...backlogListContainer.querySelectorAll(".mv-backlog-todo-item"),
-  ].map((item) => item.dataset.todoId);
-  data.reorderBacklogTodos(newOrderedIds); // 데이터 순서 변경 후 dataChanged 이벤트로 renderBacklog 호출 기대
+  // 백로그 영역에서 드래그오버 클래스 제거
+  backlogListContainer.classList.remove("mv-drag-over");
+
+  if (isCorrectSource) {
+    // 백로그 내부에서 순서 변경
+    const newOrderedIds = [
+      ...backlogListContainer.querySelectorAll(".mv-backlog-todo-item"),
+    ].map((item) => item.dataset.todoId);
+    data.reorderBacklogTodos(newOrderedIds); // 데이터 순서 변경 후 dataChanged 이벤트로 renderBacklog 호출 기대
+  } else if (isWeeklySource) {
+    // 주간 캘린더에서 백로그로 할 일 이동
+    const todoId = e.dataTransfer.getData("text/plain");
+    if (todoId) {
+      console.log(`Moving weekly todo ${todoId} to backlog`);
+      data.moveWeeklyTodoToBacklog(todoId);
+    }
+  }
 }
 
 export function initBacklog() {
