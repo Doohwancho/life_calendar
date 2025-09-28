@@ -136,11 +136,55 @@ function createEisenhowerTodoElement(todo) {
   return item;
 }
 
+// backlog.js의 getDragAfterElement와 유사한 함수
+function getDragAfterElementForEisenhower(container, y) {
+  const draggableElements = [
+    ...container.querySelectorAll(".mv-eisenhower-todo-item:not(.mv-dragging)"),
+  ];
+  const result = draggableElements.reduce(
+    (closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        return { offset: offset, element: child };
+      } else {
+        return closest;
+      }
+    },
+    { offset: Number.NEGATIVE_INFINITY }
+  );
+  return result.element;
+}
+
 function setupQuadrantDragAndDrop(quadrant, quadrantId) {
   quadrant.addEventListener("dragover", (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     quadrant.classList.add("mv-drag-over");
+
+    // 아이젠하워 매트릭스 내부에서 드래그된 항목인 경우 순서 변경을 위한 시각적 피드백
+    if (e.dataTransfer.types.includes("application/x-eisenhower-source")) {
+      const draggingItem = quadrant.querySelector(
+        ".mv-eisenhower-todo-item.mv-dragging"
+      );
+      if (!draggingItem) return;
+
+      const afterElement = getDragAfterElementForEisenhower(
+        quadrant,
+        e.clientY
+      );
+      if (afterElement === draggingItem) return;
+
+      if (afterElement == null) {
+        if (quadrant.lastChild !== draggingItem) {
+          quadrant.appendChild(draggingItem);
+        }
+      } else {
+        if (afterElement !== draggingItem.nextSibling) {
+          quadrant.insertBefore(draggingItem, afterElement);
+        }
+      }
+    }
   });
 
   quadrant.addEventListener("dragleave", (e) => {
@@ -170,7 +214,47 @@ function setupQuadrantDragAndDrop(quadrant, quadrantId) {
       const newPriority = QUADRANT_PRIORITY_MAP[quadrantId];
 
       if (newPriority) {
-        data.updateBacklogTodoPriority(todoId, newPriority);
+        // 우선순위가 변경된 경우에만 업데이트
+        const state = data.getState();
+        const todo = state.backlogTodos.find((t) => t.id === todoId);
+        if (todo && todo.priority !== newPriority) {
+          data.updateBacklogTodoPriority(todoId, newPriority);
+        }
+
+        // 같은 사분면 내에서 순서 변경인 경우 (우선순위는 그대로, 순서만 변경)
+        if (todo && todo.priority === newPriority) {
+          // 전체 백로그 목록에서 현재 사분면의 할 일들만 순서 변경
+          const state = data.getState();
+          const allBacklogTodos = state.backlogTodos || [];
+
+          // 현재 사분면의 할 일들만 추출
+          const currentQuadrantTodos = allBacklogTodos.filter(
+            (t) => t.priority === newPriority
+          );
+
+          // 새로운 순서로 정렬
+          const newOrderedIds = [
+            ...quadrant.querySelectorAll(".mv-eisenhower-todo-item"),
+          ].map((item) => item.dataset.todoId);
+
+          // 현재 사분면의 할 일들을 새로운 순서로 재정렬
+          const reorderedQuadrantTodos = newOrderedIds
+            .map((id) => currentQuadrantTodos.find((t) => t.id === id))
+            .filter(Boolean);
+
+          // 다른 사분면의 할 일들과 합쳐서 전체 목록 재구성
+          const otherQuadrantTodos = allBacklogTodos.filter(
+            (t) => t.priority !== newPriority
+          );
+          const finalOrderedTodos = [
+            ...otherQuadrantTodos,
+            ...reorderedQuadrantTodos,
+          ];
+
+          // 전체 목록을 새로운 순서로 업데이트
+          data.reorderBacklogTodos(finalOrderedTodos.map((t) => t.id));
+        }
+
         // 매트릭스 내부에서도 재렌더링
         renderEisenhowerMatrix();
       }
