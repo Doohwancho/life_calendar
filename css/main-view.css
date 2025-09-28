@@ -886,6 +886,13 @@
   border-radius: 4px;
 }
 
+/* 연간 캘린더 할 일 드래그 스타일 */
+.mv-todo-box-in-calendar.mv-dragging {
+  opacity: 0.6;
+  transform: rotate(2deg);
+  transition: all 0.2s ease;
+}
+
 .mv-day-cell-content-wrapper-yearly {
   height: 100%;
   width: 100%;

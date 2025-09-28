@@ -208,7 +208,8 @@ function handleMouseUp(e) {
 function handleDragOver(e) {
   if (
     e.dataTransfer.types.includes("application/x-backlog-source") ||
-    e.dataTransfer.types.includes("application/x-weekly-todo-source")
+    e.dataTransfer.types.includes("application/x-weekly-todo-source") ||
+    e.dataTransfer.types.includes("application/x-yearly-todo-source")
   ) {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
@@ -256,6 +257,26 @@ function handleDrop(e) {
           `[YearlyCalendar Drop] Moving weekly todo ${todoId} to ${targetDate}`
         );
         data.moveWeeklyTodoToYearlyCalendar(todoId, targetDate);
+      } else {
+        console.warn("[YearlyCalendar Drop] todoId or targetDate is missing.");
+      }
+    }
+  } else if (
+    e.dataTransfer.types.includes("application/x-yearly-todo-source")
+  ) {
+    e.preventDefault();
+    const targetCell = e.target.closest(".mv-day-cell-yearly");
+    if (targetCell) {
+      targetCell.classList.remove("mv-drag-over");
+
+      const todoId = e.dataTransfer.getData("text/plain");
+      const targetDate = targetCell.dataset.date;
+
+      if (todoId && targetDate) {
+        console.log(
+          `[YearlyCalendar Drop] Moving yearly todo ${todoId} to ${targetDate}`
+        );
+        data.moveYearlyTodoToAnotherDate(todoId, targetDate);
       } else {
         console.warn("[YearlyCalendar Drop] todoId or targetDate is missing.");
       }
@@ -551,8 +572,21 @@ export function renderAllYearlyCellContent() {
         itemEl.style.color = "#ffffff";
         itemEl.textContent = item.text;
         itemEl.title = item.text;
+        itemEl.draggable = true;
         itemHeight = 14;
         itemEl.style.height = `${itemHeight}px`;
+
+        // 드래그 이벤트 추가
+        itemEl.addEventListener("dragstart", (e) => {
+          e.dataTransfer.setData("text/plain", item.id);
+          e.dataTransfer.setData("application/x-yearly-todo-source", "true");
+          e.dataTransfer.effectAllowed = "move";
+          itemEl.classList.add("mv-dragging");
+        });
+
+        itemEl.addEventListener("dragend", () => {
+          itemEl.classList.remove("mv-dragging");
+        });
       }
 
       if (itemHeight > 0) {
