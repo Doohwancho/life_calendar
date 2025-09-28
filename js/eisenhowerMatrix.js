@@ -56,6 +56,23 @@ export function initEisenhowerMatrix() {
   console.log("Eisenhower Matrix Module Initialized.");
 }
 
+function addTodoToQuadrant(quadrantId) {
+  const priority = QUADRANT_PRIORITY_MAP[quadrantId];
+  if (!priority) {
+    console.error("Invalid quadrant ID:", quadrantId);
+    return;
+  }
+
+  const todoText = prompt(`새 할 일을 추가하세요 (우선순위: ${priority}):`);
+  if (todoText && todoText.trim()) {
+    // 백로그에 새 할 일 추가 (우선순위와 함께)
+    data.addBacklogTodo(todoText.trim(), priority);
+    console.log(
+      `Added new todo "${todoText}" with priority ${priority} to quadrant ${quadrantId}`
+    );
+  }
+}
+
 function openEisenhowerMatrix() {
   eisenhowerModal.style.display = "flex";
   renderEisenhowerMatrix();
@@ -70,9 +87,19 @@ function renderEisenhowerMatrix() {
   const backlogTodos = state.backlogTodos || [];
 
   // 모든 사분면 초기화
-  Object.values(quadrants).forEach((quadrant) => {
+  Object.entries(quadrants).forEach(([quadrantId, quadrant]) => {
     if (quadrant) {
       quadrant.innerHTML = "";
+
+      // + 버튼 추가
+      const addBtn = document.createElement("button");
+      addBtn.className = "mv-eisenhower-add-btn";
+      addBtn.innerHTML = "+";
+      addBtn.title = "Add new todo to this quadrant";
+      addBtn.addEventListener("click", () => {
+        addTodoToQuadrant(parseInt(quadrantId));
+      });
+      quadrant.appendChild(addBtn);
     }
   });
 
@@ -83,7 +110,13 @@ function renderEisenhowerMatrix() {
 
     if (quadrant) {
       const todoElement = createEisenhowerTodoElement(todo);
-      quadrant.appendChild(todoElement);
+      // + 버튼 앞에 할 일 추가
+      const addBtn = quadrant.querySelector(".mv-eisenhower-add-btn");
+      if (addBtn) {
+        quadrant.insertBefore(todoElement, addBtn);
+      } else {
+        quadrant.appendChild(todoElement);
+      }
     }
   });
 }
