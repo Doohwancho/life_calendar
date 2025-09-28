@@ -73,6 +73,15 @@ function addTodoToQuadrant(quadrantId) {
   }
 }
 
+function updateTodoInEisenhower(todo) {
+  const newText = prompt(`할 일을 수정하세요:`, todo.text);
+  if (newText && newText.trim() && newText.trim() !== todo.text) {
+    // 백로그에서 할 일 텍스트 업데이트
+    data.updateBacklogTodoText(todo.id, newText.trim());
+    console.log(`Updated todo "${todo.text}" to "${newText.trim()}"`);
+  }
+}
+
 function openEisenhowerMatrix() {
   eisenhowerModal.style.display = "flex";
   renderEisenhowerMatrix();
@@ -151,6 +160,16 @@ function createEisenhowerTodoElement(todo) {
   priorityDiv.className = "mv-todo-priority";
   priorityDiv.textContent = `Priority: ${todo.priority}`;
 
+  // 업데이트 버튼 추가
+  const updateBtn = document.createElement("button");
+  updateBtn.className = "mv-eisenhower-update-btn";
+  updateBtn.innerHTML = "✏️";
+  updateBtn.title = "Update todo";
+  updateBtn.addEventListener("click", (e) => {
+    e.stopPropagation(); // 드래그 이벤트 방지
+    updateTodoInEisenhower(todo);
+  });
+
   // X 버튼 추가
   const deleteBtn = document.createElement("button");
   deleteBtn.className = "mv-eisenhower-delete-btn";
@@ -165,6 +184,7 @@ function createEisenhowerTodoElement(todo) {
 
   item.appendChild(textDiv);
   item.appendChild(priorityDiv);
+  item.appendChild(updateBtn);
   item.appendChild(deleteBtn);
 
   // 드래그 이벤트 설정
