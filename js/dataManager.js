@@ -12,6 +12,7 @@ let state = {
   settings: {
     colorPalette: [], // 마스터 색상 팔레트 (애플리케이션 전역 기본값)
     lastOpenedYear: INITIAL_YEAR,
+    mandalArtViewMode: "grid", // 'grid' | 'matrix'
   },
   yearlyData: null, // 현재 로드된 '연도'의 데이터: { year, projects, events, backlogTodos }
   dailyData: new Map(), // <'YYYY-MM', monthDataObject>
@@ -85,8 +86,11 @@ export function loadInitialData() {
   state.settings = dirtyFileService.getDirtyFileData("settings.json") || {
     colorPalette: [],
     lastOpenedYear: INITIAL_YEAR,
+    mandalArtViewMode: "grid",
   };
   if (!state.settings.colorPalette) state.settings.colorPalette = [];
+  if (!state.settings.mandalArtViewMode)
+    state.settings.mandalArtViewMode = "grid";
 
   // 2. Mandal-Art 데이터 로드
   const mandalData = dirtyFileService.getDirtyFileData("mandal-art.json");

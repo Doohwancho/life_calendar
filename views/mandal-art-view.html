@@ -1,33 +1,40 @@
 <div class="mandal-art-container">
-    <aside class="mandal-art-sidebar">
-        <div class="mandal-art-sidebar-header">
-            <h2>My Mandal-Arts</h2>
-        </div>
-        <ul id="mandal-list">
-            </ul>
-        <button id="add-mandal-btn" class="mandal-art-add-btn">+</button>
-    </aside>
+  <aside class="mandal-art-sidebar">
+    <div class="mandal-art-sidebar-header">
+      <h2>My Mandal-Arts</h2>
+    </div>
+    <ul id="mandal-list"></ul>
+    <button id="add-mandal-btn" class="mandal-art-add-btn">+</button>
+  </aside>
 
-    <main class="mandal-art-main-content">
-        <div id="mandal-art-grid" class="mandal-art-grid-container">
-            </div>
-    </main>
+  <main class="mandal-art-main-content">
+    <div id="mandal-art-toolbar" class="mandal-art-toolbar">
+      <button id="mandal-view-grid-btn" data-mode="grid">Grid</button>
+      <button id="mandal-view-matrix-btn" data-mode="matrix">Matrix</button>
+    </div>
+    <div id="mandal-art-grid" class="mandal-art-grid-container"></div>
+    <div
+      id="mandal-art-matrix"
+      class="mandal-art-matrix-container"
+      style="display: none"
+    ></div>
+  </main>
 </div>
 
 <div id="mandal-cell-context-menu" class="mandal-art-context-menu">
-    <ul>
-        <li data-action="toggle-complete">✅ 완료 Toggle</li>
-        <li data-action="highlight">🎨 하이라이트 Toggle</li>
-        <li data-action="set-color">
-            <label for="mandal-color-picker">🎨 색상 변경</label>
-            <input type="color" id="mandal-color-picker">
-        </li>
-        <li data-action="reset-cell">🔄 셀 초기화</li>
-    </ul>
+  <ul>
+    <li data-action="toggle-complete">✅ 완료 Toggle</li>
+    <li data-action="highlight">🎨 하이라이트 Toggle</li>
+    <li data-action="set-color">
+      <label for="mandal-color-picker">🎨 색상 변경</label>
+      <input type="color" id="mandal-color-picker" />
+    </li>
+    <li data-action="reset-cell">🔄 셀 초기화</li>
+  </ul>
 </div>
 
 <div id="mandal-sidebar-context-menu" class="mandal-art-context-menu">
-    <ul>
-        <li data-action="delete-mandal">🗑️ 이 만다라트 삭제</li>
-    </ul>
+  <ul>
+    <li data-action="delete-mandal">🗑️ 이 만다라트 삭제</li>
+  </ul>
 </div>
