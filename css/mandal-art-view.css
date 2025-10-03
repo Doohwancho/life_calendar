@@ -181,6 +181,26 @@
   width: auto; /* table-layout:fixed 기반 균등 분배 */
   height: var(--mandal-cell-size);
   overflow: hidden; /* 텍스트 넘침 방지 */
+  display: flex; /* 라벨 textarea를 수직 가운데 정렬 */
+  align-items: center;
+  justify-content: center;
+}
+
+/* 좌측 라벨을 grid 셀 textarea와 동일한 스타일로 */
+.mandal-matrix-label {
+  width: 100%;
+  height: auto; /* 부모(th)에서 수직 가운데 정렬 */
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  padding: 0 8px;
+  font-size: 1em;
+  font-family: inherit;
+  text-align: center;
+  color: inherit;
+  box-sizing: border-box;
+  display: block;
 }
 
 .mandal-matrix td {

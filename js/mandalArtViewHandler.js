@@ -220,18 +220,38 @@ function renderMatrix() {
     const blockCol = Math.floor(col / 3);
     return (blockRow + 3) * 9 + (blockCol + 3);
   }
+  // target(외곽 중앙) -> source(중앙 링) 역매핑
+  const TARGET_TO_SOURCE = Object.entries(NINE_GRID_CONFIG.SYNC_MAP).reduce(
+    (acc, [src, tgt]) => {
+      acc[tgt] = parseInt(src, 10);
+      return acc;
+    },
+    {}
+  );
   // 좌측 라벨: 각 주변 3x3 블록의 중앙 셀 내용으로 표시 (비어있으면 x{n})
-  const levelLabels = outerCenterIndices.map((centerIdx, i) => {
-    const label = activeMandal.cells[centerIdx]?.content?.trim();
-    return label && label.length > 0 ? label : `x${i + 1}`;
+  const levelLabels = outerCenterIndices.map((centerIdx) => {
+    const sourceIdx = TARGET_TO_SOURCE[centerIdx];
+    const label =
+      (sourceIdx !== undefined
+        ? activeMandal.cells[sourceIdx]?.content
+        : activeMandal.cells[centerIdx]?.content) || "";
+    return label;
   });
   // 행: 주제(8개 블록), 열: 레벨 1..8 (블록 내 8방향)
   for (let t = 0; t < 8; t++) {
     const tr = document.createElement("tr");
     const th = document.createElement("th");
-    th.textContent = levelLabels[t];
-    // 좌측 라벨 색상을 만다라트의 해당 블록 대표 색상으로 적용
+    // 편집 가능한 라벨 박스 (textarea로 grid 셀과 동일한 느낌)
+    const labelTextarea = document.createElement("textarea");
+    labelTextarea.value = levelLabels[t] || "";
+    labelTextarea.className = "mandal-matrix-label";
     const centerIdx = outerCenterIndices[t];
+    const sourceIdxForThis = TARGET_TO_SOURCE[centerIdx];
+    labelTextarea.dataset.sourceIndex = String(
+      sourceIdxForThis !== undefined ? sourceIdxForThis : centerIdx
+    );
+    th.appendChild(labelTextarea);
+    // 좌측 라벨 색상을 만다라트의 해당 블록 대표 색상으로 적용
     const topicIdx = topicIndexForCell(centerIdx);
     const paletteInfo = NINE_GRID_CONFIG.PALETTE[topicIdx];
     if (paletteInfo) {
@@ -568,7 +588,8 @@ export async function initMandalArtView(dataModule, eventBusModule) {
     // Matrix 입력/수정 핸들러
     if (matrixContainerEl) {
       const matrixInputHandler = (e) => {
-        if (e.target.tagName !== "TEXTAREA") return;
+        const tag = e.target.tagName;
+        if (tag !== "TEXTAREA" && tag !== "INPUT") return;
         const mandalState = JSON.parse(
           JSON.stringify(data.getMandalArtState())
         );
@@ -576,6 +597,23 @@ export async function initMandalArtView(dataModule, eventBusModule) {
           (m) => m.id === mandalState.activeMandalArtId
         );
         if (!activeMandal) return;
+
+        // 좌측 라벨 편집
+        if (e.target.dataset.sourceIndex) {
+          const srcIdx = parseInt(e.target.dataset.sourceIndex, 10);
+          if (!isNaN(srcIdx) && activeMandal.cells[srcIdx]) {
+            activeMandal.cells[srcIdx].content = e.target.value;
+            // 중앙 링 변경 시 외곽 중앙도 동기화됨 (기존 renderGrid 로직 참고)
+            const mapped = NINE_GRID_CONFIG.SYNC_MAP[srcIdx];
+            if (mapped !== undefined) {
+              activeMandal.cells[mapped].content = e.target.value;
+            }
+            data.updateMandalArtState(mandalState, { broadcast: false });
+          }
+          return;
+        }
+
+        // 개별 레벨(실천) 편집
         const idx = parseInt(e.target.dataset.index, 10);
         const cellData = activeMandal.cells[idx];
         if (!cellData) return;
