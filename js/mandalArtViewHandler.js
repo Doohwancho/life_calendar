@@ -181,45 +181,68 @@ function renderMatrix() {
 
   const tbody = document.createElement("tbody");
   // 원본 9x9 인덱스 매핑 준비
-  const centerIndex = NINE_GRID_CONFIG.CENTRAL_GOAL_INDEX; // 40
-  const topicIndices = [30, 31, 32, 41, 50, 49, 48, 39]; // 시계 방향 1..8 매핑
-  const topicToSubMap = {
-    30: [0, 1, 2, 3, 4, 5, 6, 7], // will be remapped per block
-  };
-  // 블록별 내부 좌표 -> 실제 index 계산 헬퍼
-  const blockTopLeftByTopic = {
-    30: { r: 3, c: 3 },
-    31: { r: 3, c: 4 },
-    32: { r: 3, c: 5 },
-    41: { r: 4, c: 5 },
-    50: { r: 5, c: 5 },
-    49: { r: 5, c: 4 },
-    48: { r: 5, c: 3 },
-    39: { r: 4, c: 3 },
-  };
-  function cellIndexAt(topicIndex, localIndex) {
-    const tl = blockTopLeftByTopic[topicIndex];
-    const lr = Math.floor(localIndex / 3);
-    const lc = localIndex % 3;
-    const r = tl.r + lr;
-    const c = tl.c + lc;
+  // 주변 8개의 3x3 블록의 중앙 셀 인덱스 (시계방향: 좌상 -> 상 -> 우상 -> 우 -> 우하 -> 하 -> 좌하 -> 좌)
+  const outerCenterIndices = [10, 13, 16, 43, 70, 67, 64, 37];
+  // 각 블록의 좌상단 좌표 (r,c)
+  const outerBlockTopLefts = [
+    { r: 0, c: 0 }, // 10
+    { r: 0, c: 3 }, // 13
+    { r: 0, c: 6 }, // 16
+    { r: 3, c: 6 }, // 43
+    { r: 6, c: 6 }, // 70
+    { r: 6, c: 3 }, // 67
+    { r: 6, c: 0 }, // 64
+    { r: 3, c: 0 }, // 37
+  ];
+  // 3x3 블록 내에서 중심(1,1)을 제외한 8방향 순서 (1..8):
+  // 1:좌상, 2:상, 3:우상, 4:우, 5:우하, 6:하, 7:좌하, 8:좌
+  const localOffsets = [
+    { dr: 0, dc: 0 }, // 1
+    { dr: 0, dc: 1 }, // 2
+    { dr: 0, dc: 2 }, // 3
+    { dr: 1, dc: 2 }, // 4
+    { dr: 2, dc: 2 }, // 5
+    { dr: 2, dc: 1 }, // 6
+    { dr: 2, dc: 0 }, // 7
+    { dr: 1, dc: 0 }, // 8
+  ];
+  function cellIndexAtBlock(blockIdx, levelIdx) {
+    const tl = outerBlockTopLefts[blockIdx];
+    const off = localOffsets[levelIdx];
+    const r = tl.r + off.dr;
+    const c = tl.c + off.dc;
     return r * 9 + c;
   }
+  function topicIndexForCell(cellIndex) {
+    const row = Math.floor(cellIndex / 9);
+    const col = cellIndex % 9;
+    const blockRow = Math.floor(row / 3);
+    const blockCol = Math.floor(col / 3);
+    return (blockRow + 3) * 9 + (blockCol + 3);
+  }
   // 좌측 라벨: 각 주변 3x3 블록의 중앙 셀 내용으로 표시 (비어있으면 x{n})
-  const levelLabels = topicIndices.map((topicIdx, i) => {
-    const label = activeMandal.cells[topicIdx]?.content?.trim();
+  const levelLabels = outerCenterIndices.map((centerIdx, i) => {
+    const label = activeMandal.cells[centerIdx]?.content?.trim();
     return label && label.length > 0 ? label : `x${i + 1}`;
   });
-  for (let lvl = 0; lvl < 8; lvl++) {
+  // 행: 주제(8개 블록), 열: 레벨 1..8 (블록 내 8방향)
+  for (let t = 0; t < 8; t++) {
     const tr = document.createElement("tr");
     const th = document.createElement("th");
-    th.textContent = levelLabels[lvl];
+    th.textContent = levelLabels[t];
+    // 좌측 라벨 색상을 만다라트의 해당 블록 대표 색상으로 적용
+    const centerIdx = outerCenterIndices[t];
+    const topicIdx = topicIndexForCell(centerIdx);
+    const paletteInfo = NINE_GRID_CONFIG.PALETTE[topicIdx];
+    if (paletteInfo) {
+      th.style.backgroundColor = paletteInfo.bg;
+      th.style.color = paletteInfo.text;
+    }
     tr.appendChild(th);
-    for (let t = 0; t < 8; t++) {
-      const topicIndex = topicIndices[t];
+    for (let lvl = 0; lvl < 8; lvl++) {
       const td = document.createElement("td");
       const textarea = document.createElement("textarea");
-      const idx = cellIndexAt(topicIndex, lvl);
+      const idx = cellIndexAtBlock(t, lvl);
       const cellData = activeMandal.cells[idx];
       textarea.value = cellData?.content || "";
       textarea.dataset.index = String(idx);
