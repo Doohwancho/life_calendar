@@ -168,7 +168,8 @@
   background: #fafafa;
   font-weight: bold;
   width: auto; /* table-layout:fixed 기반 균등 분배 */
-  height: var(--mandal-cell-size);
+  height: calc(var(--mandal-cell-size) * 0.3);
+  line-height: calc(var(--mandal-cell-size) * 0.3);
   overflow: hidden; /* 텍스트 넘침 방지 */
 }
 
