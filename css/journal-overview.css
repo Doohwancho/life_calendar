@@ -155,7 +155,7 @@
   color: #495057;
   border-right: 1px solid #e9ecef;
   font-size: 0.9rem;
-  min-height: 1.3rem;
+  min-height: 1.22rem;
   flex-shrink: 0; /* Prevent date column from shrinking */
 }
 
@@ -241,9 +241,9 @@
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
 }
 
 .journal-placeholder {
@@ -470,4 +470,78 @@
     width: 95%;
     padding: 1.5rem;
   }
+}
+
+/* Activity Grid Styles */
+.journal-activity-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  overflow: hidden;
+}
+
+.journal-activity-grid {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.activity-grid-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.activity-grid-table th,
+.activity-grid-table td {
+  padding: 0.365rem 0.2rem;
+  text-align: center;
+  border: 1px solid #e9ecef;
+  min-height: 1.22rem;
+}
+
+.activity-grid-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.activity-grid-date {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+  width: 45px;
+  min-width: 45px;
+}
+
+.activity-grid-cell {
+  background-color: #fff;
+  transition: background-color 0.2s;
+  min-height: 1.22rem;
+}
+
+.activity-grid-cell.has-activity {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  font-weight: 600;
+}
+
+.activity-grid-cell.has-activity::after {
+  content: "✕";
+  font-size: 0.8rem;
+}
+
+.activity-grid-label {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  min-width: 20px;
+  max-width: 20px;
+  min-height: 1.22rem;
 }

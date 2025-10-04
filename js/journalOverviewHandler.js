@@ -11,6 +11,7 @@ let currentMonthDisplay;
 let prevMonthBtn;
 let nextMonthBtn;
 let journalEntriesList;
+let activityGrid;
 
 // --- Initialization ---
 export async function initJournalOverview(
@@ -45,6 +46,9 @@ export async function initJournalOverview(
   // Render the journal overview
   renderJournalOverview();
 
+  // Render the activity grid
+  renderActivityGrid();
+
   console.log("[JournalOverview] Journal Overview initialized");
 }
 
@@ -53,6 +57,7 @@ function initializeDOMElements() {
   prevMonthBtn = document.getElementById("prevMonthBtn");
   nextMonthBtn = document.getElementById("nextMonthBtn");
   journalEntriesList = document.getElementById("journalEntriesList");
+  activityGrid = document.getElementById("activityGrid");
 
   // Add event listeners
   prevMonthBtn.addEventListener("click", () => {
@@ -77,6 +82,7 @@ function changeMonth(direction) {
   updateMonthDisplay();
   updateNavigationButtons();
   renderJournalOverview();
+  renderActivityGrid();
 }
 
 function updateMonthDisplay() {
@@ -310,6 +316,113 @@ function showJournalModal(day, diaryData) {
   document.addEventListener("keydown", handleEscape);
 }
 
+function renderActivityGrid() {
+  if (!activityGrid) return;
+
+  // Clear existing content
+  activityGrid.innerHTML = "";
+
+  // Get color palette from yearly data
+  const state = localDataManager.getState();
+  const colorPalette = state.colorPalette || [];
+
+  if (colorPalette.length === 0) {
+    activityGrid.innerHTML =
+      "<p style='text-align: center; color: #6c757d; padding: 2rem;'>No color palette data available</p>";
+    return;
+  }
+
+  // Get number of days in current month
+  const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+  const monthKey = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
+  const monthData = localDataManager.getRawDailyDataForMonth(monthKey);
+
+  // Create table
+  const table = document.createElement("table");
+  table.className = "activity-grid-table";
+
+  // Create header row
+  const headerRow = document.createElement("tr");
+
+  // Date column header
+  const dateHeader = document.createElement("th");
+  dateHeader.textContent = "Date";
+  dateHeader.className = "activity-grid-date";
+  headerRow.appendChild(dateHeader);
+
+  // Color palette column headers
+  colorPalette.forEach((color) => {
+    const th = document.createElement("th");
+    th.textContent = color.name || color.label || "Unknown";
+    th.className = "activity-grid-label";
+    headerRow.appendChild(th);
+  });
+
+  table.appendChild(headerRow);
+
+  // Create data rows for each day
+  for (let day = 1; day <= daysInMonth; day++) {
+    const row = document.createElement("tr");
+
+    // Date cell
+    const dateCell = document.createElement("td");
+    dateCell.textContent = day;
+    dateCell.className = "activity-grid-date";
+    row.appendChild(dateCell);
+
+    // Get day data
+    const dateStr = `${currentYear}-${String(currentMonth).padStart(
+      2,
+      "0"
+    )}-${String(day).padStart(2, "0")}`;
+    const dayData = monthData?.dailyData?.[dateStr];
+
+    // Check each color palette item
+    colorPalette.forEach((color) => {
+      const cell = document.createElement("td");
+      cell.className = "activity-grid-cell";
+
+      // Check if this color is used in timeBlocks or goalBlocks
+      const hasActivity = checkColorUsage(dayData, color);
+      if (hasActivity) {
+        cell.classList.add("has-activity");
+      }
+
+      row.appendChild(cell);
+    });
+
+    table.appendChild(row);
+  }
+
+  activityGrid.appendChild(table);
+}
+
+function checkColorUsage(dayData, color) {
+  if (!dayData) return false;
+
+  // Check timeBlocks
+  if (dayData.timeBlocks) {
+    for (const blockId in dayData.timeBlocks) {
+      const block = dayData.timeBlocks[blockId];
+      if (block && block.color === color.color) {
+        return true;
+      }
+    }
+  }
+
+  // Check goalBlocks
+  if (dayData.goalBlocks) {
+    for (const blockId in dayData.goalBlocks) {
+      const block = dayData.goalBlocks[blockId];
+      if (block && block.color === color.color) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 function saveJournalEntry(day, sections, modalOverlay) {
   console.log(
     `[JournalOverview] Saving journal entry for ${currentYear}년 ${currentMonth}월 ${day}일`
@@ -362,8 +475,9 @@ function saveJournalEntry(day, sections, modalOverlay) {
   // Close modal
   modalOverlay.remove();
 
-  // Refresh the journal overview
+  // Refresh the journal overview and activity grid
   renderJournalOverview();
+  renderActivityGrid();
 }
 
 // --- Cleanup ---
