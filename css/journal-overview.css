@@ -400,6 +400,48 @@
   font-style: italic;
 }
 
+.journal-modal-section-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 0.75rem;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #495057;
+  background-color: #fff;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.journal-modal-section-textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.journal-modal-save {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background-color 0.2s;
+}
+
+.journal-modal-save:hover {
+  background-color: #0056b3;
+}
+
+.journal-modal-save:active {
+  background-color: #004085;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .journal-main-content {

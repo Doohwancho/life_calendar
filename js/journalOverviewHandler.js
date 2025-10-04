@@ -265,23 +265,29 @@ function showJournalModal(day, diaryData) {
     titleDiv.className = "journal-modal-section-title";
     titleDiv.textContent = section.title;
 
-    const textDiv = document.createElement("div");
+    const textarea = document.createElement("textarea");
     const text = diaryData[section.key] || "";
-    const hasContent = text.trim().length > 0;
-
-    textDiv.className = `journal-modal-section-text${
-      !hasContent ? " empty" : ""
-    }`;
-    textDiv.textContent = hasContent ? text : "No entry";
+    textarea.className = "journal-modal-section-textarea";
+    textarea.value = text;
+    textarea.placeholder = `Enter your ${section.title.toLowerCase()}...`;
 
     sectionDiv.appendChild(titleDiv);
-    sectionDiv.appendChild(textDiv);
+    sectionDiv.appendChild(textarea);
     sectionsDiv.appendChild(sectionDiv);
+  });
+
+  // Create save button
+  const saveBtn = document.createElement("button");
+  saveBtn.className = "journal-modal-save";
+  saveBtn.textContent = "Save";
+  saveBtn.addEventListener("click", () => {
+    saveJournalEntry(day, sections, modalOverlay);
   });
 
   // Assemble modal
   modalContent.appendChild(modalHeader);
   modalContent.appendChild(sectionsDiv);
+  modalContent.appendChild(saveBtn);
   modalOverlay.appendChild(modalContent);
 
   // Add to document
@@ -302,6 +308,62 @@ function showJournalModal(day, diaryData) {
     }
   };
   document.addEventListener("keydown", handleEscape);
+}
+
+function saveJournalEntry(day, sections, modalOverlay) {
+  console.log(
+    `[JournalOverview] Saving journal entry for ${currentYear}년 ${currentMonth}월 ${day}일`
+  );
+
+  // Get current data using dataManager functions
+  const monthKey = `${currentYear}-${currentMonth.toString().padStart(2, "0")}`;
+  const dateStr = `${currentYear}-${currentMonth
+    .toString()
+    .padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+
+  // Get raw month data
+  const monthData = localDataManager.getRawDailyDataForMonth(monthKey);
+
+  if (!monthData) {
+    console.error(`[JournalOverview] Month data not found for ${monthKey}`);
+    return;
+  }
+
+  // Get or create day data
+  if (!monthData.dailyData) {
+    monthData.dailyData = {};
+  }
+  if (!monthData.dailyData[dateStr]) {
+    monthData.dailyData[dateStr] = {
+      timeBlocks: {},
+      goalBlocks: {},
+      scheduledTimelineTasks: [],
+      todos: [],
+      diary: { keep: "", problem: "", try: "" },
+      cellMark: null,
+    };
+  }
+
+  // Update diary data with textarea values
+  sections.forEach((section) => {
+    const textarea = modalOverlay.querySelector(
+      `.journal-modal-section.${section.key} textarea`
+    );
+    if (textarea) {
+      monthData.dailyData[dateStr].diary[section.key] = textarea.value.trim();
+    }
+  });
+
+  // Save to data manager using updateDailyData
+  localDataManager.updateDailyData(monthKey, monthData);
+
+  console.log(`[JournalOverview] Journal entry saved successfully`);
+
+  // Close modal
+  modalOverlay.remove();
+
+  // Refresh the journal overview
+  renderJournalOverview();
 }
 
 // --- Cleanup ---
