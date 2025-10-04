@@ -485,6 +485,7 @@
   flex: 1;
   overflow: auto;
   padding: 1rem;
+  padding-top: 3.5rem;
 }
 
 .activity-grid-table {
@@ -539,9 +540,10 @@
   background-color: #f8f9fa;
   font-weight: 600;
   color: #495057;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  min-width: 20px;
-  max-width: 20px;
+  min-width: 60px;
+  max-width: 60px;
   min-height: 1.22rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
