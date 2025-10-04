@@ -662,7 +662,11 @@ export async function initMandalArtView(dataModule, eventBusModule) {
         const cellData = activeMandal.cells.find(
           (c) => c.id === cellEl.dataset.id
         );
+        const wasCompleted = cellData.isCompleted;
         cellData.isCompleted = !cellData.isCompleted;
+        console.log(
+          `[MandalArtViewHandler] Cell ${cellEl.dataset.id} completion toggled: ${wasCompleted} -> ${cellData.isCompleted}`
+        );
         data.updateMandalArtState(mandalState);
       }
     };
@@ -723,7 +727,11 @@ export async function initMandalArtView(dataModule, eventBusModule) {
 
       switch (action) {
         case "toggle-complete":
+          const wasCompleted = cellData.isCompleted;
           cellData.isCompleted = !cellData.isCompleted;
+          console.log(
+            `[MandalArtViewHandler] Cell ${contextMenuTarget.cellId} completion toggled via context menu: ${wasCompleted} -> ${cellData.isCompleted}`
+          );
           break;
         case "highlight":
           cellData.isHighlighted = !cellData.isHighlighted;

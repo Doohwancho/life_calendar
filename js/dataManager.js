@@ -1206,6 +1206,7 @@ export function getMandalArtState() {
  */
 export function updateMandalArtState(newMandalState, options = {}) {
   state.mandalArt = newMandalState;
+  console.log("[DataManager] Updating Mandal-Art state and marking as dirty");
   dirtyFileService.markFileAsDirty("mandal-art.json", state.mandalArt);
   if (options.broadcast !== false) {
     eventBus.dispatch("dataChanged", { source: "mandalArtUpdated" });

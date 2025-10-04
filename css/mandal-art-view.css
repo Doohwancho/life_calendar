@@ -265,8 +265,9 @@
 }
 
 .mandal-art-grid-container .cell.completed > textarea {
-  filter: var(--mandal-completed-blur);
-  opacity: 0.6;
+  /* blur 효과 제거 - 텍스트가 선명하게 보이도록 */
+  /* filter: var(--mandal-completed-blur); */
+  /* opacity: 0.6; */
 }
 
 .mandal-art-grid-container .checkmark {
