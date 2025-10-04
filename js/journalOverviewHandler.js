@@ -3,8 +3,8 @@
 import { getState, loadDataForYear } from "./dataManager.js";
 
 let localDataManager;
-let currentYear = new Date().getFullYear();
-let currentMonth = new Date().getMonth() + 1; // 1-12
+let currentYear;
+let currentMonth;
 
 // DOM Elements
 let currentMonthDisplay;
@@ -23,11 +23,21 @@ export async function initJournalOverview(
 
   localDataManager = dataModule;
 
+  // Initialize current year and month to current date
+  currentYear = new Date().getFullYear();
+  currentMonth = new Date().getMonth() + 1; // 1-12
+  console.log(
+    `[JournalOverview] Initialized: ${currentYear}년 ${currentMonth}월`
+  );
+
   // Initialize DOM elements
   initializeDOMElements();
 
   // Load data for current year
   await localDataManager.loadDataForYear(currentYear);
+
+  // Update month display
+  updateMonthDisplay();
 
   // Update navigation buttons
   updateNavigationButtons();
@@ -63,6 +73,7 @@ function changeMonth(direction) {
   }
 
   currentMonth = newMonth;
+  console.log(`[JournalOverview] Changed to month: ${currentMonth}`);
   updateMonthDisplay();
   updateNavigationButtons();
   renderJournalOverview();
@@ -84,6 +95,11 @@ function updateMonthDisplay() {
     "12월",
   ];
 
+  console.log(
+    `[JournalOverview] Updating display: ${currentYear}년 ${
+      monthNames[currentMonth - 1]
+    }`
+  );
   currentMonthDisplay.textContent = `${currentYear}년 ${
     monthNames[currentMonth - 1]
   }`;
