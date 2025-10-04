@@ -266,6 +266,8 @@ function renderMatrix() {
       const cellData = activeMandal.cells[idx];
       textarea.value = cellData?.content || "";
       textarea.dataset.index = String(idx);
+      // 컨텍스트 메뉴를 위해 cellId 추가
+      td.dataset.cellId = cellData?.id || `cell-${idx}`;
 
       // 완료 상태에 따른 스타일링
       if (cellData?.isCompleted) {
@@ -679,6 +681,27 @@ export async function initMandalArtView(dataModule, eventBusModule) {
         element: matrixContainerEl,
         type: "click",
         handler: matrixClickHandler,
+      });
+
+      // Matrix 우클릭 핸들러 (컨텍스트 메뉴)
+      const matrixContextMenuHandler = (e) => {
+        e.preventDefault();
+        const td = e.target.closest("td");
+        if (td && td.dataset.cellId) {
+          contextMenuTarget.cellId = td.dataset.cellId;
+          cellContextMenuEl.style.display = "block";
+          cellContextMenuEl.style.top = `${e.clientY}px`;
+          cellContextMenuEl.style.left = `${e.clientX}px`;
+        }
+      };
+      matrixContainerEl.addEventListener(
+        "contextmenu",
+        matrixContextMenuHandler
+      );
+      activeEventListeners.push({
+        element: matrixContainerEl,
+        type: "contextmenu",
+        handler: matrixContextMenuHandler,
       });
     }
 
