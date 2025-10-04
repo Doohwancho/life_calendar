@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Journal Overview</title>
+    <link rel="stylesheet" href="../css/spa-global.css" />
+    <link rel="stylesheet" href="../css/journal-overview.css" />
+  </head>
+  <body>
+    <div class="journal-overview-container">
+      <!-- Main Content -->
+      <main class="journal-main-content">
+        <!-- Left Column: Journal Entries -->
+        <div class="journal-left-column">
+          <div class="journal-entries-container">
+            <div class="journal-entries-header">
+              <div class="journal-header-top">
+                <h2>Daily Journal Entries</h2>
+                <div class="journal-controls">
+                  <button id="prevMonthBtn" class="month-nav-btn">←</button>
+                  <span id="currentMonthDisplay" class="current-month"
+                    >2025년 1월</span
+                  >
+                  <button id="nextMonthBtn" class="month-nav-btn">→</button>
+                </div>
+              </div>
+              <div class="journal-entries-labels">
+                <span class="journal-label-date">Date</span>
+                <span class="journal-label-keep">Keep</span>
+                <span class="journal-label-problem">Problem</span>
+                <span class="journal-label-try">Try</span>
+              </div>
+            </div>
+            <div id="journalEntriesList" class="journal-entries-list">
+              <!-- Journal entries will be dynamically generated here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Placeholder -->
+        <div class="journal-right-column">
+          <div class="journal-placeholder">
+            <h3>Additional Content</h3>
+            <p>This area is reserved for future features.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script type="module" src="../js/journalOverviewHandler.js"></script>
+  </body>
+</html>

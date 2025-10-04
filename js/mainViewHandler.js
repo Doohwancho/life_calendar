@@ -375,6 +375,7 @@ export async function initMainCalendarView(
   const labelNameInput = document.getElementById("labelNameInput");
   const labelColorInput = document.getElementById("labelColorInput");
   const mandalArtBtn = document.getElementById("mandalArtBtn");
+  const journalOverviewBtn = document.getElementById("journalOverviewBtn");
   const saveDataBtn = document.getElementById("saveDataBtn");
   const loadDataBtn = document.getElementById("loadDataBtn");
   const fileInput = document.getElementById("fileInput");
@@ -620,6 +621,21 @@ export async function initMainCalendarView(
       element: mandalArtBtn,
       type: "click",
       handler: mandalArtBtnClickHandler,
+    });
+  }
+
+  if (journalOverviewBtn) {
+    const journalOverviewBtnClickHandler = () => {
+      navigate("/journal-overview");
+    };
+    journalOverviewBtn.addEventListener(
+      "click",
+      journalOverviewBtnClickHandler
+    );
+    activeEventListeners.push({
+      element: journalOverviewBtn,
+      type: "click",
+      handler: journalOverviewBtnClickHandler,
     });
   }
 
