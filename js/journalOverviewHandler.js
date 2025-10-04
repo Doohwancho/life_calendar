@@ -400,20 +400,10 @@ function renderActivityGrid() {
 function checkColorUsage(dayData, color) {
   if (!dayData) return false;
 
-  // Check timeBlocks
+  // Check timeBlocks only (exclude goalBlocks)
   if (dayData.timeBlocks) {
     for (const blockId in dayData.timeBlocks) {
       const block = dayData.timeBlocks[blockId];
-      if (block && block.color === color.color) {
-        return true;
-      }
-    }
-  }
-
-  // Check goalBlocks
-  if (dayData.goalBlocks) {
-    for (const blockId in dayData.goalBlocks) {
-      const block = dayData.goalBlocks[blockId];
       if (block && block.color === color.color) {
         return true;
       }
