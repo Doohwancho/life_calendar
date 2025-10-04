@@ -42,10 +42,10 @@ export function getState() {
 
   const monthData = state.dailyData.get(currentMonthKey) || {};
 
-  // 컬러 팔레트: 1. 현재 월의 팔레트, 2. 전역 설정 팔레트, 3. 빈 배열
+  // 컬러 팔레트: 1. 연도별 데이터의 팔레트, 2. 전역 설정 팔레트, 3. 빈 배열
   const activeColorPalette =
-    monthData.colorPalette && monthData.colorPalette.length > 0
-      ? monthData.colorPalette
+    currentYearData.colorPalette && currentYearData.colorPalette.length > 0
+      ? currentYearData.colorPalette
       : state.settings.colorPalette || [];
 
   // 루틴: 현재 월의 루틴, 없으면 빈 배열
@@ -132,6 +132,7 @@ export function loadDataForYear(year) {
       projects: [],
       events: [],
       backlogTodos: [],
+      colorPalette: [],
     };
   }
 
@@ -142,6 +143,7 @@ export function loadDataForYear(year) {
   state.yearlyData.labels = state.yearlyData.projects; // 호환성을 위한 할당
   if (!state.yearlyData.events) state.yearlyData.events = [];
   if (!state.yearlyData.backlogTodos) state.yearlyData.backlogTodos = [];
+  if (!state.yearlyData.colorPalette) state.yearlyData.colorPalette = [];
 
   // 월별 데이터 로드
   for (let i = 1; i <= 12; i++) {
@@ -153,7 +155,6 @@ export function loadDataForYear(year) {
     ) || {
       yearMonth: yearMonthKey,
       routines: [],
-      colorPalette: [],
       dailyData: {},
     };
     state.dailyData.set(yearMonthKey, monthDataObject);
@@ -188,6 +189,7 @@ export function getCurrentYearDataForSave() {
         projects: state.yearlyData.projects || [], // labels -> projects
         events: state.yearlyData.events || [],
         backlogTodos: state.yearlyData.backlogTodos || [],
+        colorPalette: state.yearlyData.colorPalette || [],
       },
     });
   }
@@ -197,7 +199,6 @@ export function getCurrentYearDataForSave() {
       const dataToSave = {
         yearMonth: monthDataObject.yearMonth || yearMonthKey,
         routines: monthDataObject.routines || [],
-        colorPalette: monthDataObject.colorPalette || [],
         dailyData: monthDataObject.dailyData || {},
       };
       // dailyData 내부의 projectTodos도 자연스럽게 저장되지 않음
@@ -261,6 +262,7 @@ export function loadYearFromBackup(year, filesData) {
         labels: projects, // 호환성
         events: loadedFileData.events || [],
         backlogTodos: loadedFileData.backlogTodos || [],
+        colorPalette: loadedFileData.colorPalette || [],
       };
       dirtyFileService.markFileAsDirty(filenameInZip, state.yearlyData);
     }
@@ -272,7 +274,6 @@ export function loadYearFromBackup(year, filesData) {
       const monthDataObject = {
         yearMonth: loadedFileData.yearMonth || yearMonthKey,
         routines: loadedFileData.routines || [],
-        colorPalette: loadedFileData.colorPalette || [],
         dailyData: loadedFileData.dailyData || {},
       };
       // monthDataObject.dailyData 내부의 projectTodos는 로드되더라도, getProjectTodosForDate에서 사용 안 함
@@ -842,7 +843,6 @@ export function moveBacklogTodoToCalendar(todoId, targetDate) {
     monthData = {
       yearMonth,
       routines: [],
-      colorPalette: state.settings.colorPalette || [], // 설정 또는 기본 팔레트
       dailyData: {},
     };
     state.dailyData.set(yearMonth, monthData); // state에 새로 생성된 monthData 추가
@@ -969,7 +969,6 @@ export function moveWeeklyTodoToYearlyCalendar(todoId, targetDate) {
       monthData = {
         yearMonth: yearMonth,
         routines: [],
-        colorPalette: state.settings.colorPalette || [],
         dailyData: {},
       };
       state.dailyData.set(yearMonth, monthData);
@@ -1051,7 +1050,6 @@ export function moveYearlyTodoToAnotherDate(todoId, targetDate) {
       monthData = {
         yearMonth: targetYearMonth,
         routines: [],
-        colorPalette: state.settings.colorPalette || [],
         dailyData: {},
       };
       state.dailyData.set(targetYearMonth, monthData);
@@ -1136,7 +1134,6 @@ export function getSpecificYearDataForSave(yearToSave) {
       const dataToSave = {
         yearMonth: monthDataObject.yearMonth || yearMonthKey,
         routines: monthDataObject.routines || [],
-        colorPalette: monthDataObject.colorPalette || [],
         dailyData: monthDataObject.dailyData || {},
       };
       files.push({
@@ -1343,6 +1340,7 @@ export function updateYearlyGoal(goalText) {
       projects: [],
       events: [],
       backlogTodos: [],
+      colorPalette: [],
     };
   }
 
@@ -1352,5 +1350,29 @@ export function updateYearlyGoal(goalText) {
     markYearlyDataAsDirty();
     // 실시간 저장은 아니므로 dataChanged 이벤트는 생략하거나 필요시 추가
     // eventBus.dispatch('dataChanged', { source: 'updateYearlyGoal' });
+  }
+}
+
+export function updateYearlyColorPalette(newColorPalette) {
+  if (!state.yearlyData) {
+    // 연도 데이터가 아직 로드되지 않은 경우를 대비해 기본 구조 생성
+    state.yearlyData = {
+      year: state.view.currentDisplayYear,
+      yearlyGoal: "",
+      projects: [],
+      events: [],
+      backlogTodos: [],
+      colorPalette: [],
+    };
+  }
+
+  if (
+    JSON.stringify(state.yearlyData.colorPalette) !==
+    JSON.stringify(newColorPalette)
+  ) {
+    state.yearlyData.colorPalette = [...newColorPalette];
+    // 변경 사항을 localStorage에 기록
+    markYearlyDataAsDirty();
+    eventBus.dispatch("dataChanged", { source: "updateYearlyColorPalette" });
   }
 }

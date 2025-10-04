@@ -337,9 +337,13 @@ function handleDataChange() {
     typeof getRoutinesData === "function"
       ? getRoutinesData()
       : monthDataObject.routines || [];
-  monthDataObject.colorPalette = [...savedColors]; // 현재 UI의 팔레트 상태(savedColors)로 덮어쓰기
 
   localDataManager.updateDailyData(yearMonth, monthDataObject); // 수정된 전체 monthDataObject를 dataManager에 전달
+
+  // colorPalette는 연도별 데이터에 저장
+  if (typeof localDataManager.updateYearlyColorPalette === "function") {
+    localDataManager.updateYearlyColorPalette([...savedColors]);
+  }
   console.log(
     `[DailyViewHandler] Notified dataManager of changes for ${yearMonth}`
   );
@@ -430,13 +434,14 @@ export async function initDailyDetailView(
   ) || {
     yearMonth: yearMonthKeyForDailyView,
     routines: [],
-    colorPalette: settings?.colorPalette || [],
     dailyData: {},
   };
 
+  // colorPalette는 이제 연도별 데이터에서 가져옴
+  const yearlyData = localDataManager.getState();
   savedColors =
-    monthDataObject.colorPalette && monthDataObject.colorPalette.length > 0
-      ? [...monthDataObject.colorPalette]
+    yearlyData.colorPalette && yearlyData.colorPalette.length > 0
+      ? [...yearlyData.colorPalette]
       : settings?.colorPalette && settings.colorPalette.length > 0
       ? [...settings.colorPalette]
       : [];
