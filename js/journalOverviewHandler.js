@@ -355,6 +355,19 @@ function renderActivityGrid() {
     const th = document.createElement("th");
     th.textContent = color.name || color.label || "Unknown";
     th.className = "activity-grid-label";
+
+    // Apply background color from colorPalette
+    if (color.color) {
+      th.style.backgroundColor = color.color;
+
+      // Check if color is dark and set text color accordingly
+      if (isDarkColor(color.color)) {
+        th.style.color = "white";
+      } else {
+        th.style.color = "black";
+      }
+    }
+
     headerRow.appendChild(th);
   });
 
@@ -395,6 +408,34 @@ function renderActivityGrid() {
   }
 
   activityGrid.appendChild(table);
+}
+
+function isDarkColor(color) {
+  if (!color) return false;
+
+  // Convert hex to RGB
+  let r, g, b;
+  if (color.startsWith("#")) {
+    const hex = color.slice(1);
+    r = parseInt(hex.substr(0, 2), 16);
+    g = parseInt(hex.substr(2, 2), 16);
+    b = parseInt(hex.substr(4, 2), 16);
+  } else if (color.startsWith("rgb")) {
+    const matches = color.match(/\d+/g);
+    if (matches && matches.length >= 3) {
+      r = parseInt(matches[0]);
+      g = parseInt(matches[1]);
+      b = parseInt(matches[2]);
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+
+  // Calculate luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance < 0.5;
 }
 
 function checkColorUsage(dayData, color) {
