@@ -229,6 +229,22 @@
   overflow: auto; /* 내용 많을 때 스크롤 */
 }
 
+/* Matrix view에서 완료된 셀 스타일 */
+.mandal-matrix td.completed {
+  position: relative;
+  /* 배경색은 JavaScript에서 동적으로 설정됨 (getRepresentativeColor 함수 사용) */
+}
+
+.mandal-matrix td.completed .checkmark {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  font-size: 1.2em;
+  color: #4caf50;
+  user-select: none; /* 체크마크 선택 방지 */
+  z-index: 1;
+}
+
 .mandal-art-grid-container .cell.border-right-bold {
   border-right: 3px solid var(--mandal-border-bold-color);
 }
@@ -264,11 +280,7 @@
   place-content: center;
 }
 
-.mandal-art-grid-container .cell.completed > textarea {
-  /* blur 효과 제거 - 텍스트가 선명하게 보이도록 */
-  /* filter: var(--mandal-completed-blur); */
-  /* opacity: 0.6; */
-}
+/* Grid view에서 완료된 셀의 textarea는 blur 효과를 제거하여 텍스트가 선명하게 보이도록 함 */
 
 .mandal-art-grid-container .checkmark {
   position: absolute;

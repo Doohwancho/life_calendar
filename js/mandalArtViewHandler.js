@@ -266,6 +266,19 @@ function renderMatrix() {
       const cellData = activeMandal.cells[idx];
       textarea.value = cellData?.content || "";
       textarea.dataset.index = String(idx);
+
+      // 완료 상태에 따른 스타일링
+      if (cellData?.isCompleted) {
+        td.classList.add("completed");
+        // Grid view와 동일한 대표 색상 적용
+        td.style.backgroundColor = getRepresentativeColor(idx);
+        // 체크마크 추가
+        const checkmark = document.createElement("div");
+        checkmark.className = "checkmark";
+        checkmark.innerHTML = "✔";
+        td.appendChild(checkmark);
+      }
+
       td.appendChild(textarea);
       tr.appendChild(td);
     }
@@ -633,6 +646,39 @@ export async function initMandalArtView(dataModule, eventBusModule) {
         element: matrixContainerEl,
         type: "input",
         handler: matrixInputHandler,
+      });
+
+      // Matrix 클릭 핸들러 (완료 토글)
+      const matrixClickHandler = (e) => {
+        const td = e.target.closest("td");
+        if (td && e.target.tagName !== "TEXTAREA") {
+          // td 자체를 클릭했을 때 (textarea가 아닌 경우)
+          const textarea = td.querySelector("textarea");
+          if (textarea && textarea.dataset.index) {
+            const idx = parseInt(textarea.dataset.index, 10);
+            const mandalState = JSON.parse(
+              JSON.stringify(data.getMandalArtState())
+            );
+            const activeMandal = mandalState.mandalArts.find(
+              (m) => m.id === mandalState.activeMandalArtId
+            );
+            const cellData = activeMandal.cells[idx];
+            if (cellData) {
+              const wasCompleted = cellData.isCompleted;
+              cellData.isCompleted = !cellData.isCompleted;
+              console.log(
+                `[MandalArtViewHandler] Matrix cell ${idx} completion toggled: ${wasCompleted} -> ${cellData.isCompleted}`
+              );
+              data.updateMandalArtState(mandalState);
+            }
+          }
+        }
+      };
+      matrixContainerEl.addEventListener("click", matrixClickHandler);
+      activeEventListeners.push({
+        element: matrixContainerEl,
+        type: "click",
+        handler: matrixClickHandler,
       });
     }
 
